@@ -1,0 +1,11 @@
+# BATS — dependencias de DESARROLLO local (CLI, análisis, tests, bot).
+# Instalar con: pip install -r requirements-dev.txt
+-r requirements.txt
+
+uvicorn>=0.30           # servidor local de la API
+pandas>=2.2.0           # metrics.py / report.py / cli.py (análisis en memoria)
+rich>=13.0.0            # tablas en terminal
+watchdog>=4.0.0         # subcomando `watch` (se elimina con la ingesta por push)
+pytest>=8.0             # tests
+poke-env>=0.12          # PGL-Bot (bot/); no es parte del deploy
+httpx>=0.27             # TestClient de FastAPI en los tests

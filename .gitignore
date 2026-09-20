@@ -1,0 +1,25 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secretos y config local (bats/.env y bats/web/.env)
+.env
+*.local
+
+# Cache de PokéAPI y bans locales (los bans reales viven en pokemon-showdown/)
+.pokeapi_cache/
+active_bans.json
+
+# Web
+web/node_modules/
+web/dist/
+web/dist-ssr/
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.log

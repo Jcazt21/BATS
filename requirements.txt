@@ -1,0 +1,7 @@
+# BATS — dependencias de DEPLOY (Vercel instala este archivo).
+# Solo lo que necesita la API. Nada de pandas/rich/watchdog: son del CLI local
+# y no deben entrar al bundle de la función serverless.
+fastapi>=0.115
+psycopg2-binary>=2.9
+python-dotenv>=1.0.0
+python-jose[cryptography]>=3.3

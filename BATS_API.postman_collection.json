@@ -1,0 +1,535 @@
+{
+  "info": {
+    "name": "BATS API",
+    "description": "Battle Analyzing & Tracking System — colección completa de endpoints, organizada por módulo de front.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8001",  "type": "string" },
+    { "key": "token",    "value": "",                       "type": "string",
+      "description": "Se llena automáticamente al ejecutar POST /api/admin/login" }
+  ],
+  "item": [
+
+    {
+      "name": "🔐 Auth (Login)",
+      "description": "Autenticación del panel admin.",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.access_token) {",
+                  "  pm.collectionVariables.set('token', json.access_token);",
+                  "  console.log('Token guardado en variable de colección');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"tu_password_admin\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/admin/login", "host": ["{{base_url}}"], "path": ["api","admin","login"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "🗳️ Ban (votación pública)",
+      "description": "Módulo público de votación de bans — BanPage.",
+      "item": [
+        {
+          "name": "Check User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"jamblet\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/ban/check-user", "host": ["{{base_url}}"], "path": ["api","ban","check-user"] }
+          }
+        },
+        {
+          "name": "Submit Ban Vote",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"jamblet\",\n  \"pokemon_name\": \"Snorlax\",\n  \"pokemon_types\": \"Normal\",\n  \"sprite_url\": \"https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/143.png\",\n  \"national_dex\": 143\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/ban/submit", "host": ["{{base_url}}"], "path": ["api","ban","submit"] }
+          }
+        },
+        {
+          "name": "Ban Ranking",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/ban/ranking", "host": ["{{base_url}}"], "path": ["api","ban","ranking"] }
+          }
+        },
+        {
+          "name": "Ban Status",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/ban/status", "host": ["{{base_url}}"], "path": ["api","ban","status"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "📊 Stats",
+      "description": "Estadísticas públicas — StatsPage.",
+      "item": [
+        {
+          "name": "Summary",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/stats/summary", "host": ["{{base_url}}"], "path": ["api","stats","summary"] }
+          }
+        },
+        {
+          "name": "Leaderboard",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/stats/leaderboard", "host": ["{{base_url}}"], "path": ["api","stats","leaderboard"] }
+          }
+        },
+        {
+          "name": "MVP Top 5",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/stats/mvp", "host": ["{{base_url}}"], "path": ["api","stats","mvp"] }
+          }
+        },
+        {
+          "name": "Pick Rate",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/stats/pickrate", "host": ["{{base_url}}"], "path": ["api","stats","pickrate"] }
+          }
+        },
+        {
+          "name": "Battle Detail",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/stats/battles/:battle_id",
+              "host": ["{{base_url}}"],
+              "path": ["api","stats","battles",":battle_id"],
+              "variable": [{ "key": "battle_id", "value": "gen9ou-123456789" }]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "🤖 Stats · Bot",
+      "description": "Estadísticas de batallas contra bot — StatsBotPage.",
+      "item": [
+        {
+          "name": "Bot Summary",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/stats/bot/summary", "host": ["{{base_url}}"], "path": ["api","stats","bot","summary"] }
+          }
+        },
+        {
+          "name": "Bot Pokemon",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/stats/bot/pokemon", "host": ["{{base_url}}"], "path": ["api","stats","bot","pokemon"] }
+          }
+        },
+        {
+          "name": "Bot Battles",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/api/stats/bot/battles", "host": ["{{base_url}}"], "path": ["api","stats","bot","battles"] }
+          }
+        },
+        {
+          "name": "Bot Battle Detail",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/stats/bot/battles/:battle_id",
+              "host": ["{{base_url}}"],
+              "path": ["api","stats","bot","battles",":battle_id"],
+              "variable": [{ "key": "battle_id", "value": "gen9ou-123456789" }]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "⚔️ Batallas (admin)",
+      "description": "Gestión de batallas — BattlesPage.",
+      "item": [
+        {
+          "name": "List Battles",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/admin/battles", "host": ["{{base_url}}"], "path": ["api","admin","battles"] }
+          }
+        },
+        {
+          "name": "Delete Battle",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/admin/battles/:battle_id",
+              "host": ["{{base_url}}"],
+              "path": ["api","admin","battles",":battle_id"],
+              "variable": [{ "key": "battle_id", "value": "gen9ou-123456789" }]
+            }
+          }
+        },
+        {
+          "name": "Reset All Battles",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/admin/reset-battles", "host": ["{{base_url}}"], "path": ["api","admin","reset-battles"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "🛡️ Ban List (admin)",
+      "description": "Vista de bans activos de la temporada — BansPage.",
+      "item": [
+        {
+          "name": "Get Active Season Bans",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/admin/bans", "host": ["{{base_url}}"], "path": ["api","admin","bans"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "📅 Temporadas (admin)",
+      "description": "CRUD de temporadas, bans, votos y whitelist — SeasonsPage.",
+      "item": [
+        {
+          "name": "List Seasons",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/admin/seasons", "host": ["{{base_url}}"], "path": ["api","admin","seasons"] }
+          }
+        },
+        {
+          "name": "Create Season",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"season_name\": \"Temporada Beta\",\n  \"type_of_month\": \"Fire\",\n  \"start_date\": \"2026-05-01\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/admin/seasons", "host": ["{{base_url}}"], "path": ["api","admin","seasons"] }
+          }
+        },
+        {
+          "name": "Activate Season",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/admin/seasons/:season_id/activate",
+              "host": ["{{base_url}}"],
+              "path": ["api","admin","seasons",":season_id","activate"],
+              "variable": [{ "key": "season_id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Close Season",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/admin/seasons/:season_id/close",
+              "host": ["{{base_url}}"],
+              "path": ["api","admin","seasons",":season_id","close"],
+              "variable": [{ "key": "season_id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Delete Season",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/admin/seasons/:season_id",
+              "host": ["{{base_url}}"],
+              "path": ["api","admin","seasons",":season_id"],
+              "variable": [{ "key": "season_id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Get Season Bans",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/admin/seasons/:season_id/bans",
+              "host": ["{{base_url}}"],
+              "path": ["api","admin","seasons",":season_id","bans"],
+              "variable": [{ "key": "season_id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Add Season Ban",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"player_username\": \"jamblet\",\n  \"pokemon_name\": \"Snorlax\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/seasons/:season_id/bans",
+              "host": ["{{base_url}}"],
+              "path": ["api","admin","seasons",":season_id","bans"],
+              "variable": [{ "key": "season_id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Revoke Season Ban",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/admin/seasons/:season_id/bans/:ban_id",
+              "host": ["{{base_url}}"],
+              "path": ["api","admin","seasons",":season_id","bans",":ban_id"],
+              "variable": [
+                { "key": "season_id", "value": "1" },
+                { "key": "ban_id",    "value": "1" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Season Votes",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/admin/seasons/:season_id/votes",
+              "host": ["{{base_url}}"],
+              "path": ["api","admin","seasons",":season_id","votes"],
+              "variable": [{ "key": "season_id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Get Season Whitelist",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/admin/seasons/:season_id/whitelist",
+              "host": ["{{base_url}}"],
+              "path": ["api","admin","seasons",":season_id","whitelist"],
+              "variable": [{ "key": "season_id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Add Season Whitelist",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"nuevojugador\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/seasons/:season_id/whitelist",
+              "host": ["{{base_url}}"],
+              "path": ["api","admin","seasons",":season_id","whitelist"],
+              "variable": [{ "key": "season_id", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "Remove Season Whitelist",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/admin/seasons/:season_id/whitelist/:voter_hash",
+              "host": ["{{base_url}}"],
+              "path": ["api","admin","seasons",":season_id","whitelist",":voter_hash"],
+              "variable": [
+                { "key": "season_id",  "value": "1"                                                               },
+                { "key": "voter_hash", "value": "089000f67961c3435d8dd7a06865c0d91293cdeff03c0ec12fdae4ed592a4e7d" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Season Violations",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/admin/seasons/:season_id/violations",
+              "host": ["{{base_url}}"],
+              "path": ["api","admin","seasons",":season_id","violations"],
+              "variable": [{ "key": "season_id", "value": "1" }]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "👥 Whitelist (admin)",
+      "description": "Gestión global de whitelist — WhitelistPage.",
+      "item": [
+        {
+          "name": "Get Whitelist",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/admin/whitelist", "host": ["{{base_url}}"], "path": ["api","admin","whitelist"] }
+          }
+        },
+        {
+          "name": "Add Player to Whitelist",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"nuevojugador\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/admin/whitelist/add", "host": ["{{base_url}}"], "path": ["api","admin","whitelist","add"] }
+          }
+        },
+        {
+          "name": "Remove Player from Whitelist",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/admin/whitelist/:voter_hash",
+              "host": ["{{base_url}}"],
+              "path": ["api","admin","whitelist",":voter_hash"],
+              "variable": [{ "key": "voter_hash", "value": "089000f67961c3435d8dd7a06865c0d91293cdeff03c0ec12fdae4ed592a4e7d" }]
+            }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "🧹 ETL Cleaner (admin)",
+      "description": "Gestión y limpieza masiva de logs — ETLCleanerPage.",
+      "item": [
+        {
+          "name": "List Directories (by month)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/admin/etl/directories", "host": ["{{base_url}}"], "path": ["api","admin","etl","directories"] }
+          }
+        },
+        {
+          "name": "Delete Directory (entire month)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"directory\": \"/absolute/path/to/logs/2026-03\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/admin/etl/directory", "host": ["{{base_url}}"], "path": ["api","admin","etl","directory"] }
+          }
+        },
+        {
+          "name": "List ETL Files",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/api/admin/etl/files", "host": ["{{base_url}}"], "path": ["api","admin","etl","files"] }
+          }
+        },
+        {
+          "name": "Delete ETL Files (bulk)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Content-Type",  "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"file_paths\": [\n    \"/absolute/path/to/battle.log.json\"\n  ]\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/admin/etl/files", "host": ["{{base_url}}"], "path": ["api","admin","etl","files"] }
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "❤️ Health",
+      "description": "Estado del servicio.",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"] }
+          }
+        }
+      ]
+    }
+
+  ]
+}

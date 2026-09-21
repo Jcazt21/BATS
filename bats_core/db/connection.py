@@ -143,9 +143,8 @@ class BATSDatabase:
         """
         Cierra la conexión al salir del bloque with.
 
-        Hace commit si no hubo excepción; rollback si la hubo.
-        Esto garantiza que fetchone() con UPDATE/INSERT...RETURNING
-        también persista sin necesidad de llamar commit() manualmente.
+        Hace commit si no hubo excepción; rollback si la hubo. Es el único commit
+        implícito: todo el bloque es una transacción.
         """
         if self._conn is not None:
             if exc_type is not None:
@@ -165,25 +164,27 @@ class BATSDatabase:
 
     def execute(self, sql: str, params: Optional[tuple] = None) -> None:
         """
-        Ejecuta una sentencia SQL y hace commit.
+        Ejecuta una sentencia SQL SIN confirmarla.
 
-        Usa un cursor estándar (sin retorno de filas). Para INSERT, UPDATE,
-        DELETE o DDL. Hace commit automático al finalizar.
+        Todo lo escrito dentro de un bloque ``with`` forma UNA transacción: se
+        confirma al salir sin excepción y se revierte entera si hubo una. Antes
+        cada ``execute`` hacía commit por su cuenta, y un bloque con varias
+        escrituras dejaba estados a medias si fallaba a mitad de camino.
+
+        Fuera de un ``with`` hay que llamar a ``commit()`` explícitamente.
 
         Args:
             sql:    Sentencia SQL a ejecutar. Usar %s como placeholders.
             params: Tupla de parámetros para la sentencia. None si no aplica.
 
         Raises:
-            psycopg2.Error: Si la ejecución falla. En ese caso hace rollback.
+            psycopg2.Error: Si la ejecución falla.
         """
         try:
             with self.conn.cursor() as cur:
                 cur.execute(sql, params)
-            self.conn.commit()
         except Exception as exc:
-            self.conn.rollback()
-            logger.error("Error ejecutando SQL: %s | params: %s | error: %s", sql[:120], params, exc)
+            logger.error("Error ejecutando SQL: %s | error: %s", sql[:120], exc)
             raise
 
     def fetchall(self, sql: str, params: Optional[tuple] = None) -> list[dict]:
@@ -310,15 +311,6 @@ class BATSDatabase:
         return applied
 
     # ─── Transacciones manuales ───────────────────────────────────────────────
-
-    def begin(self) -> None:
-        """
-        Marca el inicio de una transacción explícita.
-
-        En psycopg2 con autocommit=False las transacciones se inician
-        automáticamente, pero este método es útil para claridad en el código ETL.
-        """
-        logger.debug("Iniciando transacción explícita.")
 
     def commit(self) -> None:
         """Confirma la transacción actual."""

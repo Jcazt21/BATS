@@ -16,44 +16,15 @@ Endpoints:
   GET    /api/admin/seasons/{id}/whitelist            → whitelist de la temporada
 """
 import json
-from datetime import date
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 
 from ..auth import require_admin
+from ..common import iso
 from ..db import get_db
+from ..schemas import AddBanRequest, AddWhitelistRequest, CreateSeasonRequest, UpdateSeasonRequest
 
 router = APIRouter(prefix="/api/admin/seasons", tags=["seasons"])
-
-
-# ── Schemas ───────────────────────────────────────────────────────────────────
-
-class CreateSeasonRequest(BaseModel):
-    season_name:      str
-    type_of_month:    str
-    start_date:       date
-    max_team_size:    int = 8
-    max_team_changes: int = 4
-    restrictions:     dict = {}
-
-
-class UpdateSeasonRequest(BaseModel):
-    season_name:      str | None  = None
-    type_of_month:    str | None  = None
-    start_date:       date | None = None
-    end_date:         date | None = None   # enviar None explícito borra la fecha
-    clear_end_date:   bool        = False  # True → poner end_date = NULL
-    is_active:        bool | None = None
-    max_team_size:    Optional[int]  = None
-    max_team_changes: Optional[int]  = None
-    restrictions:     Optional[dict] = None
-
-
-class AddBanRequest(BaseModel):
-    player_username: str
-    pokemon_name:    str  # debe existir en tournament.pokemon_cache
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -91,10 +62,10 @@ def _serialize(row: dict) -> dict:
         "season_id":        row["season_id"],
         "season_name":      row["season_name"],
         "type_of_month":    row["type_of_month"],
-        "start_date":       row["start_date"].isoformat() if row["start_date"] else None,
-        "end_date":         row["end_date"].isoformat()   if row["end_date"]   else None,
+        "start_date":       iso(row["start_date"]),
+        "end_date":         iso(row["end_date"]),
         "is_active":        row["is_active"],
-        "created_at":       row["created_at"].isoformat() if row["created_at"] else None,
+        "created_at":       iso(row["created_at"]),
         "max_team_size":    row.get("max_team_size", 8),
         "max_team_changes": row.get("max_team_changes", 4),
         "restrictions":     restrictions,
@@ -288,9 +259,9 @@ def get_season_bans(season_id: int):
             "pokemon_types":   r["pokemon_types"],
             "sprite_url":      r["sprite_url"],
             "national_dex":    r["national_dex"],
-            "banned_at":       r["banned_at"].isoformat() if r["banned_at"] else None,
+            "banned_at":       iso(r["banned_at"]),
             "is_active":       r["is_active"],
-            "revoked_at":      r["revoked_at"].isoformat() if r["revoked_at"] else None,
+            "revoked_at":      iso(r["revoked_at"]),
         }
         for r in rows
     ]
@@ -370,7 +341,7 @@ def add_season_ban(season_id: int, body: AddBanRequest):
         "pokemon_types":   pokemon["types"],
         "sprite_url":      pokemon["sprite_url"],
         "national_dex":    pokemon["national_dex"],
-        "banned_at":       row["banned_at"].isoformat() if row["banned_at"] else None,
+        "banned_at":       iso(row["banned_at"]),
         "is_active":       True,
         "revoked_at":      None,
     }
@@ -437,9 +408,36 @@ def get_season_violations(season_id: int):
             "pokemon_species": r["pokemon_species"],
             "sprite_url":      r["sprite_url"],
             "was_active":      r["was_active"],
-            "battle_date":     r["battle_date"].isoformat() if r["battle_date"] else None,
-            "detected_at":     r["detected_at"].isoformat() if r["detected_at"] else None,
+            "battle_date":     iso(r["battle_date"]),
+            "detected_at":     iso(r["detected_at"]),
         }
+        for r in rows
+    ]
+
+
+@router.get("/{season_id}/team-violations", dependencies=[Depends(require_admin)])
+def get_season_team_violations(season_id: int):
+    """
+    Violaciones de equipo detectadas por el ETL: pokémon fuera del roster registrado,
+    jugadores sin roster, y rotaciones que exceden el límite de la temporada.
+    """
+    with get_db() as db:
+        _season_or_404(db, season_id)
+        rows = db.fetchall(
+            """
+            SELECT v.violation_id, v.battle_id, v.violation_type, v.was_active, v.detected_at,
+                   dpl.username AS player_username, dp.species AS pokemon_species, fb.battle_date
+            FROM tournament.team_violations v
+            JOIN battle.fact_battles fb  ON fb.battle_id  = v.battle_id
+            JOIN battle.dim_players  dpl ON dpl.player_id = v.player_id
+            JOIN battle.dim_pokemon  dp  ON dp.pokemon_id = v.pokemon_id
+            WHERE v.season_id = %s
+            ORDER BY v.detected_at DESC
+            """,
+            (season_id,),
+        )
+    return [
+        {**r, "battle_date": iso(r["battle_date"]), "detected_at": iso(r["detected_at"])}
         for r in rows
     ]
 
@@ -459,10 +457,6 @@ def get_season_votes(season_id: int):
 
 
 # ── Season Whitelist ──────────────────────────────────────────────────────────
-
-class AddWhitelistRequest(BaseModel):
-    username: str
-
 
 @router.get("/{season_id}/whitelist", dependencies=[Depends(require_admin)])
 def get_season_whitelist(season_id: int):
@@ -484,7 +478,7 @@ def get_season_whitelist(season_id: int):
         {
             "voter_hash": r["voter_hash"],
             "username":   r["username"],
-            "added_at":   r["added_at"].isoformat() if r["added_at"] else None,
+            "added_at":   iso(r["added_at"]),
             "voted":      r["voter_hash"] in participated,
         }
         for r in rows

@@ -7,12 +7,12 @@
 | Fase | Estado | Verificación |
 |---|---|---|
 | 0 — Repo propio + `bats_core/` | Hecho | 42 tests pasan (los 2 que fallan ya fallaban: fórmula MVP) |
-| 1 — Schema portable | Hecho, **falta el proyecto Supabase** | Base vacía → estructura idéntica a `bats-pkmn` (273 líneas de firma: columnas, constraints, índices, vistas, funciones) |
+| 1 — Schema portable + **datos en Supabase** | **Hecho y aplicado** (proyecto `BATS`, us-east-1, Postgres 17.6) | Base vacía → estructura idéntica a `bats-pkmn` (273 líneas de firma) + solo las 8 líneas de `v8`. Datos migrados con `pg_dump`/`pg_restore`: 18 tablas con conteos iguales, 189 filas de contenido comparadas sin diferencias, secuencias correctas. La API a través del transaction pooler (`:6543`) devuelve lo mismo que tu DB local en 9 de 10 endpoints; el décimo (`pickrate`) difiere porque **la vista materializada de tu DB local está desactualizada** (Supabase coincide con un recálculo fresco) |
 | 2.1 — ETL sin filesystem | Hecho | `parse_battle_file` == `parse_battle_dict` == foto de referencia en los 13 logs; datos cargados idénticos a los de tu DB real (12 batallas, 152 filas) |
 | 2.2 — Refresh de vistas | Hecho | `CONCURRENTLY`: 0.07s con un lector con la vista abierta (uno bloqueante esperaría todo el `pg_sleep`) |
 | 2.3 — Sin escritura a disco | Hecho | `active_bans.json` intacto tras votar; ETL Cleaner reducido a DB |
 | 3 — Ingesta por push | Hecho | Batalla **real** de PS → hook → API real → fila en la DB |
-| 5 — Frontend + despliegue | Hecho salvo desplegar | `tsc`, build y proxy de dev verificados; `vercel.json` sin probar en Vercel |
+| 5 — Frontend + despliegue | **Desplegado** en https://bats-kohl.vercel.app | Frontend y rutas SPA (200), API leyendo Supabase por el pooler `:6543` (~0.2–0.3 s), escritura real (batalla nueva `loaded`, reenvío `skipped`, 14 filas de rendimiento), `backfill` de los 13 logs (13 omitidas, 0 fallidas), refresh por token de ingesta y por `CRON_SECRET` (200), 5/5 rechazos de autenticación correctos. Datos de prueba borrados (Supabase = 12 batallas, 12 `etl_log`) |
 | **4 — Supabase Auth** | **Pendiente** | Ver "Decisiones abiertas" |
 
 **Cambios respecto al plan original** (descubiertos al ejecutar):
@@ -27,10 +27,10 @@
 
 **Pendiente — necesita cosas tuyas:**
 
-1. **Crear el proyecto Supabase** (misma región que las funciones de Vercel) y darme el connection string de *transaction mode* (`:6543`). Con eso: `python -m bats_core db --apply-schema` sobre la base vacía, y `pg_dump`/`pg_restore` de los datos de `bats-pkmn` (solo `battle.*` y `tournament.*`; **no** correr `seed.sql` ni `roles.sql`).
+1. ~~Crear el proyecto Supabase~~ — **Hecho.** Credenciales en `bats/.env` (`BATS_SUPABASE_DSN_POOLER` para Vercel, `BATS_SUPABASE_DSN_SESSION` para migraciones). Data API desactivada a propósito: las tablas no tienen RLS. Plan Free: el proyecto **se pausa tras 7 días sin actividad**.
 2. **Aplicar `v8.sql` a tu DB local** si quieres seguir usándola (hoy no lo tiene; lo ejercita `--apply-schema`).
-3. **Fase 4 (auth):** ver decisiones abiertas.
-4. **Desplegar en Vercel** y configurar variables: `BATS_DB_DSN`, `BATS_VOTER_SALT`, `BATS_INGEST_TOKEN`, `CRON_SECRET`.
+3. **Fase 4 (auth):** ver decisiones abiertas. **Urgente: la API ya es pública** y la contraseña de admin sigue siendo `BATS_VOTER_SALT`.
+4. ~~Desplegar en Vercel~~ — hecho (variables: `BATS_DB_DSN` = pooler de Supabase, `BATS_VOTER_SALT`, `BATS_INGEST_TOKEN`, `CRON_SECRET`).
 5. **En el server de PS** (`config/config.js`): `batsurl`, `batsingesttoken`. Tras validar el push en vivo, se puede borrar `watcher.py` y el subcomando `watch`.
 
 **Decisiones abiertas de la Fase 4** (no las tomé por ti):

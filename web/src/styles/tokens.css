@@ -1,0 +1,353 @@
+/* =============================================================================
+   BATS — Design tokens (Apple HIG)
+   -----------------------------------------------------------------------------
+   Una sola fuente de verdad para color, tipografía, radios, materiales y motion.
+   Claro y oscuro son temas REALES: `.dark` en <html> (lo pone ThemeProvider según
+   la preferencia del usuario o del sistema).
+   Los nombres semánticos de shadcn (background, card, primary…) se conservan para
+   que los componentes de ui/ sigan funcionando.
+   ============================================================================= */
+
+/* ─── Tema claro (por defecto) ─────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+
+  /* Superficies: fondo agrupado gris, tarjetas blancas (como Ajustes en iOS) */
+  --background:           oklch(0.968 0.003 264);
+  --foreground:           oklch(0.2 0.01 264);
+  --card:                 oklch(1 0 0);
+  --card-foreground:      oklch(0.2 0.01 264);
+  --popover:              oklch(1 0 0);
+  --popover-foreground:   oklch(0.2 0.01 264);
+
+  /* Acento (systemBlue). El texto blanco sobre él cumple AA. */
+  --primary:              oklch(0.55 0.2 258);
+  --primary-foreground:   oklch(1 0 0);
+
+  --secondary:            oklch(0.94 0.004 264);
+  --secondary-foreground: oklch(0.25 0.01 264);
+  --muted:                oklch(0.95 0.004 264);
+  --muted-foreground:     oklch(0.48 0.012 264);
+  --accent:               oklch(0.93 0.005 264);
+  --accent-foreground:    oklch(0.2 0.01 264);
+
+  /* Estados */
+  --success:              oklch(0.5 0.14 150);
+  --success-soft:         oklch(0.94 0.05 150);
+  --warning:              oklch(0.52 0.13 65);
+  --warning-soft:         oklch(0.95 0.06 85);
+  --destructive:          oklch(0.53 0.21 27);
+  --destructive-soft:     oklch(0.95 0.03 25);
+  --info:                 oklch(0.55 0.2 258);
+  --info-soft:            oklch(0.955 0.02 258);
+
+  /* Líneas y foco */
+  --border:               oklch(0.2 0.01 264 / 0.1);
+  --input:                oklch(0.2 0.01 264 / 0.16);
+  --separator:            oklch(0.2 0.01 264 / 0.08);
+  --ring:                 oklch(0.55 0.2 258 / 0.55);
+
+  /* Series de gráficos: categóricas, distinguibles y legibles sobre `card` */
+  --chart-1: oklch(0.55 0.2 258);
+  --chart-2: oklch(0.6 0.13 190);
+  --chart-3: oklch(0.65 0.17 55);
+  --chart-4: oklch(0.58 0.2 340);
+  --chart-5: oklch(0.55 0.18 295);
+  --chart-6: oklch(0.6 0.15 145);
+
+  /* Barra lateral (admin) */
+  --sidebar:                    oklch(0.985 0.002 264);
+  --sidebar-foreground:         oklch(0.2 0.01 264);
+  --sidebar-primary:            oklch(0.55 0.2 258);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent:             oklch(0.93 0.005 264);
+  --sidebar-accent-foreground:  oklch(0.2 0.01 264);
+  --sidebar-border:             oklch(0.2 0.01 264 / 0.1);
+  --sidebar-ring:               oklch(0.55 0.2 258 / 0.55);
+
+  /* Materiales translúcidos (ver .material-* más abajo) */
+  --material-thin:    oklch(0.985 0.002 264 / 0.55);
+  --material-regular: oklch(0.985 0.002 264 / 0.72);
+  --material-thick:   oklch(0.985 0.002 264 / 0.86);
+  --material-edge:    oklch(1 0 0 / 0.6);          /* borde superior: luz sobre el material */
+
+  /* Sombras: más profundas cuanto más grande es la superficie */
+  --shadow-sm: 0 1px 2px oklch(0.2 0.01 264 / 0.06), 0 0 0 0.5px oklch(0.2 0.01 264 / 0.04);
+  --shadow-md: 0 4px 12px oklch(0.2 0.01 264 / 0.08), 0 1px 3px oklch(0.2 0.01 264 / 0.06);
+  --shadow-lg: 0 16px 40px oklch(0.2 0.01 264 / 0.14), 0 2px 6px oklch(0.2 0.01 264 / 0.06);
+
+  /* Radios (esquinas generosas, como iOS) */
+  --radius: 0.875rem;
+}
+
+/* ─── Tema oscuro ──────────────────────────────────────────────────────────── */
+.dark {
+  color-scheme: dark;
+
+  --background:           oklch(0.13 0.004 264);
+  --foreground:           oklch(0.97 0.003 264);
+  --card:                 oklch(0.185 0.005 264);
+  --card-foreground:      oklch(0.97 0.003 264);
+  --popover:              oklch(0.22 0.006 264);
+  --popover-foreground:   oklch(0.97 0.003 264);
+
+  --primary:              oklch(0.7 0.16 255);
+  --primary-foreground:   oklch(0.14 0.02 264);
+
+  --secondary:            oklch(0.25 0.006 264);
+  --secondary-foreground: oklch(0.97 0.003 264);
+  --muted:                oklch(0.24 0.006 264);
+  --muted-foreground:     oklch(0.7 0.01 264);
+  --accent:               oklch(0.29 0.007 264);
+  --accent-foreground:    oklch(0.97 0.003 264);
+
+  --success:              oklch(0.75 0.17 150);
+  --success-soft:         oklch(0.27 0.06 150);
+  --warning:              oklch(0.8 0.15 80);
+  --warning-soft:         oklch(0.29 0.06 80);
+  --destructive:          oklch(0.7 0.19 25);
+  --destructive-soft:     oklch(0.28 0.07 25);
+  --info:                 oklch(0.7 0.16 255);
+  --info-soft:            oklch(0.27 0.06 255);
+
+  --border:               oklch(1 0 0 / 0.1);
+  --input:                oklch(1 0 0 / 0.16);
+  --separator:            oklch(1 0 0 / 0.08);
+  --ring:                 oklch(0.7 0.16 255 / 0.6);
+
+  --chart-1: oklch(0.7 0.16 255);
+  --chart-2: oklch(0.75 0.12 190);
+  --chart-3: oklch(0.78 0.15 60);
+  --chart-4: oklch(0.72 0.18 340);
+  --chart-5: oklch(0.72 0.16 295);
+  --chart-6: oklch(0.75 0.16 150);
+
+  --sidebar:                    oklch(0.155 0.004 264);
+  --sidebar-foreground:         oklch(0.97 0.003 264);
+  --sidebar-primary:            oklch(0.7 0.16 255);
+  --sidebar-primary-foreground: oklch(0.14 0.02 264);
+  --sidebar-accent:             oklch(0.25 0.006 264);
+  --sidebar-accent-foreground:  oklch(0.97 0.003 264);
+  --sidebar-border:             oklch(1 0 0 / 0.1);
+  --sidebar-ring:               oklch(0.7 0.16 255 / 0.6);
+
+  --material-thin:    oklch(0.185 0.005 264 / 0.5);
+  --material-regular: oklch(0.185 0.005 264 / 0.68);
+  --material-thick:   oklch(0.185 0.005 264 / 0.84);
+  --material-edge:    oklch(1 0 0 / 0.1);
+
+  --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.4);
+  --shadow-md: 0 4px 12px oklch(0 0 0 / 0.4), 0 1px 3px oklch(0 0 0 / 0.3);
+  --shadow-lg: 0 16px 40px oklch(0 0 0 / 0.55), 0 2px 6px oklch(0 0 0 / 0.35);
+}
+
+/* ─── Colores de tipo Pokémon (los mismos en ambos temas) ──────────────────────
+   Cada par bg/fg cumple contraste AA (≥ 4.5:1). Un único sitio: sustituye el mapa
+   TYPE_COLORS que estaba copiado en 7 archivos. */
+:root {
+  --type-normal:   oklch(0.66 0.03 80);   --type-normal-fg:   oklch(0.2 0.01 264);
+  --type-fire:     oklch(0.58 0.19 40);   --type-fire-fg:     oklch(1 0 0);
+  --type-water:    oklch(0.56 0.17 250);  --type-water-fg:    oklch(1 0 0);
+  --type-electric: oklch(0.86 0.17 95);   --type-electric-fg: oklch(0.2 0.01 264);
+  --type-grass:    oklch(0.66 0.17 145);  --type-grass-fg:    oklch(0.2 0.01 264);
+  --type-ice:      oklch(0.83 0.08 210);  --type-ice-fg:      oklch(0.2 0.01 264);
+  --type-fighting: oklch(0.5 0.18 25);    --type-fighting-fg: oklch(1 0 0);
+  --type-poison:   oklch(0.52 0.18 320);  --type-poison-fg:   oklch(1 0 0);
+  --type-ground:   oklch(0.66 0.11 80);   --type-ground-fg:   oklch(0.2 0.01 264);
+  --type-flying:   oklch(0.72 0.1 265);   --type-flying-fg:   oklch(0.2 0.01 264);
+  --type-psychic:  oklch(0.58 0.2 355);   --type-psychic-fg:  oklch(1 0 0);
+  --type-bug:      oklch(0.68 0.16 125);  --type-bug-fg:      oklch(0.2 0.01 264);
+  --type-rock:     oklch(0.56 0.07 90);   --type-rock-fg:     oklch(1 0 0);
+  --type-ghost:    oklch(0.46 0.12 300);  --type-ghost-fg:    oklch(1 0 0);
+  --type-dragon:   oklch(0.48 0.2 275);   --type-dragon-fg:   oklch(1 0 0);
+  --type-dark:     oklch(0.36 0.03 50);   --type-dark-fg:     oklch(1 0 0);
+  --type-steel:    oklch(0.72 0.03 240);  --type-steel-fg:    oklch(0.2 0.01 264);
+  --type-fairy:    oklch(0.8 0.11 350);   --type-fairy-fg:    oklch(0.2 0.01 264);
+}
+
+/* ─── Mapeo a Tailwind ─────────────────────────────────────────────────────── */
+@theme inline {
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-heading: var(--font-sans);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-destructive: var(--destructive);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-separator: var(--separator);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-sm: calc(var(--radius) * 0.55);
+  --radius-md: calc(var(--radius) * 0.75);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.3);
+  --radius-2xl: calc(var(--radius) * 1.7);
+  --radius-3xl: calc(var(--radius) * 2.1);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  /* ── Escala tipográfica ───────────────────────────────────────────────────
+     Tracking y leading dependen del tamaño: el texto grande se aprieta (letras y
+     líneas), el pequeño se abre un poco para leerse. Sirve `text-title1` etc. */
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.35;
+  --text-caption--letter-spacing: 0.01em;
+  --text-footnote: 0.8125rem;
+  --text-footnote--line-height: 1.4;
+  --text-footnote--letter-spacing: 0.004em;
+  --text-subhead: 0.9375rem;
+  --text-subhead--line-height: 1.45;
+  --text-subhead--letter-spacing: 0em;
+  --text-body: 1rem;
+  --text-body--line-height: 1.5;
+  --text-body--letter-spacing: 0em;
+  --text-headline: 1rem;
+  --text-headline--line-height: 1.4;
+  --text-headline--letter-spacing: -0.006em;
+  --text-headline--font-weight: 600;
+  --text-title3: 1.25rem;
+  --text-title3--line-height: 1.3;
+  --text-title3--letter-spacing: -0.012em;
+  --text-title3--font-weight: 600;
+  --text-title2: 1.5rem;
+  --text-title2--line-height: 1.25;
+  --text-title2--letter-spacing: -0.017em;
+  --text-title2--font-weight: 650;
+  --text-title1: 1.875rem;
+  --text-title1--line-height: 1.2;
+  --text-title1--letter-spacing: -0.021em;
+  --text-title1--font-weight: 700;
+  --text-display: clamp(2.25rem, 1.6rem + 2.4vw, 3.5rem);
+  --text-display--line-height: 1.05;
+  --text-display--letter-spacing: -0.028em;
+  --text-display--font-weight: 700;
+}
+
+/* ─── Materiales ───────────────────────────────────────────────────────────────
+   Barras y hojas translúcidas: el contenido pasa por debajo. Cuanto más grande la
+   superficie, más gruesa (más blur y sombra). Nunca apilar dos materiales claros.  */
+@utility material-thin {
+  background: var(--material-thin);
+  -webkit-backdrop-filter: blur(12px) saturate(170%);
+  backdrop-filter: blur(12px) saturate(170%);
+}
+@utility material-regular {
+  background: var(--material-regular);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+@utility material-thick {
+  background: var(--material-thick);
+  -webkit-backdrop-filter: blur(32px) saturate(190%);
+  backdrop-filter: blur(32px) saturate(190%);
+}
+/* Borde superior brillante: la luz que atrapa el material */
+@utility material-edge-top { border-top: 1px solid var(--material-edge); }
+@utility material-edge-bottom { border-bottom: 1px solid var(--separator); }
+
+/* Etiquetas de tipo: un único mapa de color. Uso: <span class="type-fire"> */
+@utility type-normal   { background: var(--type-normal);   color: var(--type-normal-fg); }
+@utility type-fire     { background: var(--type-fire);     color: var(--type-fire-fg); }
+@utility type-water    { background: var(--type-water);    color: var(--type-water-fg); }
+@utility type-electric { background: var(--type-electric); color: var(--type-electric-fg); }
+@utility type-grass    { background: var(--type-grass);    color: var(--type-grass-fg); }
+@utility type-ice      { background: var(--type-ice);      color: var(--type-ice-fg); }
+@utility type-fighting { background: var(--type-fighting); color: var(--type-fighting-fg); }
+@utility type-poison   { background: var(--type-poison);   color: var(--type-poison-fg); }
+@utility type-ground   { background: var(--type-ground);   color: var(--type-ground-fg); }
+@utility type-flying   { background: var(--type-flying);   color: var(--type-flying-fg); }
+@utility type-psychic  { background: var(--type-psychic);  color: var(--type-psychic-fg); }
+@utility type-bug      { background: var(--type-bug);      color: var(--type-bug-fg); }
+@utility type-rock     { background: var(--type-rock);     color: var(--type-rock-fg); }
+@utility type-ghost    { background: var(--type-ghost);    color: var(--type-ghost-fg); }
+@utility type-dragon   { background: var(--type-dragon);   color: var(--type-dragon-fg); }
+@utility type-dark     { background: var(--type-dark);     color: var(--type-dark-fg); }
+@utility type-steel    { background: var(--type-steel);    color: var(--type-steel-fg); }
+@utility type-fairy    { background: var(--type-fairy);    color: var(--type-fairy-fg); }
+
+/* ─── Accesibilidad: transparencia, contraste, movimiento ─────────────────────── */
+
+/* Menos transparencia: superficies sólidas, sin blur. */
+@media (prefers-reduced-transparency: reduce) {
+  :root, .dark {
+    --material-thin: var(--card);
+    --material-regular: var(--card);
+    --material-thick: var(--card);
+  }
+  * {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
+/* Más contraste: bordes definidos y texto secundario más oscuro/claro. */
+@media (prefers-contrast: more) {
+  :root {
+    --border: oklch(0.2 0.01 264 / 0.4);
+    --input: oklch(0.2 0.01 264 / 0.55);
+    --separator: oklch(0.2 0.01 264 / 0.3);
+    --muted-foreground: oklch(0.36 0.012 264);
+    --material-thin: oklch(1 0 0);
+    --material-regular: oklch(1 0 0);
+    --material-thick: oklch(1 0 0);
+  }
+  .dark {
+    --border: oklch(1 0 0 / 0.4);
+    --input: oklch(1 0 0 / 0.55);
+    --separator: oklch(1 0 0 / 0.3);
+    --muted-foreground: oklch(0.82 0.01 264);
+    --material-thin: oklch(0.13 0.004 264);
+    --material-regular: oklch(0.13 0.004 264);
+    --material-thick: oklch(0.13 0.004 264);
+  }
+}
+
+/* Menos movimiento: no es "sin feedback", es sin desplazamientos ni rebotes. Las
+   animaciones de entrada/salida (deslizar, zoom) se vuelven instantáneas; los
+   cambios de opacidad y color siguen dando pistas. Los muelles de JS consultan
+   useReducedMotion() y pasan a fundido. */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}

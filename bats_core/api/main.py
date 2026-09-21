@@ -16,7 +16,7 @@ from ..paths import ENV_FILE
 
 load_dotenv(ENV_FILE)
 
-from .routes import ban, admin, stats, seasons, etl_cleaner, leaguesettings, teams, ingest  # noqa: E402
+from .routes import ban, admin, stats, seasons, etl_cleaner, leaguesettings, teams, ingest, rules, players, pokedex, me  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +46,10 @@ app.include_router(etl_cleaner.router)
 app.include_router(leaguesettings.router)
 app.include_router(teams.router)
 app.include_router(ingest.router)
+app.include_router(rules.router)
+app.include_router(players.router)
+app.include_router(pokedex.router)
+app.include_router(me.router)
 
 
 @app.exception_handler(Exception)
@@ -64,6 +68,7 @@ async def _cors_safe_500(request: Request, exc: Exception):
 
 
 @app.get("/health")
+@app.get("/api/health")   # en Vercel solo /api/* llega a la función; /health lo captura el SPA
 def health():
     return {"status": "ok", "service": "BATS API"}
 

@@ -135,12 +135,13 @@ class TestMVPScore(unittest.TestCase):
 
     def test_formula_correct(self):
         stats = PokemonStats(species="Garchomp", player="Ash", kills=2, turns_active=3, final_hit=True)
-        # (2×2) + 3 + 1 = 8
-        self.assertEqual(compute_mvp_score(stats), 8.0)
+        # (2×2) + sobrevive 1 + golpe final 1 + 3 turnos × 0.25 = 6.75  (fórmula única: bats_core/mvp.py)
+        self.assertEqual(compute_mvp_score(stats), 6.75)
 
     def test_no_kills_no_final_hit(self):
         stats = PokemonStats(species="Ferrothorn", player="Gary", kills=0, turns_active=2, final_hit=False)
-        self.assertEqual(compute_mvp_score(stats), 2.0)
+        # sobrevive 1 + 2 turnos × 0.25 = 1.5
+        self.assertEqual(compute_mvp_score(stats), 1.5)
 
 
 class TestParseBattleFile(unittest.TestCase):

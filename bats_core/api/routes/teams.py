@@ -1,81 +1,43 @@
 """
-BATS — Registro y gestión de equipos por temporada (rutas públicas).
+BATS — Registro y gestión de equipos por temporada.
 
-Endpoints:
-  GET   /api/teams/active-season          → info de la temporada activa (límites)
-  GET   /api/teams/{username}             → roster del jugador en la temporada activa
-  POST  /api/teams/register               → registra el equipo inicial de un jugador
-  PATCH /api/teams/swap                   → realiza un cambio de pokémon en el equipo
+Endpoints (la identidad sale de la sesión; ya no viaja en la URL):
+  GET    /api/teams/active-season          → info de la temporada activa (público)
+  GET    /api/teams/me                     → mi roster
+  GET    /api/teams/me/banned              → pokémon que no puedo llevar
+  POST   /api/teams/me                     → registro del equipo inicial
+  POST   /api/teams/me/pokemon             → agrega pokémon a mi roster
+  POST   /api/teams/me/swap                → reemplaza un pokémon por otro en una sola transacción
+  DELETE /api/teams/me/pokemon/{id}        → quita un pokémon de mi roster
+  POST   /api/teams/me/validate            → checklist en vivo contra las reglas activas
+  GET    /api/teams/me/history             → historial de rotaciones (lo escribe el ETL)
+  GET    /api/teams/{username}             → roster ajeno: solo si el registro está cerrado o el equipo bloqueado (o eres admin)
 """
 import json
-from typing import Optional
 
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException
 
+from ...rules import check_team, normalize_restrictions, rule_checklist
+from ..auth import require_player
+from ..common import get_active_season as _get_active_season, iso, upsert_pokemon
 from ..db import get_db
+from ..schemas import AddPokemonRequest, PokemonEntry, RegisterRequest, SwapRequest, ValidateRequest
 
 router = APIRouter(prefix="/api/teams", tags=["teams"])
-
-
-# ── Schemas ───────────────────────────────────────────────────────────────────
-
-class PokemonEntry(BaseModel):
-    name:         str
-    national_dex: Optional[int]        = None
-    types:        Optional[str]        = None
-    sprite_url:   Optional[str]        = None
-    held_item:    Optional[str]        = None
-    ability:      Optional[str]        = None
-    nature:       Optional[str]        = None
-    tera_type:    Optional[str]        = None
-    moves:        list[str]            = []
-    evs:          dict[str, int]       = {}
-    ivs:          dict[str, int]       = {}
-    color:        Optional[str]        = None
-    generation:   Optional[int]        = None
-    egg_groups:   list[str]            = []
-
-
-class RegisterRequest(BaseModel):
-    username: str
-    pokemon:  list[PokemonEntry]
-
-
-class SwapRequest(BaseModel):
-    username:       str
-    remove_pokemon: str        # name of the pokemon to remove
-    add_pokemon:    PokemonEntry
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _upsert_pokemon(db, entry: PokemonEntry) -> int:
-    """Upsertea en pokemon_cache y retorna el pokemon_id."""
-    row = db.fetchone(
-        "SELECT tournament.upsert_pokemon_cache(%s, %s, %s, %s, %s, %s::smallint) AS pokemon_id",
-        (entry.name, entry.national_dex, entry.types, entry.sprite_url, entry.color, entry.generation),
+    return upsert_pokemon(
+        db, entry.name, entry.national_dex, entry.types, entry.sprite_url, entry.color, entry.generation
     )
-    return int(row["pokemon_id"])
 
 
-def _get_active_season(db) -> dict:
-    row = db.fetchone(
-        """
-        SELECT season_id, season_name, max_team_size, max_team_changes, restrictions
-        FROM tournament.seasons
-        WHERE is_active = TRUE
-        LIMIT 1
-        """
-    )
-    if not row:
-        raise HTTPException(status_code=404, detail="No hay temporada activa.")
-    result = dict(row)
-    # psycopg2 may return JSONB as str; parse if needed
-    if isinstance(result.get("restrictions"), str):
-        result["restrictions"] = json.loads(result["restrictions"])
-    result["restrictions"] = result.get("restrictions") or {}
-    return result
+def _ensure_open(season: dict) -> None:
+    """409 si el admin cerró el registro de la temporada (restricción registration_closed)."""
+    if normalize_restrictions(season["restrictions"])["registration_closed"]:
+        raise HTTPException(status_code=409, detail="registration_closed")
 
 
 def _check_whitelist(db, username: str, season_id: int) -> None:
@@ -160,20 +122,21 @@ def get_active_season():
     return {
         "season_id":        season["season_id"],
         "season_name":      season["season_name"],
+        "type_of_month":    season["type_of_month"],
         "max_team_size":    season["max_team_size"],
         "max_team_changes": season["max_team_changes"],
         "restrictions":     season["restrictions"],
     }
 
 
-@router.get("/banned/{username}")
-def get_player_bans(username: str):
+@router.get("/me/banned")
+def get_player_bans(player: dict = Depends(require_player)):
     """
     Retorna todos los pokémon no permitidos para el jugador:
     - Con al menos un voto en ban_votes (global)
     - O con ban oficial en tournament.bans para este jugador
     """
-    username = username.lower().strip()
+    username = player["username"].lower()
     with get_db() as db:
         season = _get_active_season(db)
         rows = db.fetchall(
@@ -198,9 +161,8 @@ def get_player_bans(username: str):
     ]
 
 
-@router.get("/{username}")
-def get_roster(username: str):
-    """Retorna el roster completo del jugador para la temporada activa."""
+def _load_roster(username: str, viewer: dict, own: bool):
+    """Roster completo del jugador para la temporada activa."""
     username = username.lower().strip()
     with get_db() as db:
         season = _get_active_season(db)
@@ -216,6 +178,9 @@ def get_roster(username: str):
         )
         if not row:
             raise HTTPException(status_code=404, detail="No hay equipo registrado para esta temporada.")
+        published = row["is_locked"] or normalize_restrictions(season["restrictions"])["registration_closed"]
+        if not own and not published and not viewer["is_admin"]:
+            raise HTTPException(status_code=403, detail="El equipo aún no es público.")
 
         pool_rows = db.fetchall(
             """
@@ -252,7 +217,7 @@ def get_roster(username: str):
             "moves":      p["moves"] if isinstance(p["moves"], list) else [],
             "evs":        p["evs"]   if isinstance(p["evs"],   dict) else {},
             "ivs":        p["ivs"]   if isinstance(p["ivs"],   dict) else {},
-            "added_at":   p["added_at"].isoformat() if p["added_at"] else None,
+            "added_at":   iso(p["added_at"]),
             "in_lineup":  p["pokemon_id"] in lineup_ids,
         }
 
@@ -265,18 +230,24 @@ def get_roster(username: str):
         "max_team_size":     season["max_team_size"],
         "max_rotations":     season["max_team_changes"],
         "is_locked":         row["is_locked"],
-        "registered_at":     row["registered_at"].isoformat() if row["registered_at"] else None,
+        "registered_at":     iso(row["registered_at"]),
         "lineup_set":        len(lineup_ids) > 0,
         "pool": [_fmt(p) for p in pool_rows],
     }
 
 
-@router.delete("/{username}/pokemon/{pokemon_id}")
-def remove_pokemon(username: str, pokemon_id: int):
-    """Elimina un pokémon del roster del jugador."""
-    username = username.lower().strip()
+@router.get("/me")
+def get_my_roster(player: dict = Depends(require_player)):
+    return _load_roster(player["username"], player, own=True)
+
+
+@router.delete("/me/pokemon/{pokemon_id}")
+def remove_pokemon(pokemon_id: int, player: dict = Depends(require_player)):
+    """Elimina un pokémon de mi roster."""
+    username = player["username"].lower()
     with get_db() as db:
         season = _get_active_season(db)
+        _ensure_open(season)
         _check_whitelist(db, username, season["season_id"])
 
         row = db.fetchone(
@@ -308,19 +279,16 @@ def remove_pokemon(username: str, pokemon_id: int):
     return {"ok": True}
 
 
-class AddPokemonRequest(BaseModel):
-    pokemon: list[PokemonEntry]
-
-
-@router.post("/{username}/pokemon")
-def add_pokemon(username: str, body: AddPokemonRequest):
-    """Agrega pokémon a un roster existente que no esté lleno."""
-    username = username.lower().strip()
+@router.post("/me/pokemon")
+def add_pokemon(body: AddPokemonRequest, player: dict = Depends(require_player)):
+    """Agrega pokémon a mi roster existente, si no está lleno."""
+    username = player["username"].lower()
     if not body.pokemon:
         raise HTTPException(status_code=422, detail="La lista de pokémon no puede estar vacía.")
 
     with get_db() as db:
         season = _get_active_season(db)
+        _ensure_open(season)
         _check_whitelist(db, username, season["season_id"])
 
         row = db.fetchone(
@@ -358,15 +326,14 @@ def add_pokemon(username: str, body: AddPokemonRequest):
     return {"ok": True, "added": len(body.pokemon)}
 
 
-@router.post("/register")
-def register_team(body: RegisterRequest):
-    """Registra el equipo inicial de un jugador para la temporada activa."""
-    username = body.username.lower().strip()
-    if not username:
-        raise HTTPException(status_code=422, detail="Username no puede estar vacío.")
+@router.post("/me")
+def register_team(body: RegisterRequest, player: dict = Depends(require_player)):
+    """Registra mi equipo inicial para la temporada activa."""
+    username = player["username"].lower()
 
     with get_db() as db:
         season = _get_active_season(db)
+        _ensure_open(season)
         _check_whitelist(db, username, season["season_id"])
 
         if len(body.pokemon) == 0:
@@ -410,49 +377,11 @@ def register_team(body: RegisterRequest):
                     detail=f"banned:{','.join(violations)}",
                 )
 
-        # ── Restriction validation ────────────────────────────────────────────
-        rules = season["restrictions"]
-
-        # Item Clause: no duplicate held items
-        if rules.get("item_clause"):
-            from collections import Counter
-            items = [p.held_item for p in body.pokemon if p.held_item]
-            dupes = [item for item, count in Counter(items).items() if count > 1]
-            if dupes:
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"item_clause:{','.join(dupes)}",
-                )
-
-        # Required color: at least one pokémon must be of the required color
-        req_color = rules.get("required_color")
-        if req_color:
-            has_one = any(p.color and p.color.lower() == req_color for p in body.pokemon)
-            if not has_one:
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"missing_color:{req_color}",
-                )
-
-        # Required generation: at least one pokémon must be from the required generation
-        req_gen = rules.get("required_generation")
-        if req_gen:
-            has_one = any(p.generation == req_gen for p in body.pokemon if p.generation)
-            if not has_one:
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"missing_generation:{req_gen}",
-                )
-
-        # Required egg group: at least one pokémon must belong to the required egg group
-        req_egg = rules.get("required_egg_group")
-        if req_egg:
-            has_one = any(req_egg in p.egg_groups for p in body.pokemon if p.egg_groups)
-            if not has_one:
-                raise HTTPException(
-                    status_code=422,
-                    detail=f"missing_egg_group:{req_egg}",
-                )
+        # Restricciones de la temporada (bats_core/rules.py). Se rechaza con la primera
+        # violación, con el mismo código de detalle que ya interpreta el frontend.
+        violations = check_team([p.model_dump() for p in body.pokemon], season["restrictions"])
+        if violations:
+            raise HTTPException(status_code=422, detail=violations[0]["code"])
 
         roster_row = db.fetchone(
             "INSERT INTO tournament.roster (season_id, username) VALUES (%s, %s) RETURNING roster_id",
@@ -470,3 +399,105 @@ def register_team(body: RegisterRequest):
         "season_id":     season["season_id"],
         "pokemon_count": len(body.pokemon),
     }
+
+
+@router.post("/me/swap")
+def swap_pokemon(body: SwapRequest, player: dict = Depends(require_player)):
+    """
+    Reemplaza un pokémon del roster por otro. Es UNA transacción: si el nuevo está
+    baneado o ya está en el equipo no se quita nada (antes eran dos llamadas y
+    un fallo intermedio dejaba el equipo incompleto).
+    """
+    username = player["username"].lower()
+    with get_db() as db:
+        season = _get_active_season(db)
+        _ensure_open(season)
+        _check_whitelist(db, username, season["season_id"])
+        row = db.fetchone(
+            "SELECT roster_id FROM tournament.roster WHERE season_id = %s AND LOWER(username) = %s",
+            (season["season_id"], username),
+        )
+        if not row:
+            raise HTTPException(status_code=404, detail="No hay equipo registrado.")
+        roster_id = row["roster_id"]
+
+        if not db.fetchone(
+            "SELECT 1 FROM tournament.roster_pokemon WHERE roster_id = %s AND pokemon_id = %s",
+            (roster_id, body.remove_pokemon_id),
+        ):
+            raise HTTPException(status_code=404, detail="El pokémon no está en el equipo.")
+
+        if body.add.name.lower() in _get_active_bans(db, season["season_id"], username):
+            raise HTTPException(status_code=422, detail=f"banned:{body.add.name}")
+
+        new_id = _upsert_pokemon(db, body.add)
+        if new_id != body.remove_pokemon_id and db.fetchone(
+            "SELECT 1 FROM tournament.roster_pokemon WHERE roster_id = %s AND pokemon_id = %s",
+            (roster_id, new_id),
+        ):
+            raise HTTPException(status_code=409, detail="Ese pokémon ya está en tu equipo.")
+
+        db.execute("DELETE FROM tournament.roster_lineup WHERE roster_id = %s AND pokemon_id = %s",
+                   (roster_id, body.remove_pokemon_id))
+        db.execute("DELETE FROM tournament.roster_pokemon WHERE roster_id = %s AND pokemon_id = %s",
+                   (roster_id, body.remove_pokemon_id))
+        _insert_roster_pokemon(db, roster_id, new_id, body.add)
+    return {"ok": True, "pokemon_id": new_id}
+
+
+@router.post("/me/validate")
+def validate_my_team(body: ValidateRequest, player: dict = Depends(require_player)):
+    """
+    Checklist en vivo: cada regla aplicable con su estado (cumple / no cumple), sin
+    guardar nada. Es la misma validación (bats_core/rules.py) que hace el registro.
+    """
+    username = player["username"].lower()
+    with get_db() as db:
+        season = _get_active_season(db)
+        banned = _get_active_bans(db, season["season_id"], username)
+    entries = [p.model_dump() for p in body.pokemon]
+    checklist = rule_checklist(
+        entries, season["restrictions"],
+        type_of_month=season["type_of_month"],
+        max_team_size=season["max_team_size"],
+        banned_names=banned,
+    )
+    return {"ok": all(row["ok"] for row in checklist), "checklist": checklist}
+
+
+@router.get("/me/history")
+def my_rotation_history(player: dict = Depends(require_player)):
+    """Rotaciones de mi lineup detectadas por el ETL (más reciente primero)."""
+    username = player["username"].lower()
+    with get_db() as db:
+        season = _get_active_season(db)
+        rows = db.fetchall(
+            """
+            SELECT cl.change_number, cl.changed_at, cl.changed_by, cl.note AS battle_id,
+                   rem.name AS removed, add_.name AS added
+            FROM tournament.roster_change_log cl
+            JOIN tournament.roster r ON r.roster_id = cl.roster_id
+            LEFT JOIN tournament.pokemon_cache rem  ON rem.pokemon_id  = cl.removed_pokemon_id
+            LEFT JOIN tournament.pokemon_cache add_ ON add_.pokemon_id = cl.added_pokemon_id
+            WHERE r.season_id = %s AND LOWER(r.username) = %s
+            ORDER BY cl.change_number DESC, cl.change_id
+            """,
+            (season["season_id"], username),
+        )
+    by_change: dict[int, dict] = {}
+    for r in rows:
+        c = by_change.setdefault(r["change_number"], {
+            "change_number": r["change_number"], "changed_at": iso(r["changed_at"]),
+            "battle_id": r["battle_id"], "removed": [], "added": [],
+        })
+        if r["removed"]:
+            c["removed"].append(r["removed"])
+        if r["added"]:
+            c["added"].append(r["added"])
+    return {"max_rotations": season["max_team_changes"], "rotations": list(by_change.values())}
+
+
+@router.get("/{username}")
+def get_roster(username: str, player: dict = Depends(require_player)):
+    """Roster de otro jugador. Declarada al final: /{username} captura cualquier ruta anterior."""
+    return _load_roster(username, player, own=username.lower().strip() == player["username"].lower())

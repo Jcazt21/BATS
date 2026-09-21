@@ -62,7 +62,6 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 
 from .paths import ACTIVE_BANS_FILE, LOGS_DIR
 
-import pandas as pd
 
 from .parser import parse_battle_file, find_log_files
 from .metrics import (
@@ -103,7 +102,6 @@ def run_pipeline(
     # 2. Parsear batallas
     battles = []
     skipped = 0
-    errors  = 0
 
     for filepath in files:
         result = parse_battle_file(filepath)
@@ -179,7 +177,7 @@ def run_db_command(args: argparse.Namespace) -> None:
 
     dsn: str | None = args.dsn if args.dsn else None
 
-    print(f"[BATS:db] Conectando a la base de datos...")
+    print("[BATS:db] Conectando a la base de datos...")
     try:
         with BATSDatabase(dsn=dsn) as db:
 
@@ -335,7 +333,7 @@ def run_ban_command(args: argparse.Namespace) -> None:
     # ── --export-json: exporta bans activos a JSON para PS ────────────────────
     if args.export_json:
         import json as _json
-        output_path = Path(args.export_json) if args.export_json != True else (
+        output_path = Path(args.export_json) if args.export_json is not True else (
             ACTIVE_BANS_FILE
         )
         try:
@@ -685,23 +683,6 @@ def run_backfill_command(args: argparse.Namespace) -> None:
         sys.exit(1)
 
 
-def run_watch_command(args: argparse.Namespace) -> None:
-    """Vigila logs_dir y corre el ETL cada vez que aparece un .log.json nuevo."""
-    try:
-        from .watcher import BATSWatcher
-    except ImportError:
-        print(
-            "[ERROR] watchdog no está instalado.\n"
-            "        Instálalo con: pip install watchdog",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    logs_dir: Path = args.logs_dir.resolve()
-    dsn: str | None = args.dsn if args.dsn else None
-    BATSWatcher(logs_dir=logs_dir, dsn=dsn).run()
-
-
 def _print_ban_table(bans: list[dict]) -> None:
     """
     Imprime la lista de bans activos en formato de tabla.
@@ -1038,25 +1019,6 @@ Una vez corriendo, desafialo desde PS con:
         help="Puerto del servidor PS (default: 8000).",
     )
 
-    watch_parser = subparsers.add_parser(
-        "watch",
-        help="Escucha la carpeta de logs y carga batallas a la DB automáticamente.",
-    )
-    watch_parser.add_argument(
-        "--logs-dir",
-        type=Path,
-        default=LOGS_DIR,
-        metavar="DIR",
-        help="Carpeta raíz de logs a vigilar (default: ../pokemon-showdown/logs).",
-    )
-    watch_parser.add_argument(
-        "--dsn",
-        type=str,
-        default=None,
-        metavar="DSN",
-        help="Connection string PostgreSQL. Default: env BATS_DB_DSN.",
-    )
-
     backfill_parser = subparsers.add_parser(
         "backfill",
         help="Reenvía los .log.json de disco a la API (POST /api/ingest/battle). Idempotente.",
@@ -1206,10 +1168,6 @@ Ejemplos:
     if args.subcommand == "api":
         from .api.main import serve
         serve()
-        return
-
-    if args.subcommand == "watch":
-        run_watch_command(args)
         return
 
     if args.subcommand == "backfill":

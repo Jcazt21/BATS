@@ -15,7 +15,8 @@ Garantías de idempotencia:
     * Cada batalla es su propia transacción; un fallo no afecta las demás.
 
 Fórmula MVP:
-    mvp_score = (kills × 2) + turns_active + (1 if final_hit else 0)
+    La calcula la propia DB (columna generada mvp_score, ver v10.sql y bats_core/mvp.py);
+    el ETL solo inserta los hechos crudos.
 
 Uso típico::
 
@@ -36,7 +37,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bats_core.parser import BattleData, PokemonStats
+    from bats_core.parser import BattleData
     from bats_core.db.connection import BATSDatabase
 
 logger = logging.getLogger(__name__)
@@ -63,18 +64,6 @@ class BATSEtl:
 
     def __init__(self, db: "BATSDatabase") -> None:
         self.db = db
-        self._has_season_id: bool = self._column_exists("battle", "fact_battles", "season_id")
-
-    def _column_exists(self, schema: str, table: str, column: str) -> bool:
-        """Verifica si una columna existe en la DB actual (para migraciones graduales)."""
-        row = self.db.fetchone(
-            """
-            SELECT 1 FROM information_schema.columns
-            WHERE table_schema = %s AND table_name = %s AND column_name = %s
-            """,
-            (schema, table, column),
-        )
-        return row is not None
 
     # ─── Métodos dimension: get or create ─────────────────────────────────────
 
@@ -107,22 +96,24 @@ class BATSEtl:
         assert row is not None, f"No se pudo obtener player_id para '{username}'"
         return int(row["player_id"])
 
-    def _get_or_create_pokemon(self, species: str) -> int:
-        """Obtiene o crea un registro en battle.dim_pokemon."""
-        sql = """
-            INSERT INTO battle.dim_pokemon (species)
-            VALUES (%s)
-            ON CONFLICT (species) DO NOTHING
-            RETURNING pokemon_id
+    def _get_or_create_pokemon_bulk(self, species: set[str]) -> dict[str, int]:
         """
-        row = self.db.fetchone(sql, (species,))
-        if row is None:
-            row = self.db.fetchone(
-                "SELECT pokemon_id FROM battle.dim_pokemon WHERE species = %s",
-                (species,),
-            )
-        assert row is not None, f"No se pudo obtener pokemon_id para '{species}'"
-        return int(row["pokemon_id"])
+        Obtiene o crea en battle.dim_pokemon todas las especies de una batalla con
+        2 queries (antes 2 por especie: ~24 viajes a la DB por batalla).
+        """
+        names = sorted(sp for sp in species if sp)
+        if not names:
+            return {}
+        self.db.execute(
+            "INSERT INTO battle.dim_pokemon (species) SELECT unnest(%s::text[]) "
+            "ON CONFLICT (species) DO NOTHING",
+            (names,),
+        )
+        rows = self.db.fetchall(
+            "SELECT species, pokemon_id FROM battle.dim_pokemon WHERE species = ANY(%s)",
+            (names,),
+        )
+        return {r["species"]: int(r["pokemon_id"]) for r in rows}
 
     def _get_or_create_format(self, format_name: str) -> int:
         """Obtiene o crea un registro en battle.dim_formats."""
@@ -203,25 +194,19 @@ class BATSEtl:
             for sp in battle.p1_team + battle.p2_team:
                 all_species.add(sp)
 
-            species_to_id: dict[str, int] = {
-                sp: self._get_or_create_pokemon(sp)
-                for sp in all_species
-                if sp
-            }
+            species_to_id = self._get_or_create_pokemon_bulk(all_species)
 
             # ── 2. Resolver season_id por fecha de batalla ───────────────────
-            season_id: int | None = None
-            if self._has_season_id:
-                season_row = self.db.fetchone(
-                    """
-                    SELECT season_id FROM tournament.seasons
-                    WHERE %s BETWEEN start_date AND COALESCE(end_date, CURRENT_DATE)
-                    ORDER BY start_date DESC
-                    LIMIT 1
-                    """,
-                    (_parse_date(battle.date),),
-                )
-                season_id = int(season_row["season_id"]) if season_row else None
+            season_row = self.db.fetchone(
+                """
+                SELECT season_id FROM tournament.seasons
+                WHERE %s BETWEEN start_date AND COALESCE(end_date, CURRENT_DATE)
+                ORDER BY start_date DESC
+                LIMIT 1
+                """,
+                (_parse_date(battle.date),),
+            )
+            season_id: int | None = int(season_row["season_id"]) if season_row else None
 
             # ── 3. Detectar batalla contra bot ───────────────────────────────
             row = self.db.fetchone(
@@ -252,101 +237,65 @@ class BATSEtl:
                 return False
 
             # ── 4. Insertar battle.fact_battles ──────────────────────────────
-            if self._has_season_id:
-                self.db.conn.cursor().execute(
-                    """
-                    INSERT INTO battle.fact_battles
-                        (battle_id, format_id, battle_date, p1_id, p2_id,
-                         winner_id, total_turns, end_type, is_bot_battle, season_id)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (battle_id) DO NOTHING
-                    """,
-                    (
-                        battle.battle_id, format_id, _parse_date(battle.date),
-                        p1_id, p2_id, winner_id, battle.turns,
-                        battle.end_type or "normal", is_bot_battle, season_id,
-                    ),
-                )
-            else:
-                self.db.conn.cursor().execute(
-                    """
-                    INSERT INTO battle.fact_battles
-                        (battle_id, format_id, battle_date, p1_id, p2_id,
-                         winner_id, total_turns, end_type, is_bot_battle)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (battle_id) DO NOTHING
-                    """,
-                    (
-                        battle.battle_id, format_id, _parse_date(battle.date),
-                        p1_id, p2_id, winner_id, battle.turns,
-                        battle.end_type or "normal", is_bot_battle,
-                    ),
-                )
+            self.db.conn.cursor().execute(
+                """
+                INSERT INTO battle.fact_battles
+                    (battle_id, format_id, battle_date, p1_id, p2_id,
+                     winner_id, total_turns, end_type, is_bot_battle, season_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (battle_id) DO NOTHING
+                """,
+                (
+                    battle.battle_id, format_id, _parse_date(battle.date),
+                    p1_id, p2_id, winner_id, battle.turns,
+                    battle.end_type or "normal", is_bot_battle, season_id,
+                ),
+            )
 
-            # ── 5. Insertar battle.fact_pokemon_performance (activos) ─────────
+            # ── 5-6. Insertar battle.fact_pokemon_performance (activos y banca) ──
+            # Un solo INSERT multi-fila. Los activos van primero: ante una clave
+            # repetida gana la primera (ON CONFLICT DO NOTHING), igual que antes.
+            # mvp_score no se inserta: es una columna generada.
             player_map = {battle.p1: p1_id, battle.p2: p2_id}
             inserted_perf_keys: set[tuple[str, str]] = set()
+            perf_rows: list[tuple] = []
 
             for stat in battle.pokemon_stats:
                 player_id = player_map.get(stat.player)
                 if player_id is None:
                     player_id = self._get_or_create_player(stat.player, battle.date)
                     player_map[stat.player] = player_id
-
-                pokemon_id = species_to_id.get(stat.species)
-                if pokemon_id is None:
-                    pokemon_id = self._get_or_create_pokemon(stat.species)
-                    species_to_id[stat.species] = pokemon_id
-
-                mvp_score = _compute_mvp(stat.kills, stat.turns_active, stat.final_hit)
-
-                self.db.conn.cursor().execute(
-                    """
-                    INSERT INTO battle.fact_pokemon_performance
-                        (battle_id, player_id, pokemon_id, kills, turns_active,
-                         survived, final_hit, mvp_score, was_active)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, TRUE)
-                    ON CONFLICT (battle_id, player_id, pokemon_id) DO NOTHING
-                    """,
-                    (
-                        battle.battle_id,
-                        player_id,
-                        pokemon_id,
-                        stat.kills,
-                        stat.turns_active,
-                        stat.survived,
-                        stat.final_hit,
-                        mvp_score,
-                    ),
-                )
+                perf_rows.append((
+                    battle.battle_id, player_id, species_to_id[stat.species],
+                    stat.kills, stat.turns_active, stat.survived, stat.final_hit, True,
+                ))
                 inserted_perf_keys.add((stat.player, stat.species))
 
-            # ── 6. Insertar pokémon de banca ──────────────────────────────────
             for player_username, team in ((battle.p1, battle.p1_team), (battle.p2, battle.p2_team)):
                 player_id = player_map.get(player_username)
                 if player_id is None:
                     continue
                 for species in team:
-                    if not species:
+                    if not species or (player_username, species) in inserted_perf_keys:
                         continue
-                    if (player_username, species) in inserted_perf_keys:
-                        continue
+                    perf_rows.append((
+                        battle.battle_id, player_id, species_to_id[species], 0, 0, True, False, False,
+                    ))
 
-                    pokemon_id = species_to_id.get(species)
-                    if pokemon_id is None:
-                        pokemon_id = self._get_or_create_pokemon(species)
-                        species_to_id[species] = pokemon_id
+            if perf_rows:
+                import psycopg2.extras   # import diferido, como en connection.py
 
-                    self.db.conn.cursor().execute(
-                        """
-                        INSERT INTO battle.fact_pokemon_performance
-                            (battle_id, player_id, pokemon_id, kills, turns_active,
-                             survived, final_hit, mvp_score, was_active)
-                        VALUES (%s, %s, %s, 0, 0, TRUE, FALSE, 0.00, FALSE)
-                        ON CONFLICT (battle_id, player_id, pokemon_id) DO NOTHING
-                        """,
-                        (battle.battle_id, player_id, pokemon_id),
-                    )
+                psycopg2.extras.execute_values(
+                    self.db.conn.cursor(),
+                    """
+                    INSERT INTO battle.fact_pokemon_performance
+                        (battle_id, player_id, pokemon_id, kills, turns_active,
+                         survived, final_hit, was_active)
+                    VALUES %s
+                    ON CONFLICT (battle_id, player_id, pokemon_id) DO NOTHING
+                    """,
+                    perf_rows,
+                )
 
             # ── 7. Detectar violaciones de ban y de equipo ───────────────────
             if season_id is not None:
@@ -589,6 +538,25 @@ class BATSEtl:
                         "UPDATE tournament.roster SET changes_used = changes_used + 1, updated_at = NOW() WHERE roster_id = %s",
                         (roster_id,),
                     )
+                    # Historial de rotaciones: una fila por par (sale, entra). Todas las
+                    # filas de una misma rotación comparten change_number.
+                    removed = sorted(current_lineup - valid_used)
+                    added   = sorted(valid_used - current_lineup)
+                    for i in range(max(len(removed), len(added))):
+                        cur.execute(
+                            """
+                            INSERT INTO tournament.roster_change_log
+                                (roster_id, season_id, change_number, removed_pokemon_id,
+                                 added_pokemon_id, changed_by, note)
+                            VALUES (%s, %s, %s, %s, %s, 'etl', %s)
+                            """,
+                            (
+                                roster_id, season_id, changes_used + 1,
+                                pool_by_species.get(removed[i]) if i < len(removed) else None,
+                                pool_by_species.get(added[i]) if i < len(added) else None,
+                                battle_id,
+                            ),
+                        )
 
     # ─── Estadísticas ─────────────────────────────────────────────────────────
 
@@ -751,11 +719,6 @@ def ingest_payload(
 # =============================================================================
 # Helpers internos
 # =============================================================================
-
-def _compute_mvp(kills: int, turns_active: int, final_hit: bool) -> float:
-    """Calcula el puntaje MVP: (kills × 2) + turns_active + (1 si final_hit)."""
-    return float((kills * 2) + turns_active + (1 if final_hit else 0))
-
 
 def _parse_date(date_str: str) -> date:
     """Convierte string 'YYYY-MM-DD' a date. Retorna hoy si el formato es inválido."""

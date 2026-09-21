@@ -9,10 +9,10 @@ logs, el server de Pokémon Showdown envía cada batalla por HTTPS al terminar.
   GET  /api/cron/refresh-views    Vercel Cron, respaldo diario (Bearer CRON_SECRET)
 """
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, Field
 
 from ..auth import service_token
 from ..db import get_db
+from ..schemas import IngestBattleRequest
 from ...db.etl import load_pushed
 from ...parser import parse_battle_dict
 
@@ -20,14 +20,6 @@ router = APIRouter(prefix="/api", tags=["ingest"])
 
 require_ingest_token = service_token("BATS_INGEST_TOKEN")
 require_cron_secret = service_token("CRON_SECRET")
-
-
-class IngestBattleRequest(BaseModel):
-    # battle.fact_battles.battle_id es VARCHAR(80)
-    battle_id: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{0,79}$", description="p.ej. gen9pinchesgueysleague-249")
-    format: str = Field(pattern=r"^[a-z0-9]{1,60}$", description="id del formato, p.ej. gen9pinchesgueysleague")
-    date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$", description="YYYY-MM-DD")
-    log: dict = Field(description="Contenido del .log.json de PS (p1, p2, winner, turns, log, ...)")
 
 
 @router.post("/ingest/battle")

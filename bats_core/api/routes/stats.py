@@ -4,6 +4,10 @@ BATS — Rutas de estadísticas: MVP top 5, pick rate y bot battles.
 Endpoints:
   GET /api/stats/mvp          → top 5 jugadores por total_mvp_score (excluye bot)
   GET /api/stats/pickrate     → pick rate y win rate por especie (excluye batallas bot)
+
+mvp, pickrate y leaderboard leen SIEMPRE las vistas materializadas (con o sin
+?season_id=); no recalculan la métrica sobre las tablas base. Las vistas las refresca
+POST /api/ingest/refresh-views y un cron diario.
   GET /api/stats/bot/summary  → resumen de rendimiento del jugador vs bot
   GET /api/stats/bot/pokemon  → pokémon más usados contra el bot
   GET /api/stats/bot/battles  → historial de batallas contra el bot
@@ -12,6 +16,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Query
 
+from ..common import iso
 from ..db import get_db
 
 router = APIRouter(prefix="/api/stats", tags=["stats"])
@@ -21,6 +26,13 @@ def _season_filter(season_id: Optional[int], alias: str = "fb") -> tuple[str, tu
     """Returns (sql_fragment, params) for optional season filtering."""
     if season_id is not None:
         return f"AND {alias}.season_id = %s", (season_id,)
+    return "", ()
+
+
+def _mv_season(season_id: Optional[int]) -> tuple[str, tuple]:
+    """Filtro de temporada para las vistas materializadas (season_id = 0 → sin temporada)."""
+    if season_id is not None:
+        return "WHERE season_id = %s", (season_id,)
     return "", ()
 
 
@@ -42,8 +54,8 @@ def get_public_seasons():
             "season_name":   r["season_name"],
             "type_of_month": r["type_of_month"],
             "is_active":     r["is_active"],
-            "start_date":    r["start_date"].isoformat() if r["start_date"] else None,
-            "end_date":      r["end_date"].isoformat()   if r["end_date"]   else None,
+            "start_date":    iso(r["start_date"]),
+            "end_date":      iso(r["end_date"]),
         }
         for r in rows
     ]
@@ -54,25 +66,17 @@ def get_summary(season_id: Optional[int] = Query(None)):
     """KPIs globales de la liga (excluye batallas bot). Opcional: ?season_id=X"""
     sf, sp = _season_filter(season_id)
 
-    # top_win_rate: use mv_player_stats when no season filter, inline CTE otherwise
-    if season_id is None:
-        top_wr_sql = "(SELECT ROUND(MAX(win_rate_pct), 1) FROM battle.mv_player_stats WHERE total_battles >= 3)"
-        top_wr_params: tuple = ()
-    else:
-        top_wr_sql = """
-            (SELECT ROUND(MAX(win_pct), 1) FROM (
-                SELECT ROUND(100.0 * COUNT(*) FILTER (WHERE fb2.winner_id = dpl2.player_id)
-                             / NULLIF(COUNT(*), 0), 1) AS win_pct
-                FROM battle.dim_players dpl2
-                JOIN battle.fact_battles fb2
-                    ON (fb2.p1_id = dpl2.player_id OR fb2.p2_id = dpl2.player_id)
-                   AND NOT fb2.is_bot_battle AND fb2.season_id = %s
-                WHERE NOT dpl2.is_bot
-                GROUP BY dpl2.player_id
-                HAVING COUNT(*) >= 3
-            ) sub)
-        """
-        top_wr_params = (season_id,)
+    mvf, mvp = _mv_season(season_id)
+    top_wr_sql = f"""
+        (SELECT ROUND(MAX(win_pct), 1) FROM (
+            SELECT 100.0 * SUM(wins) / NULLIF(SUM(total_battles), 0) AS win_pct
+            FROM battle.mv_player_stats
+            {mvf}
+            GROUP BY username
+            HAVING SUM(total_battles) >= 3
+        ) sub)
+    """
+    top_wr_params: tuple = mvp
 
     with get_db() as db:
         row = db.fetchone(
@@ -102,35 +106,25 @@ def get_summary(season_id: Optional[int] = Query(None)):
 @router.get("/mvp")
 def get_mvp_top5(season_id: Optional[int] = Query(None)):
     """Top 5 Pokémon con mayor puntuación MVP acumulada. Opcional: ?season_id=X"""
-    sf, sp = _season_filter(season_id)
+    mvf, mvp = _mv_season(season_id)
     with get_db() as db:
         rows = db.fetchall(
             f"""
             SELECT
-                dp.species                              AS species,
-                dpl.username                            AS player,
-                SUM(fpp.mvp_score)                      AS total_mvp_score,
-                SUM(fpp.kills)                          AS total_kills,
-                SUM(fpp.final_hit::INT)                 AS final_hits,
-                COUNT(DISTINCT fpp.battle_id)           AS battles_played,
-                ROUND(
-                    SUM(fpp.mvp_score)
-                    / NULLIF(COUNT(DISTINCT fpp.battle_id), 0),
-                    2
-                )                                       AS avg_mvp_per_battle
-            FROM battle.fact_pokemon_performance fpp
-            JOIN battle.fact_battles fb  ON fb.battle_id  = fpp.battle_id
-            JOIN battle.dim_pokemon  dp  ON dp.pokemon_id = fpp.pokemon_id
-            JOIN battle.dim_players  dpl ON dpl.player_id = fpp.player_id
-            WHERE fpp.was_active    = TRUE
-              AND NOT fb.is_bot_battle
-              AND NOT dpl.is_bot
-              {sf}
-            GROUP BY dp.species, dpl.username
+                species,
+                username                                            AS player,
+                SUM(total_mvp_score)                                AS total_mvp_score,
+                SUM(total_kills)                                    AS total_kills,
+                SUM(final_hits)                                     AS final_hits,
+                SUM(battles_used)                                   AS battles_played,
+                ROUND(SUM(total_mvp_score) / NULLIF(SUM(battles_used), 0), 2) AS avg_mvp_per_battle
+            FROM battle.mv_mvp_leaderboard
+            {mvf}
+            GROUP BY species, username
             ORDER BY total_mvp_score DESC
             LIMIT 5
             """,
-            sp,
+            mvp,
         )
     return rows
 
@@ -138,66 +132,35 @@ def get_mvp_top5(season_id: Optional[int] = Query(None)):
 @router.get("/pickrate")
 def get_pickrate(season_id: Optional[int] = Query(None)):
     """Pick rate y win rate de las 20 especies más usadas. Opcional: ?season_id=X"""
+    mvf, mvp = _mv_season(season_id)
     with get_db() as db:
-        if season_id is None:
-            # Fast path: use materialized view
-            rows = db.fetchall(
-                """
-                SELECT
-                    species,
-                    SUM(battles_used)                                           AS battles_used,
-                    SUM(total_slots)                                            AS total_slots,
-                    ROUND(100.0 * SUM(battles_used) / NULLIF(SUM(total_slots), 0), 2) AS usage_pct,
-                    ROUND(AVG(avg_kills), 2)                                    AS avg_kills,
-                    ROUND(AVG(avg_mvp_score), 2)                                AS avg_mvp_score,
-                    ROUND(
-                        100.0 * SUM(battles_used * win_rate_pct / 100.0)
-                              / NULLIF(SUM(battles_used), 0),
-                        2
-                    )                                                           AS win_rate_pct
-                FROM battle.mv_pick_rate
-                GROUP BY species
-                ORDER BY battles_used DESC
-                LIMIT 20
-                """
+        rows = db.fetchall(
+            f"""
+            WITH slots AS (
+                -- Denominador exacto: cada (temporada, formato) cuenta una sola vez,
+                -- aunque la especie no haya aparecido en él.
+                SELECT SUM(total_slots) AS n FROM (
+                    SELECT DISTINCT season_id, format_name, total_slots
+                    FROM battle.mv_pick_rate
+                    {mvf}
+                ) s
             )
-        else:
-            # Season-filtered: query base tables (same logic as the materialized view)
-            rows = db.fetchall(
-                """
-                WITH total_slots AS (
-                    SELECT COUNT(DISTINCT (fb.battle_id, p.player_id)) AS total_slots
-                    FROM battle.fact_battles fb
-                    JOIN LATERAL (VALUES (fb.p1_id), (fb.p2_id)) AS p(player_id) ON TRUE
-                    JOIN battle.dim_players dpl ON dpl.player_id = p.player_id
-                    WHERE NOT fb.is_bot_battle AND NOT dpl.is_bot AND fb.season_id = %s
-                )
-                SELECT
-                    dp.species,
-                    COUNT(DISTINCT (fpp.battle_id, fpp.player_id))  AS battles_used,
-                    (SELECT total_slots FROM total_slots)            AS total_slots,
-                    ROUND(
-                        100.0 * COUNT(DISTINCT (fpp.battle_id, fpp.player_id))
-                        / NULLIF((SELECT total_slots FROM total_slots), 0), 2
-                    )                                               AS usage_pct,
-                    ROUND(AVG(fpp.kills), 2)                        AS avg_kills,
-                    ROUND(AVG(fpp.mvp_score), 2)                    AS avg_mvp_score,
-                    ROUND(
-                        100.0 * COUNT(CASE WHEN fb.winner_id = fpp.player_id THEN 1 END)
-                        / NULLIF(COUNT(*), 0), 2
-                    )                                               AS win_rate_pct
-                FROM battle.fact_pokemon_performance fpp
-                JOIN battle.fact_battles fb  ON fb.battle_id  = fpp.battle_id
-                JOIN battle.dim_pokemon  dp  ON dp.pokemon_id = fpp.pokemon_id
-                JOIN battle.dim_players  dpl ON dpl.player_id = fpp.player_id
-                WHERE fpp.was_active = TRUE AND NOT fb.is_bot_battle AND NOT dpl.is_bot
-                  AND fb.season_id = %s
-                GROUP BY dp.species
-                ORDER BY battles_used DESC
-                LIMIT 20
-                """,
-                (season_id, season_id),
-            )
+            SELECT
+                species,
+                SUM(battles_used)                                              AS battles_used,
+                (SELECT n FROM slots)                                          AS total_slots,
+                ROUND(100.0 * SUM(battles_used) / NULLIF((SELECT n FROM slots), 0), 2) AS usage_pct,
+                ROUND(SUM(total_kills)     / NULLIF(SUM(rows_used), 0), 2)     AS avg_kills,
+                ROUND(SUM(total_mvp_score) / NULLIF(SUM(rows_used), 0), 2)     AS avg_mvp_score,
+                ROUND(100.0 * SUM(wins)    / NULLIF(SUM(rows_used), 0), 2)     AS win_rate_pct
+            FROM battle.mv_pick_rate
+            {mvf}
+            GROUP BY species
+            ORDER BY battles_used DESC
+            LIMIT 20
+            """,
+            mvp + mvp,
+        )
     return rows
 
 
@@ -206,36 +169,24 @@ def get_pickrate(season_id: Optional[int] = Query(None)):
 @router.get("/leaderboard")
 def get_leaderboard(season_id: Optional[int] = Query(None)):
     """Leaderboard de jugadores con W/L y pokémon sobrevivientes. Opcional: ?season_id=X"""
-    sf, sp = _season_filter(season_id)
+    mvf, mvp = _mv_season(season_id)
     with get_db() as db:
         rows = db.fetchall(
             f"""
             SELECT
-                dpl.username,
-                COUNT(DISTINCT fb.battle_id)                                                      AS total_battles,
-                COUNT(DISTINCT fb.battle_id) FILTER (WHERE fb.winner_id = dpl.player_id)          AS wins,
-                COUNT(DISTINCT fb.battle_id)
-                  - COUNT(DISTINCT fb.battle_id) FILTER (WHERE fb.winner_id = dpl.player_id)      AS losses,
-                ROUND(
-                    100.0 * COUNT(DISTINCT fb.battle_id) FILTER (WHERE fb.winner_id = dpl.player_id)
-                    / NULLIF(COUNT(DISTINCT fb.battle_id), 0), 2
-                )                                                                                  AS win_rate_pct,
-                COALESCE(SUM(fpp.survived::INT), 0)                                               AS total_survivors
-            FROM battle.dim_players dpl
-            JOIN battle.fact_battles fb
-                ON (fb.p1_id = dpl.player_id OR fb.p2_id = dpl.player_id)
-               AND NOT fb.is_bot_battle
-               {sf}
-            LEFT JOIN battle.fact_pokemon_performance fpp
-                ON fpp.battle_id = fb.battle_id
-               AND fpp.player_id = dpl.player_id
-               AND fpp.survived  = TRUE
-            WHERE NOT dpl.is_bot
-            GROUP BY dpl.username
-            HAVING COUNT(DISTINCT fb.battle_id) > 0
+                username,
+                SUM(total_battles)                                       AS total_battles,
+                SUM(wins)                                                AS wins,
+                SUM(total_battles) - SUM(wins)                           AS losses,
+                ROUND(100.0 * SUM(wins) / NULLIF(SUM(total_battles), 0), 2) AS win_rate_pct,
+                SUM(total_survivors)                                     AS total_survivors
+            FROM battle.mv_player_stats
+            {mvf}
+            GROUP BY username
+            HAVING SUM(total_battles) > 0
             ORDER BY wins DESC, win_rate_pct DESC
             """,
-            sp,
+            mvp,
         )
     return rows
 
@@ -312,7 +263,7 @@ def get_bot_battles():
             """
         )
     return [
-        {**r, "battle_date": r["battle_date"].isoformat() if r["battle_date"] else None}
+        {**r, "battle_date": iso(r["battle_date"])}
         for r in rows
     ]
 

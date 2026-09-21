@@ -3,16 +3,21 @@ bats_core/bot/config.py
 ==================
 Configuración centralizada del PGL-Bot.
 
-Para cambiar el tipo del mes, edita WATER_TYPE solo con el tipo en inglés.
 Para cambiar la dirección del servidor, edita SERVER_HOST y SERVER_PORT.
+
+TYPE_OF_MONTH describe para qué tipo están armados los pools de sets (sets.py).
+La regla vigente sale de BATS (active_rules.json); si difiere, `rules_drift()` lo avisa.
 """
-from pathlib import Path
+import json
+from typing import Optional
 
-from ..paths import ACTIVE_BANS_FILE
+from ..paths import ACTIVE_BANS_FILE, ACTIVE_RULES_FILE
 
-# ─── Tipo obligatorio del mes ─────────────────────────────────────────────────
-# Cambia este valor cada mes. Debe ser el tipo en inglés tal como lo usa poke-env.
-# Ejemplos: "Water", "Fire", "Grass", "Electric", "Psychic", "Dragon"
+# ─── Tipo del mes para el que están armados los pools de sets ────────────────
+# El tipo obligatorio real lo define la temporada activa en BATS (active_rules.json).
+# Los pools de sets.py (ICE_OU_POOL, GEN5_POOL...) son datos curados a mano: al cambiar
+# el tipo del mes hay que reemplazar el pool correspondiente y actualizar este valor.
+# En inglés, como lo usa poke-env: "Water", "Fire", "Grass"...
 TYPE_OF_MONTH = "Ice"
 
 # ─── Conexión al servidor ─────────────────────────────────────────────────────
@@ -33,3 +38,29 @@ TEAM_SIZE = 6
 
 # ─── Archivo de bans activos (generado por BATS) ─────────────────────────────
 BANS_FILE = ACTIVE_BANS_FILE
+
+
+def active_rules_type_of_month() -> Optional[str]:
+    """Tipo del mes que exige la temporada activa (active_rules.json), o None si no se puede leer."""
+    try:
+        data = json.loads(ACTIVE_RULES_FILE.read_text(encoding="utf-8"))
+        value = data.get("type_of_month")
+        return value if isinstance(value, str) and value else None
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
+def rules_drift() -> Optional[str]:
+    """
+    Mensaje de advertencia si el tipo del mes de la temporada activa no coincide con el
+    de los pools del bot (los equipos que arme serían rechazados por el formato). None si
+    coinciden o si no hay reglas que comparar.
+    """
+    active = active_rules_type_of_month()
+    if active is None or active.lower() == TYPE_OF_MONTH.lower():
+        return None
+    return (
+        f"La temporada activa exige el tipo {active}, pero los sets del bot están armados "
+        f"para {TYPE_OF_MONTH} (bot/config.py, bot/sets.py). Sus equipos no pasarán la "
+        f"validación del formato hasta que se actualicen los pools."
+    )

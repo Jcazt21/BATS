@@ -1,6 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
+  "git": {
+    "deploymentEnabled": false
+  },
   "installCommand": "cd web && npm ci",
   "buildCommand": "cd web && npm run build",
   "outputDirectory": "web/dist",
@@ -8,7 +11,7 @@
     "api/index.py": {
       "maxDuration": 30,
       "includeFiles": "bats_core/**",
-      "excludeFiles": "{web/**,tests/**,**/__pycache__/**,bats_core/bot/**,bats_core/.pokeapi_cache/**}"
+      "excludeFiles": "{web/**,tests/**,**/__pycache__/**,bats_core/bot/**,bats_core/.pokeapi_cache/**,bats_core/{cli,metrics,report,pokeapi,bans,backfill,mvp}.py,bats_core/validate_team.js,bats_core/db/seed.sql,bats_core/db/roles.sql}"
     }
   },
   "rewrites": [

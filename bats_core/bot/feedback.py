@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from poke_env.battle import AbstractBattle as Battle, Pokemon
+    from poke_env.battle import AbstractBattle as Battle
 
 
 # ─── Tracker por batalla ──────────────────────────────────────────────────────

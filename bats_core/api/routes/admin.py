@@ -2,7 +2,9 @@
 BATS — Rutas del panel de administración.
 
 Endpoints:
-  POST   /api/admin/login              → valida password, retorna JWT (24h)
+  GET    /api/admin/players            → cuentas de jugador (email → username)
+  POST   /api/admin/players            → da de alta una cuenta
+  DELETE /api/admin/players/{id}       → elimina una cuenta (no la propia)
   GET    /api/admin/whitelist          → lista jugadores de la temporada activa
   POST   /api/admin/whitelist/add      → agrega jugador al whitelist de la temporada activa
   DELETE /api/admin/whitelist/{hash}   → elimina jugador del whitelist (solo si no ha votado)
@@ -12,48 +14,73 @@ Endpoints:
   POST   /api/admin/reset-battles      → borra toda la data de batallas
 """
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 
-from ..auth import create_token, require_admin, verify_password
+from ..auth import require_admin
+from ..common import get_active_season_id, iso
 from ..crypto import hash_username
 from ..db import get_db
+from ..schemas import AddAccountRequest, AddPlayerRequest
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
-# ── Schemas ───────────────────────────────────────────────────────────────────
-
-class LoginRequest(BaseModel):
-    password: str
-
-
-class AddPlayerRequest(BaseModel):
-    username: str
-
-
 # ── Helpers ───────────────────────────────────────────────────────────────────
-
-def _get_active_season_id(db) -> int:
-    row = db.fetchone(
-        """
-        SELECT season_id FROM tournament.seasons
-        WHERE is_active = TRUE
-        ORDER BY created_at DESC
-        LIMIT 1
-        """
-    )
-    if row is None:
-        raise HTTPException(status_code=503, detail="No hay ninguna temporada activa.")
-    return int(row["season_id"])
-
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
-@router.post("/login")
-def login(body: LoginRequest):
-    if not verify_password(body.password):
-        raise HTTPException(status_code=401, detail="Contraseña incorrecta.")
-    return {"access_token": create_token(), "token_type": "bearer"}
+@router.get("/players")
+def list_players(_: dict = Depends(require_admin)):
+    with get_db() as db:
+        rows = db.fetchall(
+            """
+            SELECT account_id, email, username, is_admin,
+                   user_id IS NOT NULL AS has_logged_in, created_at
+            FROM tournament.player_accounts
+            ORDER BY LOWER(username)
+            """
+        )
+    return [{**r, "created_at": iso(r["created_at"])} for r in rows]
+
+
+@router.post("/players", status_code=201)
+def add_player_account(body: AddAccountRequest, _: dict = Depends(require_admin)):
+    email = body.email.strip().lower()
+    username = body.username.strip()
+    if "@" not in email or not username:
+        raise HTTPException(status_code=422, detail="Email y username son obligatorios.")
+    with get_db() as db:
+        dup = db.fetchone(
+            """
+            SELECT 1 FROM tournament.player_accounts
+            WHERE LOWER(email) = %s OR LOWER(username) = %s
+            """,
+            (email, username.lower()),
+        )
+        if dup:
+            raise HTTPException(status_code=409, detail="Ya existe una cuenta con ese email o username.")
+        row = db.fetchone(
+            """
+            INSERT INTO tournament.player_accounts (email, username, is_admin)
+            VALUES (%s, %s, %s) RETURNING account_id
+            """,
+            (email, username, body.is_admin),
+        )
+    return {"account_id": row["account_id"], "email": email, "username": username, "is_admin": body.is_admin}
+
+
+@router.delete("/players/{account_id}")
+def delete_player_account(account_id: int, me: dict = Depends(require_admin)):
+    with get_db() as db:
+        row = db.fetchone(
+            "SELECT LOWER(email) AS email FROM tournament.player_accounts WHERE account_id = %s",
+            (account_id,),
+        )
+        if row is None:
+            raise HTTPException(status_code=404, detail="Cuenta no encontrada.")
+        if row["email"] == me["email"].lower():
+            raise HTTPException(status_code=409, detail="No puedes eliminar tu propia cuenta.")
+        db.execute("DELETE FROM tournament.player_accounts WHERE account_id = %s", (account_id,))
+    return {"ok": True}
 
 
 @router.get("/whitelist", dependencies=[Depends(require_admin)])
@@ -88,7 +115,7 @@ def get_whitelist():
         {
             "voter_hash": r["voter_hash"],
             "username":   r["username"],
-            "added_at":   r["added_at"].isoformat() if r["added_at"] else None,
+            "added_at":   iso(r["added_at"]),
             "voted":      r["voter_hash"] in participated,
         }
         for r in rows
@@ -105,7 +132,7 @@ def add_player(body: AddPlayerRequest):
     voter_hash = hash_username(username)
 
     with get_db() as db:
-        season_id = _get_active_season_id(db)
+        season_id = get_active_season_id(db)
 
         if db.fetchone(
             "SELECT 1 FROM tournament.ban_whitelist WHERE voter_hash = %s AND season_id = %s",
@@ -125,7 +152,7 @@ def add_player(body: AddPlayerRequest):
 def remove_player(voter_hash: str):
     """Elimina un jugador del whitelist de la temporada activa (solo si no ha votado)."""
     with get_db() as db:
-        season_id = _get_active_season_id(db)
+        season_id = get_active_season_id(db)
 
         if db.fetchone(
             "SELECT 1 FROM tournament.ban_participation WHERE voter_hash = %s AND season_id = %s",
@@ -157,7 +184,7 @@ def reset_battles():
         db.execute("ALTER SEQUENCE battle.dim_players_player_id_seq RESTART WITH 1")
         db.execute("ALTER SEQUENCE battle.dim_formats_format_id_seq RESTART WITH 1")
         db.execute("ALTER SEQUENCE battle.dim_pokemon_pokemon_id_seq RESTART WITH 1")
-        db.execute("SELECT battle.refresh_bats_views()")
+        db.execute("SELECT battle.refresh_bats_views_concurrently()")
     return {"ok": True}
 
 
@@ -186,7 +213,7 @@ def get_battles():
             """
         )
     return [
-        {**r, "battle_date": r["battle_date"].isoformat() if r["battle_date"] else None}
+        {**r, "battle_date": iso(r["battle_date"])}
         for r in rows
     ]
 
@@ -201,7 +228,7 @@ def delete_battle(battle_id: str):
         ):
             raise HTTPException(status_code=404, detail="Batalla no encontrada.")
         db.execute("DELETE FROM battle.fact_battles WHERE battle_id = %s", (battle_id,))
-        db.execute("SELECT battle.refresh_bats_views()")
+        db.execute("SELECT battle.refresh_bats_views_concurrently()")
     return {"ok": True}
 
 
@@ -250,7 +277,7 @@ def get_bans():
             "season_id":     season["season_id"],
             "season_name":   season["season_name"],
             "type_of_month": season["type_of_month"],
-            "start_date":    season["start_date"].isoformat() if season["start_date"] else None,
+            "start_date":    iso(season["start_date"]),
             "is_active":     season["is_active"],
         },
         "bans": [dict(r) for r in bans],

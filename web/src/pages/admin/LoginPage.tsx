@@ -1,30 +1,15 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { adminLogin } from "@/lib/api";
+import { SignInCard } from "@/components/SignInCard";
+import { useSession } from "@/lib/session";
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const [password, setPassword] = useState("");
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState<string | null>(null);
+  const { session } = useSession();
 
-  async function handleLogin() {
-    if (!password.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const token = await adminLogin(password.trim());
-      sessionStorage.setItem("bats_admin_token", token);
-      navigate("/admin/stats");
-    } catch {
-      setError("Contraseña incorrecta.");
-    } finally {
-      setLoading(false);
-    }
-  }
+  useEffect(() => {
+    if (session) navigate("/admin/stats", { replace: true });
+  }, [session, navigate]);
 
   return (
     <main className="min-h-svh flex flex-col items-center justify-center px-4 bg-background">
@@ -36,35 +21,11 @@ export function LoginPage() {
           Panel de administración
         </h1>
       </header>
-
-      <Card className="w-full max-w-sm shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-xl font-semibold tracking-tight">Acceso</CardTitle>
-          <CardDescription className="text-sm text-muted-foreground">
-            Ingresa la contraseña de administrador.
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="flex flex-col gap-4">
-          <Input
-            type="password"
-            placeholder="Contraseña"
-            value={password}
-            onChange={(e) => { setPassword(e.target.value); setError(null); }}
-            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-            disabled={loading}
-            autoFocus
-          />
-
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
-
-          <Button onClick={handleLogin} disabled={!password.trim() || loading} className="w-full">
-            {loading ? "Verificando…" : "Entrar"}
-          </Button>
-        </CardContent>
-      </Card>
+      <SignInCard
+        title="Acceso"
+        description="Te enviaremos un enlace de acceso a tu correo de administrador."
+        redirectTo={`${window.location.origin}/admin/stats`}
+      />
     </main>
   );
 }

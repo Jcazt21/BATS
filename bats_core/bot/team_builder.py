@@ -23,7 +23,6 @@ import json
 import logging
 import random
 import re
-from pathlib import Path
 
 from .config import BANS_FILE, TYPE_OF_MONTH, TEAM_SIZE
 from .validator import validate_paste

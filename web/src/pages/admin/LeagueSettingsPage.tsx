@@ -1,219 +1,86 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Settings2, Save, CheckCircle2 } from "lucide-react";
-
-import {
-  Card, CardContent, CardDescription, CardHeader, CardTitle,
-} from "@/components/ui/card";
-import { Input }     from "@/components/ui/input";
-import { Button }    from "@/components/ui/button";
-import { Skeleton }  from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
-
-import {
-  getLeagueSettings, updateLeagueSettings,
-  type LeagueSettings, type SeasonRestrictions, type RestrictionSpec,
-} from "@/lib/api";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
+import { PageHeader } from "@/components/app/PageHeader";
+import { ErrorState } from "@/components/app/States";
 import { RestrictionField } from "@/components/RestrictionField";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DEFAULT_RESTRICTION_SPEC, updateLeagueSettings, type LeagueSettings, type SeasonRestrictions } from "@/lib/api";
+import { errorMessage } from "@/lib/http";
+import { useAdminMutation, useLeagueSettings } from "@/lib/queries";
+import { POKEMON_TYPES, typeLabel } from "@/lib/pokemon-types";
+import { useToast } from "@/lib/toast";
 
-const POKEMON_TYPES = [
-  "Normal", "Fire", "Water", "Electric", "Grass", "Ice",
-  "Fighting", "Poison", "Ground", "Flying", "Psychic", "Bug",
-  "Rock", "Ghost", "Dragon", "Dark", "Steel", "Fairy",
-];
-
-// ── Page ──────────────────────────────────────────────────────────────────────
+const selectCls = "h-10 w-full rounded-xl border border-input bg-card px-3 text-subhead outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40";
 
 export function LeagueSettingsPage() {
-  const navigate = useNavigate();
-  const token    = sessionStorage.getItem("bats_admin_token") ?? "";
+  const q = useLeagueSettings();
+  return (
+    <div className="flex max-w-2xl flex-col gap-8">
+      <PageHeader
+        eyebrow={q.data?.season_name}
+        title="Reglas de la liga"
+        subtitle="Lo que cambies aquí llega solo al formato de Showdown: la próxima validación de equipos ya usa las reglas nuevas."
+      />
+      {q.isError ? <ErrorState error={q.error} onRetry={() => q.refetch()} /> :
+        q.isPending ? <Skeleton className="h-96 rounded-2xl" /> :
+        // key = versión guardada: al guardar, el formulario se reinicia con los valores del servidor
+        <SettingsForm key={JSON.stringify(q.data)} settings={q.data} />}
+    </div>
+  );
+}
 
-  const [settings,  setSettings]  = useState<LeagueSettings | null>(null);
-  const [loading,   setLoading]   = useState(true);
-  const [saving,    setSaving]    = useState(false);
-  const [saved,     setSaved]     = useState(false);
-  const [error,     setError]     = useState<string | null>(null);
+function SettingsForm({ settings }: { settings: LeagueSettings }) {
+  const { toast } = useToast();
+  const save = useAdminMutation((p: Parameters<typeof updateLeagueSettings>[0]) => updateLeagueSettings(p));
+  const [type, setType] = useState(settings.type_of_month);
+  const [size, setSize] = useState(settings.max_team_size);
+  const [changes, setChanges] = useState(settings.max_team_changes);
+  const [restrictions, setRestrictions] = useState<SeasonRestrictions>(settings.restrictions ?? {});
+  const spec = Object.keys(settings.restriction_spec ?? {}).length ? settings.restriction_spec : DEFAULT_RESTRICTION_SPEC;
 
-  // Basic fields
-  const [typeOfMonth,    setTypeOfMonth]    = useState("");
-  const [maxTeamSize,    setMaxTeamSize]    = useState<number>(8);
-  const [maxTeamChanges, setMaxTeamChanges] = useState<number>(4);
-
-  // Restrictions: keyed map, populated from spec
-  const [restrictions, setRestrictions] = useState<SeasonRestrictions>({});
-
-  useEffect(() => {
-    getLeagueSettings(token)
-      .then((s) => {
-        setSettings(s);
-        setTypeOfMonth(s.type_of_month);
-        setMaxTeamSize(s.max_team_size);
-        setMaxTeamChanges(s.max_team_changes);
-        setRestrictions(s.restrictions ?? {});
-      })
-      .catch(() => {
-        sessionStorage.removeItem("bats_admin_token");
-        navigate("/admin");
-      })
-      .finally(() => setLoading(false));
-  }, [token, navigate]);
-
-  function handleRestrictionChange(key: string, val: unknown) {
-    setRestrictions((prev) => ({ ...prev, [key]: val }));
-  }
-
-  async function handleSave() {
-    setSaving(true);
-    setSaved(false);
-    setError(null);
+  async function onSave(e: React.FormEvent) {
+    e.preventDefault();
     try {
-      const updated = await updateLeagueSettings(token, {
-        type_of_month:    typeOfMonth,
-        max_team_size:    maxTeamSize,
-        max_team_changes: maxTeamChanges,
-        restrictions,
-      });
-      setSettings(updated);
-      setRestrictions(updated.restrictions ?? {});
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al guardar");
-    } finally {
-      setSaving(false);
-    }
+      await save.mutateAsync({ type_of_month: type, max_team_size: size, max_team_changes: changes, restrictions });
+      toast({ title: "Reglas guardadas", description: "Showdown las recogerá en unos minutos.", tone: "success" });
+    } catch (err) { toast({ title: "No se pudo guardar", description: errorMessage(err), tone: "error" }); }
   }
-
-  const spec: Record<string, RestrictionSpec> = settings?.restriction_spec ?? {};
 
   return (
-    <div className="flex flex-col gap-8 w-full max-w-xl mx-auto">
-
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight">Configuración de la liga</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {loading ? "Cargando…" : settings
-              ? `Temporada activa: ${settings.season_name}`
-              : "Sin temporada activa"
-            }
-          </p>
+    <form onSubmit={onSave} className="flex flex-col gap-8">
+      <section className="flex flex-col gap-4 rounded-2xl bg-card p-5 shadow-sm ring-1 ring-border">
+        <h2 className="text-headline">Temporada</h2>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="type" className="text-footnote font-medium">Tipo del mes</label>
+          <select id="type" value={type} onChange={(e) => setType(e.target.value)} className={selectCls}>
+            {POKEMON_TYPES.map((t) => <option key={t} value={t.charAt(0).toUpperCase() + t.slice(1)}>{typeLabel(t)}</option>)}
+          </select>
+          <p className="text-caption text-muted-foreground">Cada equipo debe llevar al menos un pokémon de este tipo.</p>
         </div>
-        <Settings2 className="size-5 text-muted-foreground mt-0.5" />
-      </div>
-
-      {/* ── Basic rules ─────────────────────────────────────────────────────── */}
-      <Card className="shadow-none">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-sm font-semibold">Equipo y rotaciones</CardTitle>
-          <CardDescription className="text-xs">
-            Límites estructurales de la temporada.
-          </CardDescription>
-        </CardHeader>
-        <Separator />
-        <CardContent className="pt-5 flex flex-col gap-5">
-          {loading ? (
-            <><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /></>
-          ) : (
-            <>
-              {/* Tipo del mes */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="type_of_month" className="text-xs font-medium">Tipo del mes</label>
-                <select
-                  id="type_of_month"
-                  value={typeOfMonth}
-                  onChange={(e) => setTypeOfMonth(e.target.value)}
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                >
-                  {POKEMON_TYPES.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-                <p className="text-xs text-muted-foreground">Tipo de pokémon restringido este mes.</p>
-              </div>
-
-              {/* Pokémon por equipo */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="max_team_size" className="text-xs font-medium">Pokémon por equipo</label>
-                <Input
-                  id="max_team_size"
-                  type="number"
-                  min={1}
-                  max={20}
-                  value={maxTeamSize}
-                  onChange={(e) => setMaxTeamSize(Math.max(1, Math.min(20, Number(e.target.value))))}
-                  className="h-9 text-sm"
-                />
-                <p className="text-xs text-muted-foreground">Pokémon máximos que cada jugador puede registrar.</p>
-              </div>
-
-              {/* Rotaciones permitidas */}
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="max_team_changes" className="text-xs font-medium">Rotaciones permitidas</label>
-                <Input
-                  id="max_team_changes"
-                  type="number"
-                  min={0}
-                  max={20}
-                  value={maxTeamChanges}
-                  onChange={(e) => setMaxTeamChanges(Math.max(0, Math.min(20, Number(e.target.value))))}
-                  className="h-9 text-sm"
-                />
-                <p className="text-xs text-muted-foreground">Número de cambios de alineación activa permitidos por temporada.</p>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ── Restrictions ────────────────────────────────────────────────────── */}
-      <Card className="shadow-none">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-sm font-semibold">Restricciones de registro</CardTitle>
-          <CardDescription className="text-xs">
-            Reglas que se validan al registrar un equipo. Se pueden ampliar sin migraciones.
-          </CardDescription>
-        </CardHeader>
-        <Separator />
-        <CardContent className="pt-5 flex flex-col gap-5">
-          {loading ? (
-            <><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /><Skeleton className="h-8 w-full" /></>
-          ) : Object.keys(spec).length === 0 ? (
-            <p className="text-xs text-muted-foreground">No hay restricciones configuradas para esta temporada.</p>
-          ) : (
-            Object.entries(spec).map(([key, s]) => (
-              <RestrictionField
-                key={key}
-                rkey={key}
-                spec={s}
-                value={restrictions[key as keyof SeasonRestrictions]}
-                onChange={handleRestrictionChange}
-              />
-            ))
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ── Save ────────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3">
-        {error && <p className="text-xs text-destructive">{error}</p>}
-        {saved && (
-          <div className="flex items-center gap-2 rounded-md bg-emerald-900/20 border border-emerald-800/30 px-3 py-2 text-xs text-emerald-400">
-            <CheckCircle2 className="size-3.5 shrink-0" />
-            Configuración guardada correctamente.
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="size" className="text-footnote font-medium">Pokémon por equipo</label>
+            <Input id="size" type="number" min={1} value={size} onChange={(e) => setSize(Number(e.target.value))} />
           </div>
-        )}
-        <Button
-          onClick={() => void handleSave()}
-          disabled={saving || !settings}
-          className="self-end gap-1.5"
-          size="sm"
-        >
-          <Save className="size-3.5" />
-          {saving ? "Guardando…" : "Guardar cambios"}
-        </Button>
-      </div>
-    </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="changes" className="text-footnote font-medium">Rotaciones permitidas</label>
+            <Input id="changes" type="number" min={0} value={changes} onChange={(e) => setChanges(Number(e.target.value))} />
+          </div>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-5 rounded-2xl bg-card p-5 shadow-sm ring-1 ring-border">
+        <h2 className="text-headline">Restricciones</h2>
+        {Object.entries(spec).map(([key, s]) => (
+          <RestrictionField key={key} rkey={key} spec={s} value={restrictions[key]} onChange={(k, v) => setRestrictions((r) => ({ ...r, [k]: v }))} />
+        ))}
+      </section>
+
+      <Button type="submit" size="lg" className="self-start" disabled={save.isPending}>
+        {save.isPending ? <><Loader2 className="animate-spin" /> Guardando…</> : "Guardar cambios"}
+      </Button>
+    </form>
   );
 }

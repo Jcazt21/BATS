@@ -24,7 +24,7 @@ import sys
 
 import random as _random
 from poke_env import AccountConfiguration, ServerConfiguration
-from poke_env.teambuilder import ConstantTeambuilder, Teambuilder
+from poke_env.teambuilder import Teambuilder
 
 from .config import (
     BOT_USERNAME,
@@ -32,6 +32,7 @@ from .config import (
     SERVER_HOST,
     SERVER_PORT,
     BATTLE_FORMAT,
+    rules_drift,
 )
 from .player import PGLPlayer
 from .team_builder import build_team_pool
@@ -83,6 +84,10 @@ async def run_bot(
         battle_format:   ID del formato (default: gen9pinchesgueys).
         team_pool_size:  Número de equipos distintos a generar.
     """
+    drift = rules_drift()
+    if drift:
+        print(f"[PGL-Bot] ADVERTENCIA: {drift}", file=sys.stderr)
+
     print(f"[PGL-Bot] Generando {team_pool_size} equipos...")
     try:
         teams = build_team_pool(n=team_pool_size)

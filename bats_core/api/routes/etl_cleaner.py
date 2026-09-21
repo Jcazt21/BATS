@@ -11,25 +11,16 @@ Endpoints:
   DELETE /api/admin/etl/files   → borra batallas (fact_battles + etl_log) por clave
 """
 from pathlib import PurePosixPath
-from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 
 from ..auth import require_admin
+from ..common import iso
 from ..db import get_db
+from ..schemas import DeleteFilesRequest
 from ...db.etl import PUSH_KEY_PREFIX
 
 router = APIRouter(prefix="/api/admin/etl", tags=["etl-cleaner"])
-
-
-# ── Schemas ───────────────────────────────────────────────────────────────────
-
-class DeleteFilesRequest(BaseModel):
-    # Valores de `file_path` tal como los devuelve GET /files. Para batallas
-    # empujadas por la API es 'push:<battle_id>'; para las cargadas antes de la
-    # migración es la ruta absoluta que tenía el log en disco.
-    file_paths: List[str]
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -73,7 +64,6 @@ def recalculate():
 
     return {
         "ok":              seasons_error is None,
-        "etl": {"loaded": 0, "skipped": 0, "errors": 0, "total": 0},
         "seasons": {
             "reset":   seasons_reset,
             "updated": seasons_updated,
@@ -136,8 +126,8 @@ def list_etl_files():
             "battle_id":       r["battle_id"],
             "status":          r["status"],
             "error_msg":       r["error_msg"],
-            "processed_at":    r["processed_at"].isoformat() if r["processed_at"] else None,
-            "battle_date":     r["battle_date"].isoformat() if r["battle_date"] else None,
+            "processed_at":    iso(r["processed_at"]),
+            "battle_date":     iso(r["battle_date"]),
             "total_turns":     r["total_turns"],
             "end_type":        r["end_type"],
             "format_name":     r["format_name"],

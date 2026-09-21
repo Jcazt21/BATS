@@ -1,0 +1,23 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [
+    "venv",
+    ".venv",
+    "web",
+    "*.pyc",
+]
+
+[tool.ruff.lint]
+# Set inicial deliberadamente acotado: errores reales (F = pyflakes: imports
+# sin usar, variables no definidas, etc.) y estilo básico de PEP8 (E).
+# Ampliar este set en una migración aparte, no como efecto secundario del CI.
+select = ["E", "F", "W"]
+ignore = [
+    "E501",  # line-length ya lo controla `line-length` arriba; no duplicar como error duro
+    "E402",  # bats_core/cli.py carga .env con load_dotenv() antes de imports que leen env vars al importarse: orden intencional
+    "E702",  # `campo = %s; values.append(...)` es un patrón repetido y preexistente en seasons.py/tests; no reformatear como efecto secundario del CI
+]
+
+[tool.ruff.format]
+quote-style = "double"

@@ -7,7 +7,6 @@ Output principal: torneo_report.csv
 Columnas: Player_User, Pokemon_Used, Wins, Losses, Total_Kills, MVP_Score, Usage_Rate
 """
 
-import sys
 import pandas as pd
 from pathlib import Path
 
@@ -85,7 +84,7 @@ def print_full_report(
 
     print(f"\n{sep}")
     print("  BATS — Battle Analyzing and Tracking System")
-    print(f"  Powered by Pokémon Showdown Log Parser v1.0")
+    print("  Powered by Pokémon Showdown Log Parser v1.0")
     print(sep)
 
     # ── Estadísticas generales ────────────────────────────────────────────

@@ -4,29 +4,22 @@ bats_core/metrics.py
 Lógica de negocio BI — cálculo de métricas sobre batallas parseadas.
 
 Métricas implementadas:
-  1. MVP Score por pokémon:  Pts_MVP = (Kills × 2) + Supervivencia + Final_Hit
+  1. MVP Score por pokémon:  ver bats_core/mvp.py (fórmula única)
   2. Pick Rate global:       Usage % = (Veces_Pickeado / Total_Batallas) × 100
   3. Win Rate por pokémon:   % de batallas ganadas cuando ese pokémon fue usado
   4. Outlier Detection:      Pokémon con Pick Rate > threshold → candidatos a baneo
 """
 
 import pandas as pd
+from .mvp import mvp_score
 from .parser import BattleData, PokemonStats
 
 
 # ─── Fórmula MVP ──────────────────────────────────────────────────────────────
 
 def compute_mvp_score(stats: PokemonStats) -> float:
-    """
-    Fórmula oficial BATS:
-        Pts_MVP = (Kills × 2) + Supervivencia + Final_Hit
-
-    Donde:
-      - Kills        = KOs otorgados a pokémon rivales en la batalla
-      - Supervivencia = 1 si el pokémon no se desmayó al final de la batalla, 0 si no
-      - Final_Hit    = 1 si este pokémon dio el golpe que terminó la batalla, 0 si no
-    """
-    return (stats.kills * 2) + (1 if stats.survived else 0) + (1 if stats.final_hit else 0)
+    """Puntaje MVP de un pokémon en una batalla. La fórmula vive en bats_core/mvp.py."""
+    return mvp_score(stats.kills, stats.turns_active, stats.survived, stats.final_hit)
 
 
 # ─── Construcción del DataFrame base ──────────────────────────────────────────

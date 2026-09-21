@@ -2,66 +2,37 @@
 BATS — Rutas de votación anónima de bans.
 
 Endpoints:
-  POST /api/ban/check-user   → valida si el username puede votar en la temporada activa
-  POST /api/ban/submit       → registra el voto (anónimo) en la temporada activa
+  GET  /api/ban/me           → ¿puede votar la sesión actual? (requiere sesión)
+  POST /api/ban/submit       → registra el voto (anónimo) de la sesión actual
   GET  /api/ban/ranking      → ranking de pokémon más votados
   GET  /api/ban/status       → estado general de la votación
   GET  /api/ban/active       → pokémon votados en la temporada activa (lo consume PS)
-"""
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+  GET  /api/ban/candidates   → pokémon dominantes (win rate alto) con sus votos actuales
 
+La identidad del votante sale de la sesión (JWT), nunca del body. Autenticar quién
+puede votar no implica registrar qué votó: ban_votes no referencia al votante.
+"""
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+
+from ..auth import require_player
+from ..common import get_active_season_id, upsert_pokemon, voted_ban_names
 from ..crypto import hash_username
 from ..db import get_db
+from ..schemas import SubmitBanRequest
 
 router = APIRouter(prefix="/api/ban", tags=["ban"])
 
 
-class CheckUserRequest(BaseModel):
-    username: str
-
-
-class SubmitBanRequest(BaseModel):
-    username:      str
-    pokemon_name:  str
-    pokemon_types: str | None = None
-    sprite_url:    str | None = None
-    national_dex:  int | None = None
-
-
-# ─── Helpers ──────────────────────────────────────────────────────────────────
-
-def _get_active_season_id(db) -> int:
-    row = db.fetchone(
-        """
-        SELECT season_id FROM tournament.seasons
-        WHERE is_active = TRUE
-        ORDER BY created_at DESC
-        LIMIT 1
-        """
-    )
-    if row is None:
-        raise HTTPException(status_code=503, detail="No hay ninguna temporada de votación activa.")
-    return int(row["season_id"])
-
-
-def _upsert_pokemon(db, name: str, national_dex: int | None, types: str | None, sprite_url: str | None) -> int:
-    """Upsertea en pokemon_cache y retorna el pokemon_id."""
-    row = db.fetchone(
-        "SELECT tournament.upsert_pokemon_cache(%s, %s, %s, %s) AS pokemon_id",
-        (name, national_dex, types, sprite_url),
-    )
-    return int(row["pokemon_id"])
-
-
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
-@router.post("/check-user")
-def check_user(body: CheckUserRequest):
-    voter_hash = hash_username(body.username)
+@router.get("/me")
+def check_user(player: dict = Depends(require_player)):
+    voter_hash = hash_username(player["username"])
 
     with get_db() as db:
-        season_id = _get_active_season_id(db)
+        season_id = get_active_season_id(db)
 
         in_whitelist = db.fetchone(
             """
@@ -91,11 +62,11 @@ def check_user(body: CheckUserRequest):
 
 
 @router.post("/submit")
-def submit_ban(body: SubmitBanRequest):
-    voter_hash = hash_username(body.username)
+def submit_ban(body: SubmitBanRequest, player: dict = Depends(require_player)):
+    voter_hash = hash_username(player["username"])
 
     with get_db() as db:
-        season_id = _get_active_season_id(db)
+        season_id = get_active_season_id(db)
 
         can = db.fetchone(
             "SELECT tournament.can_vote(%s, %s) AS val",
@@ -104,7 +75,7 @@ def submit_ban(body: SubmitBanRequest):
         if not can:
             raise HTTPException(status_code=403, detail="No autorizado o ya registraste tu ban.")
 
-        pokemon_id = _upsert_pokemon(
+        pokemon_id = upsert_pokemon(
             db,
             body.pokemon_name,
             body.national_dex,
@@ -135,7 +106,7 @@ def get_ranking():
 @router.get("/status")
 def get_status():
     with get_db() as db:
-        season_id = _get_active_season_id(db)
+        season_id = get_active_season_id(db)
 
         authorized = db.fetchone(
             "SELECT COUNT(*) AS n FROM tournament.ban_whitelist WHERE season_id = %s",
@@ -173,15 +144,38 @@ def get_active_bans():
     Es información agregada y ya pública vía /ranking: no expone quién votó.
     """
     with get_db() as db:
-        season_id = _get_active_season_id(db)
+        season_id = get_active_season_id(db)
+        bans = voted_ban_names(db, season_id)
+    return {"season_id": season_id, "bans": bans}
+
+
+@router.get("/candidates")
+def get_ban_candidates(min_battles: int = Query(3, ge=1, le=100), season_id: Optional[int] = Query(None)):
+    """
+    Ban Radar: pokémon con win rate > 70% (vista mv_ban_candidates) y al menos
+    `min_battles` batallas —con pocas, un 100% no significa nada—, junto a los votos que
+    ya tienen en la temporada activa. Es agregado y público, igual que /ranking.
+    """
+    with get_db() as db:
+        active = get_active_season_id(db)
         rows = db.fetchall(
             """
-            SELECT DISTINCT pc.name AS pokemon_name
-            FROM tournament.ban_votes bv
-            JOIN tournament.pokemon_cache pc ON pc.pokemon_id = bv.pokemon_id
-            WHERE bv.season_id = %s
-            ORDER BY pc.name
+            SELECT c.species, c.format_name, c.battles_used, c.avg_kills, c.avg_mvp_score, c.win_rate_pct,
+                   COALESCE(v.total_votes, 0) AS votes, v.sprite_url
+            FROM battle.mv_ban_candidates c
+            LEFT JOIN LATERAL (
+                SELECT r.total_votes, r.sprite_url
+                FROM tournament.v_ban_ranking r
+                WHERE r.season_id = %s
+                  AND regexp_replace(lower(r.pokemon_name), '[^a-z0-9]', '', 'g') = regexp_replace(lower(c.species), '[^a-z0-9]', '', 'g')
+            ) v ON TRUE
+            WHERE c.season_id = %s AND c.battles_used >= %s
+            ORDER BY c.win_rate_pct DESC, c.battles_used DESC
             """,
-            (season_id,),
+            (active, season_id if season_id is not None else active, min_battles),
         )
-    return {"season_id": season_id, "bans": [r["pokemon_name"] for r in rows]}
+    return [
+        {**r, "avg_kills": float(r["avg_kills"] or 0), "avg_mvp_score": float(r["avg_mvp_score"] or 0),
+         "win_rate_pct": float(r["win_rate_pct"])}
+        for r in rows
+    ]

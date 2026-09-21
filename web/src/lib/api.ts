@@ -1,91 +1,17 @@
-// En Docker: VITE_API_URL="" → llama a /api/* en el mismo dominio (nginx proxy)
-// En dev local: VITE_API_URL="http://localhost:8001"
-const BASE = import.meta.env.VITE_API_URL || "";
+/**
+ * Cliente de la API de BATS. Cada función es una llamada tipada sobre `request`
+ * (lib/http.ts): autenticación, errores y cancelación viven allí, no aquí.
+ * Las páginas no llaman a estas funciones directamente sino a los hooks de lib/queries.ts.
+ */
+import { request } from "@/lib/http";
 
-// ── Ban ───────────────────────────────────────────────────────────────────────
-
-export async function checkUser(username: string) {
-  const res = await fetch(`${BASE}/api/ban/check-user`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username }),
-  });
-  if (!res.ok) throw new Error("Error al verificar usuario");
-  return res.json() as Promise<{ can_vote: boolean; reason: string | null }>;
-}
-
-export async function submitBan(payload: {
-  username: string;
-  pokemon_name: string;
-  pokemon_types: string | null;
-  sprite_url: string | null;
-  national_dex: number | null;
-}) {
-  const res = await fetch(`${BASE}/api/ban/submit`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? "Error al registrar ban");
-  }
-  return res.json();
-}
-
-// ── Admin ─────────────────────────────────────────────────────────────────────
-
-function authHeaders(token: string) {
-  return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
-}
-
-export async function adminLogin(password: string): Promise<string> {
-  const res = await fetch(`${BASE}/api/admin/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ password }),
-  });
-  if (!res.ok) throw new Error("Contraseña incorrecta.");
-  const data = await res.json() as { access_token: string };
-  return data.access_token;
-}
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 
 export interface WhitelistPlayer {
   voter_hash: string;
   username: string;
   added_at: string | null;
   voted: boolean;
-}
-
-export async function getWhitelist(token: string): Promise<WhitelistPlayer[]> {
-  const res = await fetch(`${BASE}/api/admin/whitelist`, { headers: authHeaders(token) });
-  if (!res.ok) throw new Error("No autorizado");
-  return res.json();
-}
-
-export async function addPlayer(token: string, username: string) {
-  const res = await fetch(`${BASE}/api/admin/whitelist/add`, {
-    method: "POST",
-    headers: authHeaders(token),
-    body: JSON.stringify({ username }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? "Error al agregar jugador");
-  }
-  return res.json();
-}
-
-export async function removePlayer(token: string, voter_hash: string) {
-  const res = await fetch(`${BASE}/api/admin/whitelist/${voter_hash}`, {
-    method: "DELETE",
-    headers: authHeaders(token),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? "Error al eliminar jugador");
-  }
-  return res.json();
 }
 
 export interface BanListEntry {
@@ -107,44 +33,6 @@ export interface ActiveSeasonBansResponse {
   progress: { voted: number; total: number } | null;
 }
 
-export async function getBans(token: string): Promise<ActiveSeasonBansResponse> {
-  const res = await fetch(`${BASE}/api/admin/bans`, { headers: authHeaders(token) });
-  if (!res.ok) throw new Error("No autorizado");
-  return res.json();
-}
-
-export async function getSeasonWhitelist(token: string, seasonId: number): Promise<WhitelistPlayer[]> {
-  const res = await fetch(`${BASE}/api/admin/seasons/${seasonId}/whitelist`, { headers: authHeaders(token) });
-  if (!res.ok) throw new Error("Error al cargar whitelist");
-  return res.json();
-}
-
-export async function addSeasonWhitelist(token: string, seasonId: number, username: string) {
-  const res = await fetch(`${BASE}/api/admin/seasons/${seasonId}/whitelist`, {
-    method: "POST",
-    headers: authHeaders(token),
-    body: JSON.stringify({ username }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? "Error al agregar jugador");
-  }
-  return res.json();
-}
-
-export async function removeSeasonWhitelist(token: string, seasonId: number, voterHash: string) {
-  const res = await fetch(`${BASE}/api/admin/seasons/${seasonId}/whitelist/${voterHash}`, {
-    method: "DELETE",
-    headers: authHeaders(token),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? "Error al eliminar jugador");
-  }
-}
-
-// ── Stats ─────────────────────────────────────────────────────────────────────
-
 export interface LeagueSummary {
   total_battles: number;
   total_players: number;
@@ -161,19 +49,6 @@ export interface PublicSeasonEntry {
   end_date:      string | null;
 }
 
-export async function getPublicSeasons(): Promise<PublicSeasonEntry[]> {
-  const res = await fetch(`${BASE}/api/stats/seasons`);
-  if (!res.ok) throw new Error("Error al cargar temporadas");
-  return res.json();
-}
-
-export async function getLeagueSummary(seasonId?: number): Promise<LeagueSummary> {
-  const qs = seasonId != null ? `?season_id=${seasonId}` : "";
-  const res = await fetch(`${BASE}/api/stats/summary${qs}`);
-  if (!res.ok) throw new Error("Error al cargar resumen");
-  return res.json();
-}
-
 export interface MvpEntry {
   species:            string;
   player:             string;
@@ -187,12 +62,12 @@ export interface MvpEntry {
 export interface PickRateEntry {
   species:       string;
   battles_used:  number;
-  total_battles: number;
+  total_slots:   number;
   usage_pct:     number;
+  avg_kills:     number;
+  avg_mvp_score: number;
   win_rate_pct:  number;
 }
-
-// ── Bot Stats ─────────────────────────────────────────────────────────────────
 
 export interface BotSummaryEntry {
   username:      string;
@@ -226,24 +101,6 @@ export interface BotBattleEntry {
   end_type:    string;
 }
 
-export async function getBotSummary(): Promise<BotSummaryEntry[]> {
-  const res = await fetch(`${BASE}/api/stats/bot/summary`);
-  if (!res.ok) throw new Error("Error al cargar resumen bot");
-  return res.json();
-}
-
-export async function getBotPokemon(): Promise<BotPokemonEntry[]> {
-  const res = await fetch(`${BASE}/api/stats/bot/pokemon`);
-  if (!res.ok) throw new Error("Error al cargar pokémon bot");
-  return res.json();
-}
-
-export async function getBotBattles(): Promise<BotBattleEntry[]> {
-  const res = await fetch(`${BASE}/api/stats/bot/battles`);
-  if (!res.ok) throw new Error("Error al cargar batallas bot");
-  return res.json();
-}
-
 export interface BattleDetailEntry {
   player: string;
   species: string;
@@ -252,19 +109,6 @@ export interface BattleDetailEntry {
   final_hit: boolean;
   mvp_score: string | number;
 }
-
-export async function getBotBattleDetails(battleId: string): Promise<BattleDetailEntry[]> {
-  const res = await fetch(`${BASE}/api/stats/bot/battles/${battleId}`);
-  if (!res.ok) throw new Error("Error al cargar detalles de la batalla");
-  return res.json();
-}
-
-export async function getBattleDetails(battleId: string): Promise<BattleDetailEntry[]> {
-  const res = await fetch(`${BASE}/api/stats/battles/${encodeURIComponent(battleId)}`);
-  if (!res.ok) throw new Error("Error al cargar detalles de la batalla");
-  return res.json();
-}
-
 
 export interface BattleEntry {
   battle_id:   string;
@@ -277,34 +121,6 @@ export interface BattleEntry {
   winner:      string | null;
 }
 
-export async function getBattles(token: string): Promise<BattleEntry[]> {
-  const res = await fetch(`${BASE}/api/admin/battles`, { headers: authHeaders(token) });
-  if (!res.ok) throw new Error("No autorizado");
-  return res.json();
-}
-
-export async function deleteBattle(token: string, battleId: string): Promise<void> {
-  const res = await fetch(`${BASE}/api/admin/battles/${encodeURIComponent(battleId)}`, {
-    method: "DELETE",
-    headers: authHeaders(token),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? "Error al borrar la batalla");
-  }
-}
-
-export async function resetBattleData(token: string): Promise<void> {
-  const res = await fetch(`${BASE}/api/admin/reset-battles`, {
-    method: "POST",
-    headers: authHeaders(token),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? "Error al limpiar la DB");
-  }
-}
-
 export interface LeaderboardEntry {
   username:         string;
   total_battles:    number;
@@ -313,29 +129,6 @@ export interface LeaderboardEntry {
   win_rate_pct:     number;
   total_survivors:  number;
 }
-
-export async function getLeaderboard(seasonId?: number): Promise<LeaderboardEntry[]> {
-  const qs = seasonId != null ? `?season_id=${seasonId}` : "";
-  const res = await fetch(`${BASE}/api/stats/leaderboard${qs}`);
-  if (!res.ok) throw new Error("Error al cargar leaderboard");
-  return res.json();
-}
-
-export async function getMvpTop5(seasonId?: number): Promise<MvpEntry[]> {
-  const qs = seasonId != null ? `?season_id=${seasonId}` : "";
-  const res = await fetch(`${BASE}/api/stats/mvp${qs}`);
-  if (!res.ok) throw new Error("Error al cargar MVPs");
-  return res.json();
-}
-
-export async function getPickRate(seasonId?: number): Promise<PickRateEntry[]> {
-  const qs = seasonId != null ? `?season_id=${seasonId}` : "";
-  const res = await fetch(`${BASE}/api/stats/pickrate${qs}`);
-  if (!res.ok) throw new Error("Error al cargar pick rate");
-  return res.json();
-}
-
-// ── Seasons ───────────────────────────────────────────────────────────────────
 
 export interface SeasonEntry {
   season_id:        number;
@@ -351,99 +144,6 @@ export interface SeasonEntry {
   max_team_changes: number;
   restrictions:     SeasonRestrictions;
 }
-
-export async function getSeasons(token: string): Promise<SeasonEntry[]> {
-  const res = await fetch(`${BASE}/api/admin/seasons`, { headers: authHeaders(token) });
-  if (!res.ok) throw new Error("No autorizado");
-  return res.json();
-}
-
-export async function createSeason(
-  token: string,
-  payload: {
-    season_name:       string;
-    type_of_month:     string;
-    start_date:        string;
-    max_team_size?:    number;
-    max_team_changes?: number;
-    restrictions?:     SeasonRestrictions;
-  },
-): Promise<SeasonEntry> {
-  const res = await fetch(`${BASE}/api/admin/seasons`, {
-    method: "POST",
-    headers: authHeaders(token),
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? "Error al crear temporada");
-  }
-  return res.json();
-}
-
-export async function activateSeason(token: string, seasonId: number): Promise<SeasonEntry> {
-  const res = await fetch(`${BASE}/api/admin/seasons/${seasonId}/activate`, {
-    method: "PATCH",
-    headers: authHeaders(token),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? "Error al activar temporada");
-  }
-  return res.json();
-}
-
-export async function closeSeason(token: string, seasonId: number): Promise<SeasonEntry> {
-  const res = await fetch(`${BASE}/api/admin/seasons/${seasonId}/close`, {
-    method: "PATCH",
-    headers: authHeaders(token),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? "Error al cerrar temporada");
-  }
-  return res.json();
-}
-
-export async function updateSeason(
-  token: string,
-  seasonId: number,
-  payload: {
-    season_name?:      string;
-    type_of_month?:    string;
-    start_date?:       string;
-    end_date?:         string;
-    clear_end_date?:   boolean;
-    is_active?:        boolean;
-    max_team_size?:    number;
-    max_team_changes?: number;
-    restrictions?:     SeasonRestrictions;
-  },
-): Promise<SeasonEntry> {
-  const res = await fetch(`${BASE}/api/admin/seasons/${seasonId}`, {
-    method: "PATCH",
-    headers: authHeaders(token),
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? "Error al actualizar temporada");
-  }
-  return res.json();
-}
-
-export async function deleteSeason(token: string, seasonId: number): Promise<void> {
-  const res = await fetch(`${BASE}/api/admin/seasons/${seasonId}`, {
-    method: "DELETE",
-    headers: authHeaders(token),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? "Error al eliminar temporada");
-  }
-}
-
-// ── Season Bans ───────────────────────────────────────────────────────────────
 
 export interface SeasonBan {
   ban_id:          number;
@@ -466,48 +166,6 @@ export interface VoteEntry {
   total_votes:  number;
   ranking:      number;
 }
-
-export async function getSeasonBans(token: string, seasonId: number): Promise<SeasonBan[]> {
-  const res = await fetch(`${BASE}/api/admin/seasons/${seasonId}/bans`, { headers: authHeaders(token) });
-  if (!res.ok) throw new Error("Error al cargar bans");
-  return res.json();
-}
-
-export async function addSeasonBan(
-  token: string,
-  seasonId: number,
-  payload: { player_username: string; pokemon_name: string },
-): Promise<SeasonBan> {
-  const res = await fetch(`${BASE}/api/admin/seasons/${seasonId}/bans`, {
-    method: "POST",
-    headers: authHeaders(token),
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? "Error al agregar ban");
-  }
-  return res.json();
-}
-
-export async function revokeSeasonBan(token: string, seasonId: number, banId: number): Promise<void> {
-  const res = await fetch(`${BASE}/api/admin/seasons/${seasonId}/bans/${banId}`, {
-    method: "DELETE",
-    headers: authHeaders(token),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? "Error al revocar ban");
-  }
-}
-
-export async function getSeasonVotes(token: string, seasonId: number): Promise<VoteEntry[]> {
-  const res = await fetch(`${BASE}/api/admin/seasons/${seasonId}/votes`, { headers: authHeaders(token) });
-  if (!res.ok) throw new Error("Error al cargar votos");
-  return res.json();
-}
-
-// ── ETL Cleaner ───────────────────────────────────────────────────────────────
 
 export interface EtlFileEntry {
   log_id:          number;
@@ -535,44 +193,10 @@ export interface DeleteFilesResult {
   battles_removed: number;
 }
 
-export interface EtlRunResult {
+export interface MaintenanceResult {
   ok: boolean;
-  etl:     { loaded: number; skipped: number; errors: number; total: number };
   seasons: { reset: number; updated: number; error: string | null };
 }
-
-export async function runEtl(token: string): Promise<EtlRunResult> {
-  const res = await fetch(`${BASE}/api/admin/etl/run`, {
-    method: "POST",
-    headers: authHeaders(token),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? "Error al ejecutar ETL");
-  }
-  return res.json();
-}
-
-export async function getEtlFiles(token: string): Promise<EtlFileEntry[]> {
-  const res = await fetch(`${BASE}/api/admin/etl/files`, { headers: authHeaders(token) });
-  if (!res.ok) throw new Error("Error al cargar archivos ETL");
-  return res.json();
-}
-
-export async function deleteEtlFiles(token: string, filePaths: string[]): Promise<DeleteFilesResult> {
-  const res = await fetch(`${BASE}/api/admin/etl/files`, {
-    method: "DELETE",
-    headers: authHeaders(token),
-    body: JSON.stringify({ file_paths: filePaths }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? "Error al borrar archivos");
-  }
-  return res.json();
-}
-
-// ── League Settings ───────────────────────────────────────────────────────────
 
 /** All current restriction keys. Extend here when new rules are added. */
 export interface SeasonRestrictions {
@@ -580,6 +204,9 @@ export interface SeasonRestrictions {
   required_generation?: number | null;   // 1–9 or null = no restriction
   required_egg_group?:  string | null;   // PokeAPI egg group name or null = no restriction
   item_clause?:         boolean;         // default false
+  max_paradox?:         number;          // 0–6 (6 = sin límite); lo aplica el formato de Showdown
+  max_pseudo_legendary?: number;         // 0–6 (6 = sin límite); lo aplica el formato de Showdown
+  registration_closed?: boolean;         // cierra el registro y publica los equipos
   [key: string]:        unknown;         // future restrictions
 }
 
@@ -594,7 +221,7 @@ export interface RestrictionSpec {
   default?: boolean;    // bool default
 }
 
-/** Static fallback — mirrors RESTRICTION_SPEC in leaguesettings.py */
+/** Respaldo estático: el servidor manda el spec real (RESTRICTION_SPEC en bats_core/rules.py). */
 export const DEFAULT_RESTRICTION_SPEC: Record<string, RestrictionSpec> = {
   required_color: {
     label: "Color requerido",
@@ -620,6 +247,23 @@ export const DEFAULT_RESTRICTION_SPEC: Record<string, RestrictionSpec> = {
     hint: "No se puede repetir el mismo objeto entre los pokémon del equipo.",
     default: false,
   },
+  registration_closed: {
+    label: "Registro cerrado",
+    hint: "Nadie puede registrar ni editar equipos, y los equipos pasan a ser públicos.",
+    default: false,
+  },
+  max_paradox: {
+    label: "Máximo de Paradox",
+    hint: "Cuántos pokémon Paradox admite un equipo (6 = sin límite).",
+    min: 0,
+    max: 6,
+  },
+  max_pseudo_legendary: {
+    label: "Máximo de pseudo-legendarios",
+    hint: "Cuántos pseudo-legendarios (BST 600 sin tag legendario) admite un equipo (6 = sin límite).",
+    min: 0,
+    max: 6,
+  },
 };
 
 export interface LeagueSettings {
@@ -632,38 +276,10 @@ export interface LeagueSettings {
   restriction_spec: Record<string, RestrictionSpec>;
 }
 
-export async function getLeagueSettings(token: string): Promise<LeagueSettings> {
-  const res = await fetch(`${BASE}/api/admin/leaguesettings`, { headers: authHeaders(token) });
-  if (!res.ok) throw new Error("No autorizado");
-  return res.json();
-}
-
-export async function updateLeagueSettings(
-  token: string,
-  payload: {
-    type_of_month?:    string;
-    max_team_size?:    number;
-    max_team_changes?: number;
-    restrictions?:     SeasonRestrictions;
-  },
-): Promise<LeagueSettings> {
-  const res = await fetch(`${BASE}/api/admin/leaguesettings`, {
-    method: "PATCH",
-    headers: authHeaders(token),
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? "Error al guardar configuración");
-  }
-  return res.json();
-}
-
-// ── Teams (public) ────────────────────────────────────────────────────────────
-
 export interface ActiveSeasonInfo {
   season_id:        number;
   season_name:      string;
+  type_of_month?:   string;
   max_team_size:    number;
   max_team_changes: number;
   restrictions:     SeasonRestrictions;
@@ -706,26 +322,6 @@ export interface BannedPokemon {
   sprite_url: string | null;
 }
 
-export async function getPlayerBans(username: string): Promise<BannedPokemon[]> {
-  const res = await fetch(`${BASE}/api/teams/banned/${encodeURIComponent(username.toLowerCase())}`);
-  if (!res.ok) return [];
-  return res.json();
-}
-
-export async function getActiveSeason(): Promise<ActiveSeasonInfo> {
-  const res = await fetch(`${BASE}/api/teams/active-season`);
-  if (!res.ok) throw new Error("Error al cargar temporada activa");
-  return res.json();
-}
-
-export async function getRoster(username: string): Promise<RosterInfo> {
-  const res = await fetch(`${BASE}/api/teams/${encodeURIComponent(username.toLowerCase())}`);
-  if (res.status === 404) throw new Error("not_found");
-  if (res.status === 403) throw new Error("not_in_whitelist");
-  if (!res.ok) throw new Error("Error al cargar equipo");
-  return res.json();
-}
-
 export interface PokemonPayload {
   name:         string;
   national_dex: number | null;
@@ -743,52 +339,219 @@ export interface PokemonPayload {
   egg_groups?:  string[];
 }
 
-export async function registerTeam(
-  username: string,
-  pokemon: PokemonPayload[],
-): Promise<{ roster_id: number; username: string; season_id: number; pokemon_count: number }> {
-  const res = await fetch(`${BASE}/api/teams/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, pokemon }),
+export interface PlayerAccount {
+  account_id:    number;
+  email:         string;
+  username:      string;
+  is_admin:      boolean;
+  has_logged_in: boolean;
+  created_at:    string;
+}
+
+// ── Tipos de las funciones nuevas ─────────────────────────────────────────────
+
+export interface PlayerProfile {
+  username:   string;
+  first_seen: string | null;
+  last_seen:  string | null;
+  record: {
+    battles: number; wins: number; losses: number; win_rate_pct: number | null;
+    forfeits: number; survivors: number;
+  };
+  mvp:    { total: number; kills: number };
+  streak: { type: "win" | "loss" | null; length: number };
+  top_pokemon: { species: string; uses: number; kills: number; mvp: number; avg_mvp: number }[];
+  recent: { battle_id: string; date: string | null; opponent: string; won: boolean; turns: number; end_type: string }[];
+  roster: {
+    season_name: string;
+    pool: { name: string; types: string | null; sprite_url: string | null; held_item: string | null;
+            ability: string | null; nature: string | null; tera_type: string | null; moves: string[]; in_lineup: boolean }[];
+  } | null;
+}
+
+export interface PokedexRow {
+  species: string; used: number; pick_pct: number | null; brought: number; bring_pct: number | null;
+  win_rate_pct: number | null; avg_mvp: number; avg_kills: number;
+}
+
+export interface PokedexList { total_slots: number; species: PokedexRow[] }
+
+export interface CountedName { name: string; count: number }
+
+export interface PokedexEntry {
+  species: string; types: string | null; sprite_url: string | null; national_dex: number | null;
+  total_slots: number; used: number; pick_pct: number | null; brought: number; bring_pct: number | null;
+  win_rate_pct: number | null; avg_kills: number; avg_mvp: number;
+  users: { username: string; uses: number; kills: number; mvp: number }[];
+  sets: {
+    players: number; moves: CountedName[]; items: CountedName[]; abilities: CountedName[];
+    natures: CountedName[]; tera_types: CountedName[];
+  };
+}
+
+export interface BanCandidate {
+  species: string; format_name: string; battles_used: number; avg_kills: number;
+  avg_mvp_score: number; win_rate_pct: number; votes: number; sprite_url: string | null;
+}
+
+export interface BanRankingEntry {
+  season_id: number; pokemon_name: string; pokemon_types: string | null; sprite_url: string | null;
+  national_dex: number | null; total_votes: number; ranking: number;
+}
+
+export interface BanStatus { total_authorized: number; total_voted: number; total_votes_cast: number; voting_open: boolean }
+
+export interface ChecklistRow { rule: string; label: string; ok: boolean; names: string[] }
+export interface TeamValidation { ok: boolean; checklist: ChecklistRow[] }
+
+export interface RotationHistory {
+  max_rotations: number;
+  rotations: { change_number: number; changed_at: string | null; battle_id: string | null; removed: string[]; added: string[] }[];
+}
+
+export interface BanViolation {
+  violation_id: number; battle_id: string; player_username: string; pokemon_species: string;
+  sprite_url: string | null; was_active: boolean; battle_date: string | null; detected_at: string | null;
+}
+
+export interface TeamViolation {
+  violation_id: number; battle_id: string; violation_type: "not_in_roster" | "no_roster_registered" | "rotation_exceeded";
+  was_active: boolean; player_username: string; pokemon_species: string; battle_date: string | null; detected_at: string | null;
+}
+
+export interface ActiveRules {
+  season_id: number; season_name: string; type_of_month: string; restrictions: SeasonRestrictions; bans: string[];
+}
+
+// ── Ban ───────────────────────────────────────────────────────────────────────
+
+export type EligibilityReason = "not_registered" | "already_voted" | null;
+
+/** ¿Puede votar la sesión actual? El servidor responde 403 si su cuenta no está en la liga. */
+export async function checkUser(): Promise<{ can_vote: boolean; reason: EligibilityReason }> {
+  try {
+    return await request("/api/ban/me", { auth: true });
+  } catch (e) {
+    if (e instanceof Error && "status" in e && (e as { status: number }).status === 403) {
+      return { can_vote: false, reason: "not_registered" };
+    }
+    throw e;
+  }
+}
+
+export const submitBan = (payload: {
+  pokemon_name: string; pokemon_types: string | null; sprite_url: string | null; national_dex: number | null;
+}) => request<{ ok: boolean }>("/api/ban/submit", { method: "POST", body: payload, auth: true, fallback: "Error al registrar ban" });
+
+export const getBanRanking = () => request<BanRankingEntry[]>("/api/ban/ranking");
+export const getBanStatus = () => request<BanStatus>("/api/ban/status");
+export const getBanCandidates = (minBattles = 3) =>
+  request<BanCandidate[]>("/api/ban/candidates", { params: { min_battles: minBattles } });
+
+export interface Me { username: string; email: string; is_admin: boolean }
+export const getMe = () => request<Me>("/api/me", { auth: true });
+
+// ── Reglas y temporada activa ─────────────────────────────────────────────────
+
+export const getActiveRules = () => request<ActiveRules>("/api/rules/active");
+export const getActiveSeason = () => request<ActiveSeasonInfo>("/api/teams/active-season");
+
+// ── Estadísticas (públicas) ───────────────────────────────────────────────────
+
+export const getPublicSeasons = () => request<PublicSeasonEntry[]>("/api/stats/seasons");
+export const getLeagueSummary = (seasonId?: number) => request<LeagueSummary>("/api/stats/summary", { params: { season_id: seasonId } });
+export const getMvpTop5 = (seasonId?: number) => request<MvpEntry[]>("/api/stats/mvp", { params: { season_id: seasonId } });
+export const getPickRate = (seasonId?: number) => request<PickRateEntry[]>("/api/stats/pickrate", { params: { season_id: seasonId } });
+export const getLeaderboard = (seasonId?: number) => request<LeaderboardEntry[]>("/api/stats/leaderboard", { params: { season_id: seasonId } });
+export const getBattleDetails = (battleId: string) => request<BattleDetailEntry[]>(`/api/stats/battles/${encodeURIComponent(battleId)}`);
+
+export const getBotSummary = () => request<BotSummaryEntry[]>("/api/stats/bot/summary");
+export const getBotPokemon = () => request<BotPokemonEntry[]>("/api/stats/bot/pokemon");
+export const getBotBattles = () => request<BotBattleEntry[]>("/api/stats/bot/battles");
+export const getBotBattleDetails = (battleId: string) => request<BattleDetailEntry[]>(`/api/stats/bot/battles/${encodeURIComponent(battleId)}`);
+
+export const getPlayerProfile = (username: string, seasonId?: number) =>
+  request<PlayerProfile>(`/api/players/${encodeURIComponent(username)}`, { params: { season_id: seasonId } });
+export const getPokedex = (seasonId?: number) => request<PokedexList>("/api/pokedex", { params: { season_id: seasonId } });
+export const getPokedexEntry = (species: string, seasonId?: number) =>
+  request<PokedexEntry>(`/api/pokedex/${encodeURIComponent(species)}`, { params: { season_id: seasonId } });
+
+// ── Equipo (requiere sesión) ──────────────────────────────────────────────────
+
+export const getPlayerBans = () => request<BannedPokemon[]>("/api/teams/me/banned", { auth: true });
+export const getRoster = () => request<RosterInfo>("/api/teams/me", { auth: true });
+export const getRotationHistory = () => request<RotationHistory>("/api/teams/me/history", { auth: true });
+export const validateTeam = (pokemon: PokemonPayload[], signal?: AbortSignal) =>
+  request<TeamValidation>("/api/teams/me/validate", { method: "POST", body: { pokemon }, auth: true, signal });
+
+export const registerTeam = (pokemon: PokemonPayload[]) =>
+  request<{ roster_id: number; username: string; season_id: number; pokemon_count: number }>(
+    "/api/teams/me", { method: "POST", body: { pokemon }, auth: true, fallback: "Error al registrar equipo" });
+export const removePokemonFromRoster = (pokemonId: number) =>
+  request<{ ok: boolean }>(`/api/teams/me/pokemon/${pokemonId}`, { method: "DELETE", auth: true, fallback: "Error al eliminar pokémon" });
+export const swapPokemon = (removePokemonId: number, add: PokemonPayload) =>
+  request<{ ok: boolean; pokemon_id: number }>("/api/teams/me/swap", {
+    method: "POST", body: { remove_pokemon_id: removePokemonId, add }, auth: true, fallback: "Error al reemplazar el pokémon",
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? "Error al registrar equipo");
-  }
-  return res.json();
-}
+export const addPokemonToRoster = (pokemon: PokemonPayload[]) =>
+  request<{ ok: boolean; added: number }>("/api/teams/me/pokemon", { method: "POST", body: { pokemon }, auth: true, fallback: "Error al agregar pokémon" });
 
-export async function removePokemonFromRoster(
-  username: string,
-  pokemonId: number,
-): Promise<{ ok: boolean }> {
-  const res = await fetch(
-    `${BASE}/api/teams/${encodeURIComponent(username.toLowerCase())}/pokemon/${pokemonId}`,
-    { method: "DELETE" },
-  );
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? "Error al eliminar pokémon");
-  }
-  return res.json();
-}
+// ── Administración ────────────────────────────────────────────────────────────
 
-export async function addPokemonToRoster(
-  username: string,
-  pokemon: PokemonPayload[],
-): Promise<{ ok: boolean; added: number }> {
-  const res = await fetch(
-    `${BASE}/api/teams/${encodeURIComponent(username.toLowerCase())}/pokemon`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pokemon }),
-    },
-  );
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { detail?: string }).detail ?? "Error al agregar pokémon");
-  }
-  return res.json();
-}
+const admin = { auth: true } as const;
+
+export const getPlayerAccounts = () => request<PlayerAccount[]>("/api/admin/players", admin);
+export const addPlayerAccount = (payload: { email: string; username: string; is_admin: boolean }) =>
+  request("/api/admin/players", { ...admin, method: "POST", body: payload, fallback: "Error al crear la cuenta" });
+export const deletePlayerAccount = (accountId: number) =>
+  request(`/api/admin/players/${accountId}`, { ...admin, method: "DELETE", fallback: "Error al eliminar la cuenta" });
+
+export const getBans = () => request<ActiveSeasonBansResponse>("/api/admin/bans", admin);
+
+export const getBattles = () => request<BattleEntry[]>("/api/admin/battles", admin);
+export const deleteBattle = (battleId: string) =>
+  request<void>(`/api/admin/battles/${encodeURIComponent(battleId)}`, { ...admin, method: "DELETE", fallback: "Error al borrar la batalla" });
+export const resetBattleData = () =>
+  request<void>("/api/admin/reset-battles", { ...admin, method: "POST", fallback: "Error al limpiar la DB" });
+
+export const getSeasons = () => request<SeasonEntry[]>("/api/admin/seasons", admin);
+export const createSeason = (payload: {
+  season_name: string; type_of_month: string; start_date: string;
+  max_team_size?: number; max_team_changes?: number; restrictions?: SeasonRestrictions;
+}) => request<SeasonEntry>("/api/admin/seasons", { ...admin, method: "POST", body: payload, fallback: "Error al crear temporada" });
+export const updateSeason = (seasonId: number, payload: {
+  season_name?: string; type_of_month?: string; start_date?: string; end_date?: string; clear_end_date?: boolean;
+  is_active?: boolean; max_team_size?: number; max_team_changes?: number; restrictions?: SeasonRestrictions;
+}) => request<SeasonEntry>(`/api/admin/seasons/${seasonId}`, { ...admin, method: "PATCH", body: payload, fallback: "Error al actualizar temporada" });
+export const activateSeason = (seasonId: number) =>
+  request<SeasonEntry>(`/api/admin/seasons/${seasonId}/activate`, { ...admin, method: "PATCH", fallback: "Error al activar temporada" });
+export const closeSeason = (seasonId: number) =>
+  request<SeasonEntry>(`/api/admin/seasons/${seasonId}/close`, { ...admin, method: "PATCH", fallback: "Error al cerrar temporada" });
+export const deleteSeason = (seasonId: number) =>
+  request<void>(`/api/admin/seasons/${seasonId}`, { ...admin, method: "DELETE", fallback: "Error al eliminar temporada" });
+
+export const getSeasonBans = (seasonId: number) => request<SeasonBan[]>(`/api/admin/seasons/${seasonId}/bans`, admin);
+export const addSeasonBan = (seasonId: number, payload: { player_username: string; pokemon_name: string }) =>
+  request<SeasonBan>(`/api/admin/seasons/${seasonId}/bans`, { ...admin, method: "POST", body: payload, fallback: "Error al agregar ban" });
+export const revokeSeasonBan = (seasonId: number, banId: number) =>
+  request<void>(`/api/admin/seasons/${seasonId}/bans/${banId}`, { ...admin, method: "DELETE", fallback: "Error al revocar ban" });
+export const getSeasonVotes = (seasonId: number) => request<VoteEntry[]>(`/api/admin/seasons/${seasonId}/votes`, admin);
+export const getSeasonBanViolations = (seasonId: number) => request<BanViolation[]>(`/api/admin/seasons/${seasonId}/violations`, admin);
+export const getSeasonTeamViolations = (seasonId: number) => request<TeamViolation[]>(`/api/admin/seasons/${seasonId}/team-violations`, admin);
+
+export const getSeasonWhitelist = (seasonId: number) => request<WhitelistPlayer[]>(`/api/admin/seasons/${seasonId}/whitelist`, admin);
+export const addSeasonWhitelist = (seasonId: number, username: string) =>
+  request(`/api/admin/seasons/${seasonId}/whitelist`, { ...admin, method: "POST", body: { username }, fallback: "Error al agregar jugador" });
+export const removeSeasonWhitelist = (seasonId: number, voterHash: string) =>
+  request<void>(`/api/admin/seasons/${seasonId}/whitelist/${voterHash}`, { ...admin, method: "DELETE", fallback: "Error al eliminar jugador" });
+
+/** Recalcula las temporadas de cada batalla y refresca las estadísticas. */
+export const runMaintenance = () => request<MaintenanceResult>("/api/admin/etl/run", { ...admin, method: "POST", fallback: "Error al recalcular" });
+export const getEtlFiles = () => request<EtlFileEntry[]>("/api/admin/etl/files", admin);
+export const deleteEtlFiles = (filePaths: string[]) =>
+  request<DeleteFilesResult>("/api/admin/etl/files", { ...admin, method: "DELETE", body: { file_paths: filePaths }, fallback: "Error al borrar" });
+
+export const getLeagueSettings = () => request<LeagueSettings>("/api/admin/leaguesettings", admin);
+export const updateLeagueSettings = (payload: {
+  type_of_month?: string; max_team_size?: number; max_team_changes?: number; restrictions?: SeasonRestrictions;
+}) => request<LeagueSettings>("/api/admin/leaguesettings", { ...admin, method: "PATCH", body: payload, fallback: "Error al guardar configuración" });

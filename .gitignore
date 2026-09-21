@@ -3,6 +3,7 @@ venv/
 __pycache__/
 *.pyc
 .pytest_cache/
+.ruff_cache/
 
 # Secretos y config local (bats/.env y bats/web/.env)
 .env
@@ -23,3 +24,5 @@ web/dist-ssr/
 .idea
 .DS_Store
 *.log
+.env.*
+.vercel

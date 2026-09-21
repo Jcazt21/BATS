@@ -6,122 +6,29 @@ Endpoints:
   PATCH /api/admin/leaguesettings  → actualiza campos y/o restricciones
 
 Diseño de restricciones:
-  Las restricciones de torneo viven en tournament.seasons.restrictions (JSONB).
-  Para agregar una nueva restricción basta con extender RESTRICTION_SPEC:
-  no se requieren migraciones de BD.
-
-  Tipo de restricciones soportadas:
-    "enum"  – valor de un conjunto fijo de strings; nullable=True permite NULL (sin restricción)
-    "int"   – entero con rango; nullable=True permite NULL (sin restricción)
-    "bool"  – booleano, default False (ausente = False)
+  Las restricciones de torneo viven en tournament.seasons.restrictions (JSONB) y su
+  definición (RESTRICTION_SPEC) en bats_core/rules.py: añadir una restricción no
+  requiere migración de BD.
 """
 import json
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 
+from ...rules import RESTRICTION_SPEC, RuleError, normalize_restrictions, validate_restriction
 from ..auth import require_admin
 from ..db import get_db
+from ..schemas import UpdateLeagueSettingsRequest
 
 router = APIRouter(prefix="/api/admin/leaguesettings", tags=["leaguesettings"])
 
 
-# ── Restriction spec ──────────────────────────────────────────────────────────
-# To add a new restriction: append a new entry here. No DB migration required.
-
-RESTRICTION_SPEC: dict[str, dict[str, Any]] = {
-    "required_color": {
-        "type":     "enum",
-        "values":   ["black", "blue", "brown", "gray", "green",
-                     "pink", "purple", "red", "white", "yellow"],
-        "nullable": True,
-        "label":    "Color requerido",
-        "hint":     "Al menos un pokémon del equipo debe ser de este color.",
-    },
-    "required_generation": {
-        "type":     "int",
-        "min":      1,
-        "max":      9,
-        "nullable": True,
-        "label":    "Generación requerida",
-        "hint":     "Al menos un pokémon del equipo debe ser de esta generación.",
-    },
-    "required_egg_group": {
-        "type":     "enum",
-        "values":   ["monster", "water1", "water2", "water3", "bug", "flying",
-                     "field", "fairy", "grass", "human-like", "mineral",
-                     "amorphous", "ditto", "dragon", "undiscovered"],
-        "nullable": True,
-        "label":    "Egg Group requerido",
-        "hint":     "Al menos un pokémon del equipo debe pertenecer a este egg group.",
-    },
-    "item_clause": {
-        "type":    "bool",
-        "default": False,
-        "label":   "Item Clause",
-        "hint":    "No se puede repetir el mismo objeto entre los pokémon del equipo.",
-    },
-}
-
-
 def _validate_restriction(key: str, value: Any) -> Any:
-    """Valida y normaliza un valor de restricción. Lanza HTTPException si es inválido."""
-    if key not in RESTRICTION_SPEC:
-        raise HTTPException(status_code=422, detail=f"Restricción desconocida: '{key}'")
-    spec = RESTRICTION_SPEC[key]
-
-    if value is None:
-        if spec.get("nullable"):
-            return None
-        raise HTTPException(status_code=422, detail=f"'{key}' no puede ser nulo.")
-
-    if spec["type"] == "enum":
-        if value not in spec["values"]:
-            raise HTTPException(
-                status_code=422,
-                detail=f"'{key}': valor inválido '{value}'. Opciones: {spec['values']}",
-            )
-        return value
-
-    if spec["type"] == "int":
-        if not isinstance(value, int):
-            raise HTTPException(status_code=422, detail=f"'{key}' debe ser un entero.")
-        if not (spec["min"] <= value <= spec["max"]):
-            raise HTTPException(
-                status_code=422,
-                detail=f"'{key}' debe estar entre {spec['min']} y {spec['max']}.",
-            )
-        return value
-
-    if spec["type"] == "bool":
-        if not isinstance(value, bool):
-            raise HTTPException(status_code=422, detail=f"'{key}' debe ser un booleano.")
-        return value
-
-    return value  # unknown type, pass through
-
-
-def _normalize_restrictions(raw: dict | None) -> dict:
-    """Devuelve las restricciones con defaults aplicados y sin claves desconocidas."""
-    raw = raw or {}
-    result: dict[str, Any] = {}
-    for key, spec in RESTRICTION_SPEC.items():
-        val = raw.get(key)
-        if val is None and spec.get("nullable"):
-            result[key] = None
-        elif val is None:
-            result[key] = spec.get("default", False)
-        else:
-            result[key] = val
-    return result
-
-
-class UpdateLeagueSettingsRequest(BaseModel):
-    type_of_month:    Optional[str]        = None
-    max_team_size:    Optional[int]        = None
-    max_team_changes: Optional[int]        = None
-    restrictions:     Optional[dict[str, Any]] = None  # merged into current
+    """Valida un valor de restricción (spec en bats_core/rules.py); RuleError → 422."""
+    try:
+        return validate_restriction(key, value)
+    except RuleError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
 
 def _build_response(row: dict) -> dict:
@@ -135,7 +42,7 @@ def _build_response(row: dict) -> dict:
         "type_of_month":    row["type_of_month"],
         "max_team_size":    row["max_team_size"],
         "max_team_changes": row["max_team_changes"],
-        "restrictions":     _normalize_restrictions(raw),
+        "restrictions":     normalize_restrictions(raw),
         "restriction_spec": {
             k: {fk: fv for fk, fv in v.items() if fk not in ("type",)}
             for k, v in RESTRICTION_SPEC.items()

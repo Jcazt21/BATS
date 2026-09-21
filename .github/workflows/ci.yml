@@ -95,6 +95,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v5
+
       - name: Instalar Vercel CLI
         run: npm install --global vercel@latest
 

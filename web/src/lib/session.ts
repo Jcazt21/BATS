@@ -26,6 +26,17 @@ export async function sendMagicLink(email: string, redirectTo: string = window.l
   if (error) throw new Error("No se pudo enviar el enlace. Revisa el correo e inténtalo de nuevo.");
 }
 
+export async function signInWithGoogle(redirectTo: string = window.location.href): Promise<void> {
+  if (!supabase) throw new Error("Falta configurar VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.");
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    // Igual que con el magic link: Supabase crea el usuario de auth, pero la API
+    // solo deja pasar los emails que el admin dio de alta en player_accounts.
+    options: { redirectTo },
+  });
+  if (error) throw new Error("No se pudo iniciar sesión con Google. Intenta de nuevo.");
+}
+
 export async function signOut(): Promise<void> {
   await supabase?.auth.signOut();
 }

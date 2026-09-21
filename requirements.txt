@@ -1,7 +1,15 @@
 # BATS — dependencias de DEPLOY (Vercel instala este archivo).
 # Solo lo que necesita la API. Nada de pandas/rich/watchdog: son del CLI local
 # y no deben entrar al bundle de la función serverless.
-fastapi>=0.115
+#
+# fastapi y starlette van con versión exacta (no ">=") porque fastapi solo
+# exige "starlette>=0.46.0" sin techo: un salto de versión mayor de starlette
+# (visto 0.52 -> 1.6 durante la puesta en marcha del CI) cambia el
+# comportamiento de app.routes y rompe tests que lo inspeccionan, aunque el
+# ruteo real siga funcionando. Fijar ambas versiones da builds reproducibles
+# en CI y en Vercel en vez de agarrar lo último que exista el día del build.
+fastapi==0.135.1
+starlette==0.52.1
 psycopg2-binary>=2.9
 python-dotenv>=1.0.0
 python-jose[cryptography]>=3.3

@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { BarChart3, BookOpen, House, LogOut, Monitor, Moon, ShieldBan, ShieldCheck, Sun, UserRound, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PageTransition } from "@/components/app/PageTransition";
 import { PlayerAvatar } from "@/components/app/PlayerAvatar";
@@ -102,10 +102,12 @@ function ThemeMenu() {
         <Icon />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel>Apariencia</DropdownMenuLabel>
-        <DropdownMenuItem onClick={() => setPreference("light")}><Sun /> Claro</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setPreference("dark")}><Moon /> Oscuro</DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setPreference("system")}><Monitor /> Sistema</DropdownMenuItem>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>Apariencia</DropdownMenuLabel>
+          <DropdownMenuItem onClick={() => setPreference("light")}><Sun /> Claro</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setPreference("dark")}><Moon /> Oscuro</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setPreference("system")}><Monitor /> Sistema</DropdownMenuItem>
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -135,9 +137,11 @@ function UserMenu() {
         <PlayerAvatar name={name} size={30} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel>{name}</DropdownMenuLabel>
-        {me.data && <DropdownMenuItem onClick={() => navigate(`/j/${encodeURIComponent(me.data!.username)}`)}><UserRound /> Mi perfil</DropdownMenuItem>}
-        {me.data?.is_admin && <DropdownMenuItem onClick={() => navigate("/admin/stats")}><ShieldCheck /> Administración</DropdownMenuItem>}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>{name}</DropdownMenuLabel>
+          {me.data && <DropdownMenuItem onClick={() => navigate(`/j/${encodeURIComponent(me.data!.username)}`)}><UserRound /> Mi perfil</DropdownMenuItem>}
+          {me.data?.is_admin && <DropdownMenuItem onClick={() => navigate("/admin/stats")}><ShieldCheck /> Administración</DropdownMenuItem>}
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => void signOut()}><LogOut /> Salir</DropdownMenuItem>
       </DropdownMenuContent>

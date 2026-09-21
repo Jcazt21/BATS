@@ -8,7 +8,7 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger,
 } from "@/components/ui/sidebar";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EmptyState, ErrorState } from "@/components/app/States";
 import { PlayerAvatar } from "@/components/app/PlayerAvatar";
@@ -118,8 +118,10 @@ export function AdminLayout() {
                   <ChevronsUpDown className="ml-auto size-4" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="right" align="end" sideOffset={4} className="min-w-56">
-                  <DropdownMenuLabel>{name}</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => navigate(`/j/${encodeURIComponent(name)}`)}><Activity /> Mi perfil</DropdownMenuItem>
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>{name}</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => navigate(`/j/${encodeURIComponent(name)}`)}><Activity /> Mi perfil</DropdownMenuItem>
+                  </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => { void signOut(); navigate("/admin"); }}><LogOut /> Cerrar sesión</DropdownMenuItem>
                 </DropdownMenuContent>

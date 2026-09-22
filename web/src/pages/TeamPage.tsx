@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeftRight, ClipboardCopy, Lock, Plus, Trash2 } from "lucide-react";
+import { ArrowLeftRight, ClipboardCopy, Loader2, Lock, Pencil, Plus, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Group, GroupRow } from "@/components/app/Group";
 import { Meter } from "@/components/app/Meter";
@@ -15,29 +14,55 @@ import {
 } from "@/components/ui/alert-dialog";
 import { SignInCard } from "@/components/SignInCard";
 import { MonCard } from "@/components/team/MonCard";
-import { PasteBuilder } from "@/components/team/PasteBuilder";
-import type { PokemonPayload, RosterPokemon } from "@/lib/api";
+import { SetEditor } from "@/components/builder/SetEditor";
+import { TeamBuilder } from "@/components/builder/TeamBuilder";
+import type { PokemonPayload, RosterPokemon, RosterValidation } from "@/lib/api";
+import type { Dex } from "@/lib/dex/snapshot";
+import { speciesById } from "@/lib/dex/snapshot";
+import { useLearnset } from "@/lib/dex/useLearnset";
+import { checkSet, type BuilderMon, type RuleSeason } from "@/lib/dex/validate";
 import { ApiError, errorMessage } from "@/lib/http";
 import {
-  useActiveSeason, usePlayerBans, useRegisterTeam, useRemovePokemon, useRoster, useRotationHistory,
-  useSwapPokemon, useAddPokemon,
+  useActiveSeason, useAddPokemon, useDex, useEditSet, usePlayerBans, useRegisterTeam, useRemovePokemon,
+  useRoster, useRotationHistory, useSwapPokemon,
 } from "@/lib/queries";
 import { useSession } from "@/lib/session";
 import { toPaste } from "@/lib/showdown";
-import { lookupSpecies, toPayload } from "@/lib/team-resolve";
 import { useToast } from "@/lib/toast";
 import { fmtDateShort } from "@/lib/format";
+
+function toBuilderMon(p: RosterPokemon): BuilderMon {
+  return {
+    species: p.name, held_item: p.held_item, ability: p.ability, nature: p.nature, tera_type: p.tera_type,
+    moves: p.moves, evs: p.evs, ivs: p.ivs,
+  };
+}
+
+/** Los metadatos (color/generación/egg groups/tipos) salen del dex local; la API los vuelve a
+ *  resolver del lado del servidor (bats_core.dex.resolve_entries) — lo que viaje aquí es orientativo. */
+function toPayload(dex: Dex, mon: BuilderMon): PokemonPayload {
+  const sp = speciesById(dex, mon.species);
+  return {
+    name: sp?.name ?? mon.species, national_dex: sp?.num ?? null, types: sp ? sp.types.join(" / ") : null,
+    sprite_url: null, held_item: mon.held_item, ability: mon.ability, nature: mon.nature, tera_type: mon.tera_type,
+    moves: mon.moves, evs: mon.evs, ivs: mon.ivs, color: sp?.color ?? null, generation: sp?.gen ?? null,
+    egg_groups: sp?.eggGroups ?? [],
+  };
+}
 
 export function TeamPage() {
   const { session, loading } = useSession();
   const season = useActiveSeason();
   const roster = useRoster();
+  const dex = useDex();
   const closed = !!season.data?.restrictions?.registration_closed;
 
   let body;
-  if (loading) body = null;
+  if (loading || dex.isPending) body = null;
   else if (!session) {
     body = <div className="flex justify-center"><SignInCard title="Tu equipo" description="Inicia sesión con el correo con el que te registró el admin." /></div>;
+  } else if (dex.isError) {
+    body = <ErrorState error={dex.error} onRetry={() => dex.refetch()} />;
   } else if (roster.isPending) {
     body = <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-36 rounded-2xl" />)}</div>;
   } else if (roster.isError) {
@@ -45,11 +70,11 @@ export function TeamPage() {
     body =
       status === 404 ? (closed
         ? <EmptyState icon={<Lock strokeWidth={1.25} />} title="El registro está cerrado" description="No registraste un equipo a tiempo. Habla con el administrador." />
-        : <Register maxSize={season.data?.max_team_size ?? 8} />)
+        : <Register dex={dex.data!} maxSize={season.data?.max_team_size ?? 8} />)
       : status === 403 ? <EmptyState title="Tu cuenta no está en esta temporada" description="Pídele al administrador que te agregue a la whitelist." />
       : <ErrorState error={roster.error} onRetry={() => roster.refetch()} />;
   } else {
-    body = <RosterView closed={closed} />;
+    body = <RosterView closed={closed} dex={dex.data!} />;
   }
 
   return (
@@ -66,15 +91,22 @@ export function TeamPage() {
 
 // ── Registro ──────────────────────────────────────────────────────────────────
 
-function Register({ maxSize }: { maxSize: number }) {
+function Register({ dex, maxSize }: { dex: Dex; maxSize: number }) {
+  const season = useActiveSeason();
+  const bans = usePlayerBans();
   const register = useRegisterTeam();
   const { toast } = useToast();
+  const banned = useMemo(() => new Set((bans.data ?? []).map((b) => b.name.toLowerCase())), [bans.data]);
+  const ruleSeason: RuleSeason = {
+    type_of_month: season.data?.type_of_month, max_team_size: maxSize, restrictions: season.data?.restrictions ?? {},
+  };
   return (
-    <div className="mx-auto w-full max-w-2xl">
-      <PasteBuilder
-        context={[]} maxNew={maxSize} submitLabel="Registrar equipo"
-        onSubmit={async (mons) => {
-          await register.mutateAsync(mons);
+    <div className="mx-auto w-full max-w-4xl">
+      <TeamBuilder
+        dex={dex} initial={[]} season={ruleSeason} banned={banned} maxSize={maxSize}
+        saveLabel="Registrar equipo"
+        onSave={async (team) => {
+          await register.mutateAsync(team.map((m) => toPayload(dex, m)));
           toast({ title: "Equipo registrado", tone: "success" });
         }}
       />
@@ -84,42 +116,27 @@ function Register({ maxSize }: { maxSize: number }) {
 
 // ── Equipo registrado ─────────────────────────────────────────────────────────
 
-/** Los pokémon ya guardados no traen color/generación/egg group: se recuperan de PokéAPI para comprobar reglas. */
-function usePoolPayloads(pool: RosterPokemon[]) {
-  return useQuery({
-    queryKey: ["team", "pool-payloads", pool.map((p) => p.name).sort().join("|")],
-    queryFn: async (): Promise<Map<number, PokemonPayload>> => {
-      const entries = await Promise.all(pool.map(async (p) => {
-        const info = await lookupSpecies(p.name).catch(() => null);
-        const payload: PokemonPayload = info
-          ? toPayload(p, info, p.name)
-          : { name: p.name, national_dex: null, types: p.types, sprite_url: p.sprite_url, held_item: p.held_item };
-        return [p.pokemon_id, { ...payload, sprite_url: p.sprite_url ?? payload.sprite_url }] as const;
-      }));
-      return new Map(entries);
-    },
-    staleTime: Infinity,
-  });
-}
-
-function RosterView({ closed }: { closed: boolean }) {
+function RosterView({ closed, dex }: { closed: boolean; dex: Dex }) {
   const roster = useRoster();
+  const season = useActiveSeason();
   const bans = usePlayerBans();
   const history = useRotationHistory();
-  const poolPayloads = usePoolPayloads(roster.data?.pool ?? []);
   const remove = useRemovePokemon();
   const swap = useSwapPokemon();
   const add = useAddPokemon();
   const { toast } = useToast();
   const [removing, setRemoving] = useState<RosterPokemon | null>(null);
   const [swapping, setSwapping] = useState<RosterPokemon | null>(null);
+  const [editing, setEditing] = useState<RosterPokemon | null>(null);
   const [adding, setAdding] = useState(false);
 
   const r = roster.data!;
   const banned = useMemo(() => new Set((bans.data ?? []).map((b) => b.name.toLowerCase())), [bans.data]);
   const room = r.max_team_size - r.pool.length;
-  const contextWithout = (id?: number): PokemonPayload[] =>
-    r.pool.filter((p) => p.pokemon_id !== id).map((p) => poolPayloads.data?.get(p.pokemon_id)).filter((p): p is PokemonPayload => !!p);
+  const ruleSeason: RuleSeason = {
+    type_of_month: season.data?.type_of_month, max_team_size: r.max_team_size, restrictions: season.data?.restrictions ?? {},
+  };
+  const contextWithout = (id?: number): BuilderMon[] => r.pool.filter((p) => p.pokemon_id !== id).map(toBuilderMon);
 
   async function copy() {
     const paste = r.pool.map((p) => toPaste(p)).join("\n\n");
@@ -133,6 +150,7 @@ function RosterView({ closed }: { closed: boolean }) {
         <div className="flex flex-wrap items-center gap-2">
           {closed && <Badge variant="warning"><Lock /> Registro cerrado</Badge>}
           <Badge variant="secondary">{r.pool.length}/{r.max_team_size} pokémon</Badge>
+          <ValidationBadge validation={r.validation} />
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" size="sm" onClick={() => void copy()}><ClipboardCopy /> Copiar paste</Button>
@@ -140,12 +158,20 @@ function RosterView({ closed }: { closed: boolean }) {
         </div>
       </div>
 
+      {r.validation.state === "errors" && (
+        <div role="alert" className="rounded-2xl border border-destructive/40 bg-destructive-soft p-4 text-footnote text-destructive">
+          <p className="font-medium">Showdown encontró problemas en tu equipo registrado:</p>
+          <ul className="mt-1 list-disc pl-5">{r.validation.errors.map((e) => <li key={e}>{e}</li>)}</ul>
+        </div>
+      )}
+
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Pokémon de tu equipo">
         {r.pool.map((p) => (
           <MonCard key={p.pokemon_id} mon={p} banned={banned.has(p.name.toLowerCase())}
             badge={p.in_lineup ? <Badge variant="info">En el lineup</Badge> : undefined}
             actions={!closed && (
               <>
+                <Button variant="secondary" size="xs" onClick={() => setEditing(p)}><Pencil /> Editar set</Button>
                 <Button variant="secondary" size="xs" onClick={() => setSwapping(p)}><ArrowLeftRight /> Reemplazar</Button>
                 <Button variant="ghost" size="xs" onClick={() => setRemoving(p)}><Trash2 /> Quitar</Button>
               </>
@@ -193,23 +219,80 @@ function RosterView({ closed }: { closed: boolean }) {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Editar set */}
+      <ResponsiveSheet
+        open={!!editing} onOpenChange={(o) => !o && setEditing(null)}
+        title={`Editar el set de ${editing?.name ?? ""}`}
+        description="Objeto, habilidad, naturaleza, tera, movimientos, EVs e IVs. No consume cambios."
+      >
+        {editing && <EditSetForm dex={dex} pokemon={editing} onDone={() => setEditing(null)} />}
+      </ResponsiveSheet>
+
       {/* Agregar */}
       <ResponsiveSheet open={adding} onOpenChange={setAdding} title="Agregar pokémon" description={`Te caben ${room} más.`}>
-        <PasteBuilder context={contextWithout()} maxNew={room} submitLabel="Agregar al equipo"
-          onSubmit={async (mons) => { await add.mutateAsync(mons); setAdding(false); toast({ title: "Pokémon agregados", tone: "success" }); }} />
+        <TeamBuilder
+          dex={dex} initial={[]} context={contextWithout()} season={ruleSeason} banned={banned} maxSize={room}
+          saveLabel="Agregar al equipo"
+          onSave={async (team) => {
+            await add.mutateAsync(team.map((m) => toPayload(dex, m)));
+            setAdding(false);
+            toast({ title: "Pokémon agregados", tone: "success" });
+          }}
+        />
       </ResponsiveSheet>
 
       {/* Reemplazar */}
-      <ResponsiveSheet open={!!swapping} onOpenChange={(o) => !o && setSwapping(null)} title={`Reemplazar a ${swapping?.name ?? ""}`} description="Pega el pokémon nuevo. El cambio es atómico: si algo falla, no se quita nada.">
+      <ResponsiveSheet
+        open={!!swapping} onOpenChange={(o) => !o && setSwapping(null)}
+        title={`Reemplazar a ${swapping?.name ?? ""}`}
+        description="Elige el pokémon nuevo. El cambio es atómico: si algo falla, no se quita nada."
+      >
         {swapping && (
-          <PasteBuilder context={contextWithout(swapping.pokemon_id)} maxNew={1} submitLabel="Reemplazar"
-            onSubmit={async (mons) => {
-              await swap.mutateAsync({ removeId: swapping.pokemon_id, add: mons[0] });
+          <TeamBuilder
+            dex={dex} initial={[]} context={contextWithout(swapping.pokemon_id)} season={ruleSeason} banned={banned} maxSize={1}
+            saveLabel="Reemplazar"
+            onSave={async (team) => {
+              await swap.mutateAsync({ removeId: swapping.pokemon_id, add: toPayload(dex, team[0]) });
               setSwapping(null);
               toast({ title: "Pokémon reemplazado", tone: "success" });
-            }} />
+            }}
+          />
         )}
       </ResponsiveSheet>
     </div>
   );
+}
+
+function EditSetForm({ dex, pokemon, onDone }: { dex: Dex; pokemon: RosterPokemon; onDone: () => void }) {
+  const [mon, setMon] = useState<BuilderMon>(() => toBuilderMon(pokemon));
+  const editSet = useEditSet();
+  const { toast } = useToast();
+  const species = speciesById(dex, mon.species);
+  const learnset = useLearnset(species?.id ?? null);
+  const errors = checkSet(dex, learnset, mon);
+
+  async function save() {
+    try {
+      await editSet.mutateAsync({ pokemonId: pokemon.pokemon_id, payload: toPayload(dex, mon) });
+      toast({ title: "Set actualizado", tone: "success" });
+      onDone();
+    } catch (e) {
+      toast({ title: "No se pudo guardar", description: errorMessage(e), tone: "error" });
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <SetEditor mon={mon} dex={dex} onChange={setMon} errors={errors} />
+      <Button size="lg" disabled={errors.length > 0 || editSet.isPending} onClick={() => void save()}>
+        {editSet.isPending ? <><Loader2 className="animate-spin" /> Guardando…</> : "Guardar cambios"}
+      </Button>
+    </div>
+  );
+}
+
+function ValidationBadge({ validation }: { validation: RosterValidation }) {
+  if (validation.state === "ok") return <Badge variant="success">Validado por Showdown</Badge>;
+  if (validation.state === "errors") return <Badge variant="destructive">Showdown encontró errores</Badge>;
+  return <Badge variant="secondary">Pendiente de revisión</Badge>;
 }

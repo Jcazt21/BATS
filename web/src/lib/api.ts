@@ -303,6 +303,13 @@ export interface RosterPokemon {
   in_lineup:  boolean;
 }
 
+/** Veredicto del TeamValidator real de Showdown (Task 6), sincronizado por bats-ingest. */
+export interface RosterValidation {
+  state:      "ok" | "errors" | "pending";
+  errors:     string[];
+  checked_at: string | null;
+}
+
 export interface RosterInfo {
   username:              string;
   season_id:             number;
@@ -315,6 +322,7 @@ export interface RosterInfo {
   registered_at:         string | null;
   lineup_set:            boolean;
   pool:                  RosterPokemon[];
+  validation:            RosterValidation;
 }
 
 export interface BannedPokemon {
@@ -497,6 +505,10 @@ export const swapPokemon = (removePokemonId: number, add: PokemonPayload) =>
   });
 export const addPokemonToRoster = (pokemon: PokemonPayload[]) =>
   request<{ ok: boolean; added: number }>("/api/teams/me/pokemon", { method: "POST", body: { pokemon }, auth: true, fallback: "Error al agregar pokémon" });
+/** Cambia el set de un pokémon ya registrado (objeto/habilidad/naturaleza/tera/movimientos/EVs/IVs)
+ *  sin consumir cambios. Para cambiar de especie está `swapPokemon`. */
+export const editSet = (pokemonId: number, payload: PokemonPayload) =>
+  request<{ ok: boolean }>(`/api/teams/me/pokemon/${pokemonId}`, { method: "PATCH", body: payload, auth: true, fallback: "Error al editar el set" });
 
 // ── Administración ────────────────────────────────────────────────────────────
 

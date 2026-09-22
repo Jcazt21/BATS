@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { EVEditor } from "@/components/builder/EVEditor";
 import { Combobox, type ComboboxItem } from "@/components/ui/combobox";
-import { loadLearnset } from "@/lib/dex/learnsets";
+import { useLearnset } from "@/lib/dex/useLearnset";
 import type { Dex } from "@/lib/dex/snapshot";
 import { speciesById, toId } from "@/lib/dex/snapshot";
 import type { BuilderMon } from "@/lib/dex/validate";
@@ -45,18 +45,7 @@ function typeName(id: string): string {
  */
 export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
   const species = speciesById(dex, mon.species);
-  const [learnset, setLearnset] = useState<string[]>([]);
-
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      const ls = species ? await loadLearnset(species.id) : [];
-      if (alive) setLearnset(ls);
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [species]);
+  const learnset = useLearnset(species?.id ?? null);
 
   const itemItems: ComboboxItem[] = useMemo(
     () => Object.values(dex.items).map((it) => ({ id: it.id, label: it.name })),

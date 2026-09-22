@@ -5,6 +5,7 @@
  */
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as api from "@/lib/api";
+import { loadDex } from "@/lib/dex/snapshot";
 import { useSession } from "@/lib/session";
 
 export const keys = {
@@ -114,6 +115,15 @@ export function useRemovePokemon() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: api.removePokemonFromRoster, onSuccess: () => qc.invalidateQueries({ queryKey: ["team"] }) });
 }
+export function useEditSet() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { pokemonId: number; payload: api.PokemonPayload }) => api.editSet(v.pokemonId, v.payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["team"] }),
+  });
+}
+/** Snapshot del dex de Showdown (bats/tools/export_dex.js): estático, se cachea indefinidamente. */
+export const useDex = () => useQuery({ queryKey: ["dex"], queryFn: loadDex, staleTime: Infinity, gcTime: Infinity });
 export function useSubmitBan() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: api.submitBan, onSuccess: () => qc.invalidateQueries({ queryKey: ["ban"] }) });

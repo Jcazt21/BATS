@@ -1,4 +1,4 @@
-import { type CSSProperties, type ReactNode, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { type CSSProperties, type ReactNode, useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState } from "react";
 import "./HoldButton.css";
 
 const TAP_MS = 250;
@@ -92,8 +92,10 @@ export default function HoldButton({
     cancelAnimationFrame(m.raf);
     m.from = m.p;
     m.to = to;
-    m.start = performance.now();
+    // El reloj arranca en el primer frame: alineado con el pintado y sin leer la hora fuera de él.
+    m.start = -1;
     const step = (now: number) => {
+      if (m.start < 0) m.start = now;
       const t = duration > 0 ? Math.min(1, (now - m.start) / duration) : 1;
       m.p = m.from + (m.to - m.from) * ease(t);
       buttonRef.current?.style.setProperty("--hb-p", m.p.toFixed(4));
@@ -102,14 +104,18 @@ export default function HoldButton({
         return;
       }
       m.raf = 0;
-      if (m.to === 1) complete();
+      if (m.to === 1) complete(now);
     };
     m.raf = requestAnimationFrame(step);
   };
 
-  const complete = () => {
+  /**
+   * `now` llega del frame que terminó el relleno. Sin él (temporizador de respaldo, que
+   * salta a los holdTime + 100 ms) el tiempo mínimo ya está cumplido por construcción.
+   */
+  const complete = (now?: number) => {
     if (phaseRef.current !== "holding") return;
-    if (performance.now() - gesture.current.start < holdTime - 50) return;
+    if (now !== undefined && now - gesture.current.start < holdTime - 50) return;
     clearTimers();
     go("done", inputRef.current);
     onHold?.();
@@ -129,7 +135,7 @@ export default function HoldButton({
     gesture.current.rect = button.getBoundingClientRect();
     go("holding", kind);
     drive(1, holdTime, LINEAR);
-    timers.current.complete = setTimeout(complete, holdTime + 100);
+    timers.current.complete = setTimeout(() => complete(), holdTime + 100);
     return true;
   };
 
@@ -141,8 +147,8 @@ export default function HoldButton({
     drive(0, releaseTime, EASE_OUT);
     if (!drifted && held < TAP_MS) onTap?.();
   };
-  const releaseRef = useRef(release);
-  releaseRef.current = release;
+  // Siempre la versión actual de `release`, sin re-suscribir los listeners en cada render.
+  const cancelHold = useEffectEvent(() => release({ drifted: true }));
 
   const handlePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
     if (e.button !== 0 || !e.isPrimary || gesture.current.pointerId !== null) return;
@@ -150,7 +156,9 @@ export default function HoldButton({
     gesture.current.pointerId = e.pointerId;
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
-    } catch {}
+    } catch {
+      // El puntero ya no está activo (p. ej. se soltó en el mismo frame): nada que capturar.
+    }
   };
 
   const endPointer = (e: React.PointerEvent<HTMLButtonElement>, options?: { drifted?: boolean }) => {
@@ -158,7 +166,9 @@ export default function HoldButton({
     gesture.current.pointerId = null;
     try {
       if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch {}
+    } catch {
+      // La captura ya se perdió (el navegador la libera solo al cancelar el puntero).
+    }
     release(options);
   };
 
@@ -211,7 +221,7 @@ export default function HoldButton({
 
   useEffect(() => {
     if (phase !== "holding") return undefined;
-    const cancel = () => releaseRef.current({ drifted: true });
+    const cancel = () => cancelHold();
     const onVisibility = () => {
       if (document.hidden) cancel();
     };

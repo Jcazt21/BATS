@@ -74,7 +74,7 @@ function BottomSheet({ open, onOpenChange, title, description, children, classNa
       <DialogPrimitive.Portal>
         <DialogPrimitive.Backdrop
           render={<motion.div style={{ opacity: backdrop }} />}
-          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+          className="fixed inset-0 z-50 bg-black/40"
         />
         <DialogPrimitive.Popup
           render={

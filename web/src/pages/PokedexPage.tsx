@@ -15,7 +15,7 @@ export function PokedexPage() {
   const seasons = useSeasons();
   const active = seasons.data?.find((s) => s.is_active);
   const ready = seasons.isSuccess || seasons.isError;
-  const dex = usePokedex(ready ? active?.season_id : undefined);
+  const dex = usePokedex(ready ? active?.season_id : null);
   const [q, setQ] = useState("");
   const navigate = useNavigate();
 
@@ -51,6 +51,7 @@ export function PokedexPage() {
         <DataList
           caption="Pokémon de la liga" rows={rows} columns={cols} rowKey={(r) => r.species}
           loading={dex.isPending} defaultSort={{ key: "pick", dir: "desc" }}
+          rowPrefetch={(r) => `/pokedex/${encodeURIComponent(r.species)}`}
           onRowClick={(r) => navigate(`/pokedex/${encodeURIComponent(r.species)}`)}
           empty={<EmptyState title={q ? "Sin resultados" : "Aún no hay datos"} description={q ? `Ningún pokémon coincide con “${q}”.` : "Aparecerán cuando se jueguen batallas."} />}
         />

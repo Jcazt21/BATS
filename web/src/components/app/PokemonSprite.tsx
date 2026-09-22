@@ -10,7 +10,7 @@ interface Props {
   className?: string;
 }
 
-/** Sprite con reserva de espacio (sin saltos de layout) y silueta si la imagen falla. */
+/** Sprite con reserva de espacio (sin saltos de layout), fundido al cargar y silueta si la imagen falla. */
 export function PokemonSprite({ species, src, size = 48, className }: Props) {
   const [failed, setFailed] = useState(false);
   return (
@@ -29,7 +29,9 @@ export function PokemonSprite({ species, src, size = 48, className }: Props) {
           loading="lazy"
           decoding="async"
           onError={() => setFailed(true)}
-          className="object-contain"
+          // Aparece con un fundido al terminar de descargar, no a trozos ni de golpe.
+          onLoad={(e) => e.currentTarget.setAttribute("data-loaded", "")}
+          className="object-contain opacity-0 transition-opacity duration-300 data-loaded:opacity-100"
           style={{ width: size, height: size }}
         />
       )}

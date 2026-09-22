@@ -11,17 +11,13 @@ import { PlayerAvatar } from "@/components/app/PlayerAvatar";
 import { PokemonSprite } from "@/components/app/PokemonSprite";
 import { Meter } from "@/components/app/Meter";
 import { EmptyState, ErrorState } from "@/components/app/States";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
-  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import HoldButton from "@/components/app/HoldButton";
 import { resetBattleData, type LeaderboardEntry, type MvpEntry, type PickRateEntry } from "@/lib/api";
 import { errorMessage } from "@/lib/http";
 import { useLeaderboard, useMvp, usePickRate, useSeasons, useSummary } from "@/lib/queries";
 import { useToast } from "@/lib/toast";
 import { num, pct } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 export function StatsPage({ showAdminControls = false }: { showAdminControls?: boolean }) {
   const seasons = useSeasons();
@@ -31,11 +27,14 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
   // Espera a saber la temporada para no pedir dos veces (todas y luego la activa).
   const ready = seasons.isSuccess || seasons.isError;
 
-  const summary = useSummary(ready ? sid : undefined);
-  const leaderboard = useLeaderboard(ready ? sid : undefined);
-  const mvp = useMvp(ready ? sid : undefined);
-  const pick = usePickRate(ready ? sid : undefined);
+  const season = ready ? sid : null;
+  const summary = useSummary(season);
+  const leaderboard = useLeaderboard(season);
+  const mvp = useMvp(season);
+  const pick = usePickRate(season);
   const [view, setView] = useState<"chart" | "list">("chart");
+  // Datos de la temporada anterior mientras llegan los de la elegida.
+  const refreshing = [summary, leaderboard, mvp, pick].some((q) => q.isPlaceholderData);
 
   type Ranked = LeaderboardEntry & { _rank: number };
   const leaderboardCols: Column<Ranked>[] = [
@@ -69,7 +68,7 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
   ];
 
   return (
-    <div className={showAdminControls ? "flex flex-col gap-8" : "flex flex-col gap-10"}>
+    <div className={showAdminControls ? "flex flex-col gap-8" : "flex flex-col gap-10"} aria-busy={refreshing || undefined}>
       <PageHeader
         eyebrow={seasonChoice === "all" ? "Todas las temporadas" : active && sid === active.season_id ? "Temporada activa" : "Estadísticas"}
         title="Estadísticas"
@@ -95,14 +94,14 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
         }
       />
 
-      <section aria-label="Resumen" className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <section aria-label="Resumen" className={cn("grid grid-cols-2 gap-3 transition-opacity duration-200 md:grid-cols-4", refreshing && "opacity-60")}>
         <StatTile label="Batallas" value={num(summary.data?.total_battles)} loading={summary.isPending} />
         <StatTile label="Jugadores" value={num(summary.data?.total_players)} loading={summary.isPending} />
         <StatTile label="Turnos por batalla" value={num(summary.data?.avg_turns, 1)} loading={summary.isPending} />
         <StatTile label="Mejor win rate" value={pct(summary.data?.top_win_rate, 1)} loading={summary.isPending} hint="mín. 3 batallas" />
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className={cn("flex flex-col gap-3 transition-opacity duration-200", refreshing && "opacity-60")}>
         <h2 className="text-title3">Clasificación</h2>
         {leaderboard.isError ? <ErrorState error={leaderboard.error} onRetry={() => leaderboard.refetch()} /> : (
           <DataList caption="Clasificación de jugadores" rows={ranked} columns={leaderboardCols} rowKey={(r) => r.username}
@@ -111,7 +110,7 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
         )}
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className={cn("flex flex-col gap-3 transition-opacity duration-200", refreshing && "opacity-60")}>
         <h2 className="text-title3">Mejores MVP</h2>
         {mvp.isError ? <ErrorState error={mvp.error} onRetry={() => mvp.refetch()} /> : (
           <DataList caption="Top de MVP" rows={mvp.data ?? []} columns={mvpCols} rowKey={(r) => `${r.species}-${r.player}`} loading={mvp.isPending}
@@ -119,7 +118,7 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
         )}
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className={cn("flex flex-col gap-3 transition-opacity duration-200", refreshing && "opacity-60")}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-title3">Uso de pokémon</h2>
           <SegmentedControl label="Vista" value={view} onChange={setView} options={[{ value: "chart", label: "Gráfico" }, { value: "list", label: "Lista" }]} />
@@ -162,8 +161,6 @@ function PickChart({ rows }: { rows: PickRateEntry[] }) {
 }
 
 function ResetButton() {
-  const [open, setOpen] = useState(false);
-  const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -174,7 +171,6 @@ function ResetButton() {
       await resetBattleData();
       await qc.invalidateQueries();
       toast({ title: "Base limpiada", description: "Se borraron todas las batallas.", tone: "success" });
-      setOpen(false);
     } catch (e) {
       toast({ title: "No se pudo limpiar", description: errorMessage(e), tone: "error" });
     } finally {
@@ -183,25 +179,23 @@ function ResetButton() {
   }
 
   return (
-    <>
-      <Button variant="destructive" onClick={() => { setConfirm(""); setOpen(true); }}><Trash2 /> Limpiar DB</Button>
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Borrar todas las batallas?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Se eliminan batallas, jugadores, pokémon y estadísticas. No se puede deshacer. Escribe <strong>BORRAR</strong> para confirmar.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <Input value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="off" aria-label="Confirmación" />
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" disabled={confirm !== "BORRAR" || busy} onClick={(e) => { e.preventDefault(); void run(); }}>
-              {busy ? "Borrando…" : "Borrar todo"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+    <HoldButton
+      icon={<Trash2 size={16} />}
+      doneIcon={<Trash2 size={16} />}
+      doneLabel="Base limpiada"
+      backgroundColor="var(--card)"
+      fillColor="var(--destructive)"
+      textColor="var(--destructive)"
+      fillTextColor="oklch(1 0 0)"
+      size="md"
+      radius={999}
+      holdTime={1800}
+      resetAfter={1200}
+      disabled={busy}
+      className="ring-1 ring-inset ring-destructive/30"
+      onHold={() => void run()}
+    >
+      Mantén para limpiar DB
+    </HoldButton>
   );
 }

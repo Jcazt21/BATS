@@ -8,13 +8,17 @@ import * as api from "@/lib/api";
 import { loadDex } from "@/lib/dex/snapshot";
 import { useSession } from "@/lib/session";
 
+/** Temporada: un id, `undefined` = todas, `null` = aún no se sabe cuál (la consulta espera). */
+type SeasonArg = number | null;
+const seasonKey = (s?: SeasonArg) => (s === null ? "pending" : (s ?? "all"));
+
 export const keys = {
   seasons: ["seasons"] as const,
-  summary: (s?: number) => ["stats", "summary", s ?? "all"] as const,
-  mvp: (s?: number) => ["stats", "mvp", s ?? "all"] as const,
-  pickrate: (s?: number) => ["stats", "pickrate", s ?? "all"] as const,
-  leaderboard: (s?: number) => ["stats", "leaderboard", s ?? "all"] as const,
-  pokedex: (s?: number) => ["pokedex", s ?? "all"] as const,
+  summary: (s?: SeasonArg) => ["stats", "summary", seasonKey(s)] as const,
+  mvp: (s?: SeasonArg) => ["stats", "mvp", seasonKey(s)] as const,
+  pickrate: (s?: SeasonArg) => ["stats", "pickrate", seasonKey(s)] as const,
+  leaderboard: (s?: SeasonArg) => ["stats", "leaderboard", seasonKey(s)] as const,
+  pokedex: (s?: SeasonArg) => ["pokedex", seasonKey(s)] as const,
   pokedexEntry: (sp: string, s?: number) => ["pokedex", "entry", sp.toLowerCase(), s ?? "all"] as const,
   player: (u: string, s?: number) => ["player", u.toLowerCase(), s ?? "all"] as const,
   banRanking: ["ban", "ranking"] as const,
@@ -45,11 +49,19 @@ export const keys = {
 // ── Públicos ──────────────────────────────────────────────────────────────────
 
 export const useSeasons = () => useQuery({ queryKey: keys.seasons, queryFn: api.getPublicSeasons });
-export const useSummary = (s?: number) => useQuery({ queryKey: keys.summary(s), queryFn: () => api.getLeagueSummary(s) });
-export const useMvp = (s?: number) => useQuery({ queryKey: keys.mvp(s), queryFn: () => api.getMvpTop5(s) });
-export const usePickRate = (s?: number) => useQuery({ queryKey: keys.pickrate(s), queryFn: () => api.getPickRate(s) });
-export const useLeaderboard = (s?: number) => useQuery({ queryKey: keys.leaderboard(s), queryFn: () => api.getLeaderboard(s) });
-export const usePokedex = (s?: number) => useQuery({ queryKey: keys.pokedex(s), queryFn: () => api.getPokedex(s) });
+// Al cambiar de temporada se conserva lo que había (atenuado) hasta que llega lo nuevo:
+// nada de volver a esqueletos ni de saltos de altura por un simple filtro. Con `null`
+// esperan a saber la temporada sin pedir antes "todas" por el camino.
+export const useSummary = (s?: SeasonArg) =>
+  useQuery({ queryKey: keys.summary(s), queryFn: () => api.getLeagueSummary(s ?? undefined), placeholderData: keepPreviousData, enabled: s !== null });
+export const useMvp = (s?: SeasonArg) =>
+  useQuery({ queryKey: keys.mvp(s), queryFn: () => api.getMvpTop5(s ?? undefined), placeholderData: keepPreviousData, enabled: s !== null });
+export const usePickRate = (s?: SeasonArg) =>
+  useQuery({ queryKey: keys.pickrate(s), queryFn: () => api.getPickRate(s ?? undefined), placeholderData: keepPreviousData, enabled: s !== null });
+export const useLeaderboard = (s?: SeasonArg) =>
+  useQuery({ queryKey: keys.leaderboard(s), queryFn: () => api.getLeaderboard(s ?? undefined), placeholderData: keepPreviousData, enabled: s !== null });
+export const usePokedex = (s?: SeasonArg) =>
+  useQuery({ queryKey: keys.pokedex(s), queryFn: () => api.getPokedex(s ?? undefined), placeholderData: keepPreviousData, enabled: s !== null });
 export const usePokedexEntry = (species: string, s?: number) =>
   useQuery({ queryKey: keys.pokedexEntry(species, s), queryFn: () => api.getPokedexEntry(species, s) });
 export const usePlayerProfile = (username: string, s?: number) =>

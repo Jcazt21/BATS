@@ -32,11 +32,19 @@ export function resolveDark(pref: ThemePreference): boolean {
 
 /**
  * Aplica el tema al <html>. El cambio se suaviza con un fundido breve (no un salto de
- * brillo), salvo que el usuario pida menos movimiento.
+ * brillo), salvo que el usuario pida menos movimiento. Con View Transitions el fundido
+ * es una sola capa compuesta en la GPU; si no, se anima el color de cada elemento.
  */
 export function applyTheme(dark: boolean, animate: boolean): void {
   const root = document.documentElement;
+  if (root.classList.contains("dark") === dark) return;
   const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (animate && !reduce && typeof document.startViewTransition === "function") {
+    document.startViewTransition(() => {
+      root.classList.toggle("dark", dark);
+    });
+    return;
+  }
   if (animate && !reduce) {
     root.classList.add("theme-transition");
     window.setTimeout(() => root.classList.remove("theme-transition"), 320);

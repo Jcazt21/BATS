@@ -3,6 +3,9 @@ import { ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
+/** Al sustituir al esqueleto, el contenido llega con un fundido breve en vez de un corte seco. */
+const ENTER = "animate-in fade-in-0 duration-300";
+
 export interface Column<T> {
   key: string;
   header: string;
@@ -22,6 +25,8 @@ interface Props<T> {
   columns: Column<T>[];
   rowKey: (row: T) => string | number;
   onRowClick?: (row: T) => void;
+  /** Ruta a la que lleva la fila: se precarga (código y datos) en cuanto hay intención de abrirla. */
+  rowPrefetch?: (row: T) => string;
   defaultSort?: { key: string; dir: "asc" | "desc" };
   loading?: boolean;
   empty?: ReactNode;
@@ -33,8 +38,11 @@ interface Props<T> {
  * Una sola lista de datos con dos presentaciones: tabla en pantallas anchas y tarjetas
  * en el móvil. Sin desplazamiento horizontal y sin duplicar código por página.
  */
-export function DataList<T>({ rows, columns, rowKey, onRowClick, defaultSort, loading, empty, caption, className }: Props<T>) {
+export function DataList<T>({ rows, columns, rowKey, onRowClick, rowPrefetch, defaultSort, loading, empty, caption, className }: Props<T>) {
   const [sort, setSort] = useState(defaultSort);
+  // Solo si esta lista llegó a mostrar el esqueleto: con datos en caché no hay nada que suavizar.
+  const [startedLoading] = useState(!!loading);
+  const enter = startedLoading ? ENTER : undefined;
 
   const sorted = useMemo(() => {
     const col = columns.find((c) => c.key === sort?.key);
@@ -62,7 +70,7 @@ export function DataList<T>({ rows, columns, rowKey, onRowClick, defaultSort, lo
     );
   }
   if (!sorted.length) {
-    return <div className={cn("rounded-2xl bg-card shadow-sm ring-1 ring-border", className)}>{empty}</div>;
+    return <div className={cn("rounded-2xl bg-card shadow-sm ring-1 ring-border", enter, className)}>{empty}</div>;
   }
 
   const primary = columns.find((c) => c.primary) ?? columns[0];
@@ -70,14 +78,16 @@ export function DataList<T>({ rows, columns, rowKey, onRowClick, defaultSort, lo
   const clickable = onRowClick ? "cursor-pointer transition-colors hover:bg-muted/60 active:bg-muted" : "";
 
   return (
-    <div className={cn("overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border", className)}>
+    <div className={cn("overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border", enter, className)}>
       {/* Tarjetas (móvil) */}
       <ul className="divide-y divide-separator md:hidden" aria-label={caption}>
         {sorted.map((row) => (
-          <li key={rowKey(row)}>
+          // Fuera de pantalla no se maqueta ni se pinta: el scroll de listas largas (Pokédex) no se atasca.
+          <li key={rowKey(row)} className="[contain-intrinsic-size:auto_5.5rem] [content-visibility:auto]">
             <div
               role={onRowClick ? "button" : undefined}
               tabIndex={onRowClick ? 0 : undefined}
+              data-prefetch={rowPrefetch?.(row)}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
               onKeyDown={onRowClick ? (e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onRowClick(row)) : undefined}
               className={cn("flex flex-col gap-2 px-4 py-3", clickable)}
@@ -129,6 +139,7 @@ export function DataList<T>({ rows, columns, rowKey, onRowClick, defaultSort, lo
           {sorted.map((row) => (
             <tr
               key={rowKey(row)}
+              data-prefetch={rowPrefetch?.(row)}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
               onKeyDown={onRowClick ? (e) => e.key === "Enter" && onRowClick(row) : undefined}
               tabIndex={onRowClick ? 0 : undefined}

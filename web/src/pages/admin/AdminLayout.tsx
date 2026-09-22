@@ -1,21 +1,25 @@
-import { Navigate, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { Navigate, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Activity, BarChart2, Bot, CalendarDays, ChevronsUpDown, DatabaseZap, ExternalLink, LogOut, ScrollText,
   ShieldAlert, ShieldOff, Swords, UserCog, Users,
 } from "lucide-react";
 import {
-  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarInset,
-  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger,
+  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarHeader, SidebarInset,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarProvider, SidebarTrigger, useSidebar,
 } from "@/components/ui/sidebar";
+import { BranchedMenu, type BranchedMenuItem } from "@/components/app/BranchedMenu";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EmptyState, ErrorState } from "@/components/app/States";
 import { PlayerAvatar } from "@/components/app/PlayerAvatar";
+import { RouteOutlet } from "@/components/app/RouteOutlet";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/http";
 import { useMe } from "@/lib/queries";
 import { signOut, useSession } from "@/lib/session";
+import { adminPages, preloadWhenIdle } from "@/routes";
 
 const GROUPS = [
   { label: "Liga", items: [
@@ -38,11 +42,49 @@ const GROUPS = [
 
 const ALL = GROUPS.flatMap((g) => g.items);
 
+const MENU: BranchedMenuItem[] = GROUPS.map((g) => ({
+  label: g.label,
+  children: g.items.map(({ label, to, icon: Icon }) => ({ value: to, label, icon: <Icon className="size-4" /> })),
+}));
+
+/** Navegación del panel: menú ramificado que sigue a la ruta actual y cierra el sheet en móvil. */
+function AdminNav() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { isMobile, setOpenMobile } = useSidebar();
+
+  return (
+    <BranchedMenu
+      items={MENU}
+      active={location.pathname}
+      defaultOpen={MENU.map((_, i) => i)}
+      onSelect={(to) => {
+        navigate(to);
+        if (isMobile) setOpenMobile(false);
+      }}
+      color="var(--sidebar-foreground)"
+      accentColor="var(--sidebar-primary)"
+      lineColor="color-mix(in oklch, var(--sidebar-foreground) 18%, transparent)"
+      width={232}
+      rowHeight={34}
+      indent={40}
+      trunk={14}
+      radius={10}
+      lineWidth={1.5}
+      fontSize={14}
+      drawDuration={400}
+      foldDuration={300}
+    />
+  );
+}
+
 export function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { session, loading } = useSession();
   const me = useMe();
+  // Mientras se comprueban permisos (y después, en reposo) se descargan las secciones del panel.
+  useEffect(() => preloadWhenIdle(adminPages), []);
 
   if (loading) return null;
   if (!session) return <Navigate to="/admin" replace />;
@@ -89,21 +131,9 @@ export function AdminLayout() {
         </SidebarHeader>
 
         <SidebarContent>
-          {GROUPS.map((g) => (
-            <SidebarGroup key={g.label}>
-              <SidebarGroupLabel className="text-caption font-medium uppercase tracking-wide">{g.label}</SidebarGroupLabel>
-              <SidebarMenu>
-                {g.items.map(({ label, to, icon: Icon }) => (
-                  <SidebarMenuItem key={to}>
-                    <SidebarMenuButton render={<NavLink to={to} />} isActive={location.pathname === to} tooltip={label}>
-                      <Icon />
-                      <span>{label}</span>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroup>
-          ))}
+          <SidebarGroup>
+            <AdminNav />
+          </SidebarGroup>
         </SidebarContent>
 
         <SidebarFooter>
@@ -138,7 +168,7 @@ export function AdminLayout() {
           <span className="text-headline">{current}</span>
         </header>
         <div className="flex flex-1 flex-col gap-8 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
-          <Outlet />
+          <RouteOutlet />
         </div>
       </SidebarInset>
     </SidebarProvider>

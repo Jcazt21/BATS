@@ -1,18 +1,21 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { motion, type Transition } from "motion/react";
 import { BarChart3, BookOpen, House, LogOut, Monitor, Moon, ShieldBan, ShieldCheck, Sun, UserRound, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { PageTransition } from "@/components/app/PageTransition";
+import { RouteOutlet } from "@/components/app/RouteOutlet";
 import { PlayerAvatar } from "@/components/app/PlayerAvatar";
 import { ResponsiveSheet } from "@/components/app/ResponsiveSheet";
 import { SignInCard } from "@/components/SignInCard";
+import { spring, useReducedMotion } from "@/lib/motion";
 import { useMe } from "@/lib/queries";
 import { signOut, useSession } from "@/lib/session";
 import { useTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import { preloadWhenIdle, publicPages } from "@/routes";
 
 const NAV = [
   { to: "/", label: "Inicio", icon: House, end: true },
@@ -36,6 +39,9 @@ export function AppShell() {
     return () => io.disconnect();
   }, []);
 
+  // Con la portada ya pintada, el resto de secciones se descargan en reposo.
+  useEffect(() => preloadWhenIdle(publicPages), []);
+
   return (
     <div className="min-h-svh">
       <a href="#contenido" className="sr-only rounded-full bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[70]">
@@ -44,9 +50,7 @@ export function AppShell() {
       <div ref={sentinel} aria-hidden className="absolute top-0 h-px w-px" />
       <TopBar scrolled={scrolled} />
       <main id="contenido" className="mx-auto w-full max-w-6xl px-4 pt-6 pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:px-6 md:pb-16">
-        <PageTransition>
-          <Outlet />
-        </PageTransition>
+        <RouteOutlet />
       </main>
       <TabBar />
     </div>
@@ -54,6 +58,8 @@ export function AppShell() {
 }
 
 function TopBar({ scrolled }: { scrolled: boolean }) {
+  const pill = usePillTransition();
+  const onTab = useTabReselect();
   return (
     <header
       className={cn(
@@ -72,14 +78,20 @@ function TopBar({ scrolled }: { scrolled: boolean }) {
               key={to}
               to={to}
               end={"end" in rest}
+              onClick={onTab(to)}
               className={({ isActive }) =>
                 cn(
-                  "press rounded-full px-3.5 py-1.5 text-subhead font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-                  isActive ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground",
+                  "press relative isolate rounded-full px-3.5 py-1.5 text-subhead font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+                  isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground",
                 )
               }
             >
-              {label}
+              {({ isActive }) => (
+                <>
+                  {isActive && <motion.span layoutId="topnav-pill" transition={pill} className="absolute inset-0 -z-10 rounded-full bg-secondary" />}
+                  {label}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -151,6 +163,8 @@ function UserMenu() {
 
 /** Barra inferior del móvil: translúcida, con etiquetas siempre visibles y objetivos ≥ 44 pt. */
 function TabBar() {
+  const pill = usePillTransition();
+  const onTab = useTabReselect();
   return (
     <nav
       aria-label="Principal"
@@ -162,15 +176,17 @@ function TabBar() {
             <NavLink
               to={to}
               end={"end" in rest}
+              onClick={onTab(to)}
               className={({ isActive }) =>
                 cn(
-                  "press flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 text-[0.6875rem] font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "press relative isolate flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1 text-[0.6875rem] font-medium outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ring",
                   isActive ? "text-primary" : "text-muted-foreground",
                 )
               }
             >
               {({ isActive }) => (
                 <>
+                  {isActive && <motion.span layoutId="tabbar-pill" transition={pill} className="absolute inset-x-0.5 inset-y-0 -z-10 rounded-2xl bg-primary/10" />}
                   <Icon className="size-[1.375rem]" strokeWidth={isActive ? 2.4 : 1.8} />
                   <span>{label}</span>
                 </>
@@ -181,4 +197,18 @@ function TabBar() {
       </ul>
     </nav>
   );
+}
+
+/** El indicador de la pestaña activa se desliza con un resorte crítico; sin movimiento si se pide. */
+function usePillTransition(): Transition {
+  return useReducedMotion() ? { duration: 0 } : spring.snappy;
+}
+
+/** Como en iOS: tocar la pestaña en la que ya estás te lleva arriba del todo. */
+function useTabReselect() {
+  const { pathname } = useLocation();
+  const reduce = useReducedMotion();
+  return (to: string) => () => {
+    if (pathname === to) window.scrollTo({ top: 0, behavior: reduce ? "instant" : "smooth" });
+  };
 }

@@ -28,6 +28,19 @@
     outline: 2px solid var(--ring);
     outline-offset: 2px;
   }
+  /* El toque responde al instante: sin el retardo de doble-tap ni el resaltado gris del
+     sistema (cada control ya tiene su propio feedback al pulsar, ver `press`). */
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  a, button, input, select, textarea, label, summary, [role="button"], [data-prefetch] {
+    touch-action: manipulation;
+  }
+  /* Menús, diálogos y popovers entran con la curva de iOS: arranque decidido y frenada
+     larga. Especificidad cero para que un `ease-*` explícito siga mandando. */
+  :where([class*="animate-in"], [class*="animate-out"]) {
+    --tw-ease: var(--ease-ios);
+  }
   /* Cifras de ancho fijo en tablas y métricas: las columnas no bailan al actualizar */
   .tabular {
     font-variant-numeric: tabular-nums;
@@ -46,7 +59,14 @@
 @utility pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 @utility pt-safe { padding-top: env(safe-area-inset-top); }
 
-/* Fundido breve al cambiar de tema: nada de saltos bruscos de brillo. */
+/* Cambio de tema con View Transitions: un fundido de la página entera, en la GPU. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 280ms;
+  animation-timing-function: ease;
+}
+
+/* Alternativa sin View Transitions: fundido breve de colores, sin saltos de brillo. */
 html.theme-transition,
 html.theme-transition *,
 html.theme-transition *::before,

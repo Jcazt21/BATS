@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,32 +6,21 @@ import { SessionProvider } from "@/components/SessionProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ToastProvider } from "@/components/app/Toaster";
 import { AppShell } from "@/components/app/AppShell";
+import { PageFallback } from "@/components/app/RouteOutlet";
 import { queryClient } from "@/lib/query-client";
+import { lazyPage } from "@/lib/preload";
+import { installIntentPreload, pages } from "@/routes";
 import { HomePage } from "@/pages/HomePage";
 
-// Cada página se carga cuando se visita: el primer pintado no arrastra el panel admin ni los gráficos.
-const StatsPage = lazy(() => import("@/pages/StatsPage").then((m) => ({ default: m.StatsPage })));
-const PokedexPage = lazy(() => import("@/pages/PokedexPage").then((m) => ({ default: m.PokedexPage })));
-const PokedexEntryPage = lazy(() => import("@/pages/PokedexEntryPage").then((m) => ({ default: m.PokedexEntryPage })));
-const PlayerPage = lazy(() => import("@/pages/PlayerPage").then((m) => ({ default: m.PlayerPage })));
-const BansPage = lazy(() => import("@/pages/BansPage").then((m) => ({ default: m.BansPage })));
-const TeamPage = lazy(() => import("@/pages/TeamPage").then((m) => ({ default: m.TeamPage })));
-const LoginPage = lazy(() => import("@/pages/admin/LoginPage").then((m) => ({ default: m.LoginPage })));
-const AdminLayout = lazy(() => import("@/pages/admin/AdminLayout").then((m) => ({ default: m.AdminLayout })));
-const AdminStatsPage = lazy(() => import("@/pages/StatsPage").then((m) => ({ default: () => <m.StatsPage showAdminControls /> })));
-const StatsBotPage = lazy(() => import("@/pages/admin/StatsBotPage").then((m) => ({ default: m.StatsBotPage })));
-const BattlesPage = lazy(() => import("@/pages/admin/BattlesPage").then((m) => ({ default: m.BattlesPage })));
-const AdminBansPage = lazy(() => import("@/pages/admin/BansPage").then((m) => ({ default: m.BansPage })));
-const SeasonsPage = lazy(() => import("@/pages/admin/SeasonsPage").then((m) => ({ default: m.SeasonsPage })));
-const PlayersPage = lazy(() => import("@/pages/admin/PlayersPage").then((m) => ({ default: m.PlayersPage })));
-const RostersPage = lazy(() => import("@/pages/admin/RostersPage").then((m) => ({ default: m.RostersPage })));
-const IngestPage = lazy(() => import("@/pages/admin/IngestPage").then((m) => ({ default: m.IngestPage })));
-const FairPlayPage = lazy(() => import("@/pages/admin/FairPlayPage").then((m) => ({ default: m.FairPlayPage })));
-const LeagueSettingsPage = lazy(() => import("@/pages/admin/LeagueSettingsPage").then((m) => ({ default: m.LeagueSettingsPage })));
-
-function Loading() {
-  return <div className="grid min-h-[40svh] place-items-center text-footnote text-muted-foreground" aria-busy>Cargando…</div>;
-}
+// Cada página se carga cuando se visita (o antes, al intuir que se va a visitar: ver routes.ts).
+const {
+  stats: StatsPage, pokedex: PokedexPage, pokedexEntry: PokedexEntryPage, player: PlayerPage, bans: BansPage, team: TeamPage,
+  login: LoginPage, adminLayout: AdminLayout, statsBot: StatsBotPage, battles: BattlesPage, adminBans: AdminBansPage,
+  seasons: SeasonsPage, players: PlayersPage, rosters: RostersPage, ingest: IngestPage, fairPlay: FairPlayPage,
+  leagueSettings: LeagueSettingsPage,
+} = pages;
+// Mismo chunk que /stats: precargar uno sirve para el otro.
+const AdminStatsPage = lazyPage(() => pages.stats.preload().then(({ default: Stats }) => ({ default: () => <Stats showAdminControls /> })));
 
 /** Enlaces antiguos: /registro y /ypkmn. */
 function LegacyRedirect({ to }: { to: string }) {
@@ -40,6 +29,7 @@ function LegacyRedirect({ to }: { to: string }) {
 }
 
 export default function App() {
+  useEffect(() => installIntentPreload(), []);
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
@@ -47,7 +37,7 @@ export default function App() {
           <TooltipProvider>
             <ToastProvider>
               <BrowserRouter>
-                <Suspense fallback={<Loading />}>
+                <Suspense fallback={<PageFallback className="min-h-svh" />}>
                   <Routes>
                     <Route element={<AppShell />}>
                       <Route path="/" element={<HomePage />} />

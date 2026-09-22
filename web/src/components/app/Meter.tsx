@@ -19,7 +19,8 @@ export function Meter({ value, max = 100, tone = "primary", className, label }: 
       aria-valuenow={value ?? undefined}
       className={cn("h-1.5 w-full overflow-hidden rounded-full bg-secondary", className)}
     >
-      <div className={cn("h-full rounded-full transition-[width] duration-500 ease-out", bg)} style={{ width: `${pct}%` }} />
+      {/* Se desplaza en vez de cambiar de ancho: solo compositor, sin recalcular layout por frame. */}
+      <div className={cn("h-full w-full rounded-full transition-transform duration-500 ease-out", bg)} style={{ transform: `translateX(${pct - 100}%)` }} />
     </div>
   );
 }

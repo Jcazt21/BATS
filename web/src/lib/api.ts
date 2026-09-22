@@ -206,7 +206,9 @@ export interface SeasonRestrictions {
   item_clause?:         boolean;         // default false
   max_paradox?:         number;          // 0–6 (6 = sin límite); lo aplica el formato de Showdown
   max_pseudo_legendary?: number;         // 0–6 (6 = sin límite); lo aplica el formato de Showdown
+  max_restricted?:      number;          // 0–6 (6 = sin límite); lo aplica el formato de Showdown
   registration_closed?: boolean;         // cierra el registro y publica los equipos
+  roster_enforcement?:  boolean;         // Showdown rechaza en batalla cualquier set no registrado
   [key: string]:        unknown;         // future restrictions
 }
 

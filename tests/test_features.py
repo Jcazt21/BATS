@@ -44,7 +44,10 @@ class TestFeatures(unittest.TestCase):
             dex.import_snapshot(db, DEX_DIR)
 
     def setUp(self):
-        env = mock.patch.dict(os.environ, {"BATS_DB_DSN": DSN})
+        env = mock.patch.dict(os.environ, {
+            "BATS_DB_DSN": DSN,
+            "BATS_INGEST_TOKEN": "test-ingest-token",
+        })
         env.start()
         self.addCleanup(env.stop)
         self.tag = uuid.uuid4().hex[:6]
@@ -66,6 +69,7 @@ class TestFeatures(unittest.TestCase):
             "user_id": "adm", "email": "admin@x.test", "username": "Admin", "is_admin": True}
         self.addCleanup(app.dependency_overrides.clear)
         self.client = TestClient(app, raise_server_exceptions=False)
+        self.ingest_headers = {"Authorization": "Bearer test-ingest-token"}
 
     def _cleanup(self):
         with BATSDatabase(DSN) as db:
@@ -239,6 +243,149 @@ class TestFeatures(unittest.TestCase):
         self._set_restrictions(registration_closed=True)
         r = self.client.post("/api/teams/me/swap", json={"remove_pokemon_id": old, "add": _mon("Mew")})
         self.assertEqual((r.status_code, r.json()["detail"]), (409, "registration_closed"))
+
+    # ── Edición libre de sets ─────────────────────────────────────────────────
+
+    def test_editar_un_set_no_consume_rotaciones(self):
+        self.assertEqual(self._register().status_code, 200)
+        antes = self.client.get("/api/teams/me").json()["rotations_used"]
+        pokemon_id = next(
+            p["pokemon_id"] for p in self.client.get("/api/teams/me").json()["pool"]
+            if p["name"] == "Garchomp"
+        )
+        response = self.client.patch(f"/api/teams/me/pokemon/{pokemon_id}", json={
+            "name": "Garchomp", "moves": ["Swords Dance", "Earthquake"],
+            "held_item": "Life Orb", "ability": "Rough Skin",
+        })
+        self.assertEqual(response.status_code, 200)
+        despues = self.client.get("/api/teams/me").json()
+        self.assertEqual(despues["rotations_used"], antes)
+        chomp = next(p for p in despues["pool"] if p["name"] == "Garchomp")
+        self.assertEqual(chomp["held_item"], "Life Orb")
+        self.assertIn("Swords Dance", chomp["moves"])
+
+    def test_editar_un_set_invalida_el_veredicto_anterior(self):
+        self.assertEqual(self._register().status_code, 200)
+        response = self.client.post(
+            "/api/ingest/roster-validation",
+            headers=self.ingest_headers,
+            json={"ps_commit": "abc1234", "results": {"ash": []}},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.client.get("/api/teams/me").json()["validation"]["state"], "ok")
+        pokemon = self.client.get("/api/teams/me").json()["pool"][0]
+        response = self.client.patch(
+            f"/api/teams/me/pokemon/{pokemon['pokemon_id']}",
+            json={"name": pokemon["name"], "moves": ["Protect"]},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self.client.get("/api/teams/me").json()["validation"]["state"], "pending")
+
+    def test_no_se_puede_cambiar_la_especie_con_patch(self):
+        self.assertEqual(self._register().status_code, 200)
+        pokemon_id = next(
+            p["pokemon_id"] for p in self.client.get("/api/teams/me").json()["pool"]
+            if p["name"] == "Garchomp"
+        )
+        response = self.client.patch(
+            f"/api/teams/me/pokemon/{pokemon_id}",
+            json={"name": "Dragonite", "moves": []},
+        )
+        self.assertEqual((response.status_code, response.json()["detail"]), (422, "species_mismatch"))
+
+    def test_editar_un_set_respeta_las_reglas(self):
+        self._set_restrictions(item_clause=True)
+        self.assertEqual(self._register().status_code, 200)
+        roster = self.client.get("/api/teams/me").json()["pool"]
+        chomp = next(p for p in roster if p["name"] == "Garchomp")
+        clefable = next(p for p in roster if p["name"] == "Clefable")
+        response = self.client.patch(
+            f"/api/teams/me/pokemon/{clefable['pokemon_id']}",
+            json={"name": "Clefable", "held_item": chomp["held_item"], "moves": []},
+        )
+        self.assertEqual(response.status_code, 422)
+        self.assertTrue(response.json()["detail"].startswith("item_clause:"))
+
+    def test_no_se_puede_editar_con_el_registro_cerrado(self):
+        self.assertEqual(self._register().status_code, 200)
+        pokemon_id = self.client.get("/api/teams/me").json()["pool"][0]["pokemon_id"]
+        self._set_restrictions(registration_closed=True)
+        response = self.client.patch(
+            f"/api/teams/me/pokemon/{pokemon_id}",
+            json={"name": self.client.get("/api/teams/me").json()["pool"][0]["name"], "moves": []},
+        )
+        self.assertEqual((response.status_code, response.json()["detail"]), (409, "registration_closed"))
+
+    def test_no_se_puede_editar_un_roster_bloqueado(self):
+        self.assertEqual(self._register().status_code, 200)
+        pokemon = self.client.get("/api/teams/me").json()["pool"][0]
+        with BATSDatabase(DSN) as db:
+            db.execute(
+                "UPDATE tournament.roster SET is_locked = TRUE WHERE season_id = %s AND LOWER(username) = 'ash'",
+                (self.season,),
+            )
+        response = self.client.patch(
+            f"/api/teams/me/pokemon/{pokemon['pokemon_id']}",
+            json={"name": pokemon["name"], "moves": []},
+        )
+        self.assertEqual((response.status_code, response.json()["detail"]), (409, "roster_locked"))
+
+    # ── Rosters privados para Showdown ────────────────────────────────────────
+
+    def test_rosters_exige_el_token_de_ingesta(self):
+        self.assertEqual(self.client.get("/api/teams/rosters").status_code, 401)
+
+    def test_rosters_devuelve_sets_canonicos_y_paste(self):
+        self.assertEqual(self._register().status_code, 200)
+        response = self.client.get("/api/teams/rosters", headers=self.ingest_headers)
+        self.assertEqual(response.status_code, 200)
+        roster = response.json()["rosters"]["ash"]
+        self.assertTrue(any(value.startswith("garchomp|") for value in roster["sets"]))
+        self.assertIn("Garchomp", roster["paste"])
+
+    def test_rosters_publica_enforcement_de_la_temporada(self):
+        self._set_restrictions(roster_enforcement=True)
+        response = self.client.get("/api/teams/rosters", headers=self.ingest_headers)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["enforcement"])
+
+    def test_meta_del_dex_importado(self):
+        response = self.client.get("/api/dex/meta")
+        self.assertEqual(response.status_code, 200)
+        self.assertGreater(response.json()["species_count"], 1000)
+        self.assertTrue(response.json()["ps_commit"])
+
+    # ── Admin: equipos registrados ───────────────────────────────────────────
+
+    def test_admin_rosters_exige_ser_admin(self):
+        del app.dependency_overrides[auth.require_admin]
+        self.assertEqual(self.client.get("/api/admin/rosters").status_code, 403)
+
+    def test_admin_rosters_lista_los_equipos_de_la_temporada_activa(self):
+        self.assertEqual(self._register().status_code, 200)
+        rows = self.client.get("/api/admin/rosters").json()
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+        self.assertEqual(row["username"], "ash")
+        self.assertEqual(row["pokemon_count"], len(POOL))
+        self.assertEqual(row["changes_used"], 0)
+        self.assertFalse(row["is_locked"])
+        self.assertFalse(row["has_lineup"])
+        self.assertEqual(row["validation"], {"state": "pending", "errors": [], "checked_at": None})
+
+    def test_admin_rosters_incluye_el_veredicto_del_validador(self):
+        self.assertEqual(self._register().status_code, 200)
+        self.client.post("/api/ingest/roster-validation", headers=self.ingest_headers,
+                          json={"ps_commit": "abc1234", "results": {"ash": ["Garchomp no aprende Psychic."]}})
+        row = self.client.get("/api/admin/rosters").json()[0]
+        self.assertEqual(row["validation"]["state"], "errors")
+        self.assertIn("Garchomp no aprende Psychic.", row["validation"]["errors"])
+
+    def test_admin_rosters_marca_el_lineup_fijado(self):
+        self.assertEqual(self._register().status_code, 200)
+        self._battle(0, p1team=POOL[:6])   # fija el lineup inicial
+        row = self.client.get("/api/admin/rosters").json()[0]
+        self.assertTrue(row["has_lineup"])
 
     # ── Historial de rotaciones (lo escribe el ETL) ───────────────────────────
 

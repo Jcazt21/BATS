@@ -29,6 +29,7 @@ export const keys = {
     seasons: ["admin", "seasons"] as const,
     battles: ["admin", "battles"] as const,
     bans: ["admin", "bans"] as const,
+    rosters: ["admin", "rosters"] as const,
     players: ["admin", "players"] as const,
     settings: ["admin", "leaguesettings"] as const,
     ingest: ["admin", "ingest"] as const,
@@ -138,6 +139,8 @@ export const useEligibility = () => {
 export const useAdminSeasons = () => useQuery({ queryKey: keys.admin.seasons, queryFn: api.getSeasons });
 export const useAdminBattles = () => useQuery({ queryKey: keys.admin.battles, queryFn: api.getBattles });
 export const useAdminBans = () => useQuery({ queryKey: keys.admin.bans, queryFn: api.getBans });
+export const useAdminRosters = () => useQuery({ queryKey: keys.admin.rosters, queryFn: api.getAdminRosters });
+export const useDexMeta = () => useQuery({ queryKey: ["dex", "meta"], queryFn: api.getDexMeta, retry: false });
 export const useAdminPlayers = () => useQuery({ queryKey: keys.admin.players, queryFn: api.getPlayerAccounts });
 export const useLeagueSettings = () => useQuery({ queryKey: keys.admin.settings, queryFn: api.getLeagueSettings });
 export const useIngestLog = () => useQuery({ queryKey: keys.admin.ingest, queryFn: api.getEtlFiles });

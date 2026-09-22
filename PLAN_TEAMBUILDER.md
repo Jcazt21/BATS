@@ -123,7 +123,7 @@ canonical) · `components/ui/combobox.tsx` · `components/builder/TeamBuilder.ts
   `natures.json = { [id]: { name, plus, minus } }`
 - Produce: `learnsets/<c>.json = { [speciesId]: string[] }` — ids de movimiento legales en NatDex.
 
-- [ ] **Paso 1: escribir el verificador (el "test" del exportador)**
+- [x] **Paso 1: escribir el verificador (el "test" del exportador)**
 
 `bats/tools/check_dex_export.js` — Node puro, sin dependencias. Lee `web/public/dex/` y lanza si algo
 no cuadra:
@@ -161,12 +161,12 @@ check(!!meta.generated_at && !!meta.ps_commit, 'meta tiene fecha y commit de PS'
 process.exit(fails ? 1 : 0);
 ```
 
-- [ ] **Paso 2: ejecutarlo para verlo fallar**
+- [x] **Paso 2: ejecutarlo para verlo fallar**
 
 Run: `cd /Users/jazar/Documents/GitHub/bats && node tools/check_dex_export.js`
 Expected: FAIL — `ENOENT ... web/public/dex/species.json`.
 
-- [ ] **Paso 3: escribir el exportador**
+- [x] **Paso 3: escribir el exportador**
 
 `bats/tools/export_dex.js`. Requiere `dist/` de PS compilado (`cd ../pokemon-showdown && node build`).
 Núcleo:
@@ -258,7 +258,7 @@ formato (`sim/dex-formats.ts:83`), así que Crowned/Rider salen marcados sin dup
 `gen` se toma de la **especie base** porque las formas regionales heredan la generación de su base
 (es lo que ya hace `validateLeagueTeam` en `config/formats.ts:104`).
 
-- [ ] **Paso 4: generar y verificar**
+- [x] **Paso 4: generar y verificar**
 
 ```bash
 cd /Users/jazar/Documents/GitHub/pokemon-showdown && node build
@@ -267,7 +267,7 @@ du -sh web/public/dex          # referencia: debe quedar por debajo de 6 MB
 ```
 Expected: todas las líneas con `✓`, salida 0.
 
-- [ ] **Paso 5: commit**
+- [x] **Paso 5: commit**
 
 ```bash
 cd /Users/jazar/Documents/GitHub/bats
@@ -294,7 +294,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   manda el cliente, valor = fila de `dex_species` (o ausente si no existe la especie).
 - Produce: CLI `python -m bats_core dex --import [--dir web/public/dex] [--dsn ...]`.
 
-- [ ] **Paso 1: escribir los tests**
+- [x] **Paso 1: escribir los tests**
 
 `bats/tests/test_dex.py`, siguiendo el patrón de `tests/test_rules.py` (base desechable vía
 `BATS_TEST_DSN`, `@unittest.skipUnless`):
@@ -350,13 +350,13 @@ class TestImportacionDelDex(unittest.TestCase):
 (El helper `snapshot_dir()` escribe `SNAPSHOT` y un `meta.json` con `ps_commit="abc1234"` en un
 `tempfile.TemporaryDirectory`; `db()` replica el `setUpClass` de `tests/test_rules.py`.)
 
-- [ ] **Paso 2: correr para verlos fallar**
+- [x] **Paso 2: correr para verlos fallar**
 
 Run: `cd bats && BATS_TEST_DSN=postgresql://localhost/bats_dex_test pytest tests/test_dex.py -v`
 (antes: `createdb bats_dex_test`)
 Expected: FAIL — `ModuleNotFoundError: bats_core.dex`.
 
-- [ ] **Paso 3: migración v11**
+- [x] **Paso 3: migración v11**
 
 `bats/bats_core/db/migrations/v11.sql`:
 
@@ -406,7 +406,7 @@ ALTER TABLE tournament.roster
   ADD COLUMN IF NOT EXISTS validated_commit  VARCHAR(40);
 ```
 
-- [ ] **Paso 4: `bats_core/dex.py`**
+- [x] **Paso 4: `bats_core/dex.py`**
 
 ```python
 """
@@ -483,7 +483,7 @@ def species_meta(db, names: list[str]) -> dict[str, dict]:
     return out
 ```
 
-- [ ] **Paso 5: subcomando `dex` en el CLI**
+- [x] **Paso 5: subcomando `dex` en el CLI**
 
 En `bats_core/cli.py`, junto a los demás `subparsers.add_parser` (~línea 1041):
 
@@ -509,7 +509,7 @@ y en el despacho del subcomando:
         return
 ```
 
-- [ ] **Paso 6: tests en verde**
+- [x] **Paso 6: tests en verde**
 
 ```bash
 cd /Users/jazar/Documents/GitHub/bats
@@ -517,7 +517,7 @@ BATS_TEST_DSN=postgresql://localhost/bats_dex_test pytest tests/test_dex.py -v
 ```
 Expected: 3 passed.
 
-- [ ] **Paso 7: commit**
+- [x] **Paso 7: commit**
 
 ```bash
 git add bats_core/dex.py bats_core/db/migrations/v11.sql bats_core/cli.py tests/test_dex.py
@@ -543,7 +543,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
   — entradas enriquecidas + nombres que no existen en el dex.
 - Produce: en `RESTRICTION_SPEC`, la clave nueva `roster_enforcement` (bool, default `False`).
 
-- [ ] **Paso 1: tests**
+- [x] **Paso 1: tests**
 
 En `tests/test_rules.py`, clase nueva (sin DB: se le pasan las entradas ya enriquecidas):
 
@@ -594,12 +594,12 @@ Y un test con DB, en `TestRegistroConReglas`, que es el que cierra el agujero de
         self.assertEqual(res.json()["detail"], "missing_color:yellow")
 ```
 
-- [ ] **Paso 2: correr y verlos fallar**
+- [x] **Paso 2: correr y verlos fallar**
 
 Run: `BATS_TEST_DSN=postgresql://localhost/bats_dex_test pytest tests/test_rules.py -v`
 Expected: FAIL — `KeyError: 'roster_enforcement'` y los códigos nuevos no aparecen.
 
-- [ ] **Paso 3: implementar**
+- [x] **Paso 3: implementar**
 
 En `rules.py`:
 
@@ -685,12 +685,12 @@ def resolve_entries(db, pokemon: list) -> tuple[list[dict], list[str]]:
    `HTTPException(422, detail=f"unknown_species:{','.join(unknown)}")` si hay desconocidos. En
    `_upsert_pokemon`, pasar los valores del dex (no los del body).
 
-- [ ] **Paso 4: tests en verde**
+- [x] **Paso 4: tests en verde**
 
 Run: `BATS_TEST_DSN=postgresql://localhost/bats_dex_test pytest tests/test_rules.py tests/test_features.py -v`
 Expected: PASS (incluye los tests que ya existían).
 
-- [ ] **Paso 5: commit**
+- [x] **Paso 5: commit**
 
 ```bash
 git add bats_core/rules.py bats_core/api/routes/teams.py tests/test_rules.py
@@ -725,7 +725,7 @@ con `toID` = minúsculas sin caracteres no alfanuméricos; EVs/IVs siempre como 
 `hp,atk,def,spa,spd,spe` (EV ausente = 0, IV ausente = 31); tera vacío = tipo primario de la especie.
 Se ignoran apodo, nivel, género, shiny y felicidad.
 
-- [ ] **Paso 1: test**
+- [x] **Paso 1: test**
 
 ```python
 """tests/test_teamset.py — forma canónica de un set (la compara config/formats.ts)."""
@@ -778,11 +778,11 @@ parciales, con tera explícito, con nombre de forma `Urshifu-Rapid-Strike`). Eje
 ]
 ```
 
-- [ ] **Paso 2: correr y verlo fallar**
+- [x] **Paso 2: correr y verlo fallar**
 
 Run: `cd bats && pytest tests/test_teamset.py -v` → FAIL (`ModuleNotFoundError: bats_core.teamset`).
 
-- [ ] **Paso 3: implementar**
+- [x] **Paso 3: implementar**
 
 ```python
 """
@@ -820,11 +820,11 @@ def canonical_set(entry: dict, primary_type: str | None = None) -> str:
     ])
 ```
 
-- [ ] **Paso 4: tests en verde**
+- [x] **Paso 4: tests en verde**
 
 Run: `pytest tests/test_teamset.py -v` → PASS.
 
-- [ ] **Paso 5: commit**
+- [x] **Paso 5: commit**
 
 ```bash
 git add bats_core/teamset.py tests/test_teamset.py tests/fixtures/sets_canonicos.json
@@ -853,7 +853,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - Produce: `GET /api/dex/meta` (público) → fila de `tournament.dex_meta`, para que el frontend avise
   si el snapshot estático y la base no coinciden.
 
-- [ ] **Paso 1: tests**
+- [x] **Paso 1: tests**
 
 ```python
 @unittest.skipUnless(DSN, "Define BATS_TEST_DSN apuntando a una base desechable.")
@@ -913,12 +913,12 @@ class TestRostersParaShowdown(unittest.TestCase):
         self.assertTrue(res.json()["enforcement"])
 ```
 
-- [ ] **Paso 2: correr y verlos fallar**
+- [x] **Paso 2: correr y verlos fallar**
 
 Run: `BATS_TEST_DSN=postgresql://localhost/bats_dex_test pytest tests/test_features.py -k "Edicion or Rosters" -v`
 Expected: FAIL — 405 en el PATCH, 404 en `/api/teams/rosters`.
 
-- [ ] **Paso 3: implementar**
+- [x] **Paso 3: implementar**
 
 En `schemas.py`, `class EditSetRequest(PokemonEntry): pass` (o reutilizar `PokemonEntry` tal cual).
 
@@ -1016,12 +1016,12 @@ Hace falta además:
   `bats_core/{cli,metrics,report,pokeapi,bans,backfill,mvp}.py`, así que **no hay que tocar nada**,
   pero sí verificarlo (`bats_core/pokeapi.py` sigue excluido y ya no lo usa nadie del lado API).
 
-- [ ] **Paso 4: tests en verde**
+- [x] **Paso 4: tests en verde**
 
 Run: `BATS_TEST_DSN=postgresql://localhost/bats_dex_test pytest tests/ -v`
 Expected: PASS (todo lo anterior incluido).
 
-- [ ] **Paso 5: commit**
+- [x] **Paso 5: commit**
 
 ```bash
 git add bats_core/api bats_core/teamset.py tests/test_features.py
@@ -1046,7 +1046,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - Produce: `GET /api/teams/me` incluye
   `"validation": { "state": "ok" | "errors" | "pending", "errors": [...], "checked_at": iso }`.
 
-- [ ] **Paso 1: tests**
+- [x] **Paso 1: tests**
 
 ```python
     def test_guarda_el_veredicto_del_validador(self):
@@ -1079,15 +1079,15 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
         self.assertEqual(res.json()["updated"], 0)
 ```
 
-- [ ] **Paso 2: correr y verlos fallar** → 404 en la ruta nueva.
+- [x] **Paso 2: correr y verlos fallar** → 404 en la ruta nueva.
 
-- [ ] **Paso 3: implementar** el endpoint (una sola transacción, `UPDATE ... WHERE season_id = %s AND
+- [x] **Paso 3: implementar** el endpoint (una sola transacción, `UPDATE ... WHERE season_id = %s AND
 LOWER(username) = %s`, devolviendo `{"ok": True, "updated": n}`) y el bloque `validation` en
 `_load_roster`.
 
-- [ ] **Paso 4: tests en verde** — `pytest tests/test_ingest.py -v`.
+- [x] **Paso 4: tests en verde** — `pytest tests/test_ingest.py -v`.
 
-- [ ] **Paso 5: commit** — `feat(ingest): guarda el veredicto del TeamValidator de Showdown`.
+- [x] **Paso 5: commit** — `feat(ingest): guarda el veredicto del TeamValidator de Showdown`.
 
 ---
 
@@ -1108,7 +1108,7 @@ el usuario no se puede comparar el equipo contra *su* roster.
 - Produce: `TeamValidator.validatingUser: ID | null`, asignado al principio de `baseValidateTeam` y
   legible desde `onValidateTeam` (que se invoca con `.call(this, …)`).
 
-- [ ] **Paso 1: test**
+- [x] **Paso 1: test**
 
 ```js
 describe('TeamValidator (parche BATS)', () => {
@@ -1129,12 +1129,12 @@ describe('TeamValidator (parche BATS)', () => {
 });
 ```
 
-- [ ] **Paso 2: correr y verlo fallar**
+- [x] **Paso 2: correr y verlo fallar**
 
 Run: `cd pokemon-showdown && npx mocha test/sim/team-validator.js -g "parche BATS"`
 Expected: FAIL — `visto` es `undefined`.
 
-- [ ] **Paso 3: parche**
+- [x] **Paso 3: parche**
 
 En `sim/team-validator.ts`, clase `TeamValidator`, junto a los demás campos:
 
@@ -1155,7 +1155,7 @@ de `baseValidateTeam`:
 		this.validatingUser = options.user || null;
 ```
 
-- [ ] **Paso 4: verificar**
+- [x] **Paso 4: verificar**
 
 ```bash
 cd /Users/jazar/Documents/GitHub/pokemon-showdown
@@ -1165,7 +1165,7 @@ npx mocha test/sim/team-validator.js -g "parche BATS"
 ```
 Expected: test PASS, sin errores nuevos de tsc/eslint.
 
-- [ ] **Paso 5: commit**
+- [x] **Paso 5: commit**
 
 ```bash
 cd /Users/jazar/Documents/GitHub/pokemon-showdown
@@ -1190,7 +1190,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - Produce: `canonicalSet(dex, set): string` en `config/formats.ts` — espejo exacto de
   `bats_core/teamset.py::canonical_set`.
 
-- [ ] **Paso 1: test de paridad entre los dos lenguajes**
+- [x] **Paso 1: test de paridad entre los dos lenguajes**
 
 `bats/tools/roster_parity.js` — carga las fixtures de la Task 4 y las pasa por la implementación de
 TypeScript compilada (`dist/config/formats.js` exporta `canonicalSet` para pruebas):
@@ -1222,11 +1222,11 @@ Y en `bats/tests/test_teamset.py`, un test que corre ese script si hay `dist/` c
 (`unittest.skipUnless(Path(PS_DIR, "dist/config/formats.js").exists(), ...)`), para que la paridad
 también falle desde pytest.
 
-- [ ] **Paso 2: correr y verlo fallar**
+- [x] **Paso 2: correr y verlo fallar**
 
 Run: `cd bats && node tools/roster_parity.js` → FAIL (`canonicalSet is not a function`).
 
-- [ ] **Paso 3: implementar en `config/formats.ts`**
+- [x] **Paso 3: implementar en `config/formats.ts`**
 
 Junto a `loadLeagueRules()` (mismo patrón: leer el archivo en cada validación, caer con gracia si no
 existe):
@@ -1296,7 +1296,7 @@ firma a `validateLeagueTeam(validator: TeamValidator, team, monthly)` y dentro
 `const dex = validator.dex;`. Las dos llamadas (`config/formats.ts:174` y `:200`) pasan a
 `validateLeagueTeam(this, team, true|false)`.
 
-- [ ] **Paso 4: verificar**
+- [x] **Paso 4: verificar**
 
 ```bash
 cd /Users/jazar/Documents/GitHub/pokemon-showdown && node build && npx eslint config/formats.ts
@@ -1309,7 +1309,7 @@ Prueba manual en sandbox (**sin tocar el `active_rosters.json` real**): copiar e
 equipos con `node bats_core/validate_team.js` (uno idéntico al registrado, otro con un movimiento
 cambiado). El segundo debe fallar con el mensaje nuevo.
 
-- [ ] **Paso 5: commit** (en los dos repos: `formats.ts` en PS, `tools/roster_parity.js` en BATS).
+- [x] **Paso 5: commit** (en los dos repos: `formats.ts` en PS, `tools/roster_parity.js` en BATS).
 
 ---
 
@@ -1323,16 +1323,16 @@ cambiado). El segundo debe fallar con el mensaje nuevo.
 - Consume: `GET /api/teams/rosters` (Task 5), `POST /api/ingest/roster-validation` (Task 6).
 - Produce: `active_rosters.json` en la raíz de PS y el POST del veredicto tras cada sincronización.
 
-- [ ] **Paso 1: test**
+- [x] **Paso 1: test**
 
 Con `nofswriting = true` y `Chat.loadPlugins()`, mockeando `fetch` (ver `test/server/` para el
 patrón): `syncRosters()` escribe el archivo con lo que responde la API; si la API devuelve error o un
 formato inesperado, **no** toca el archivo (mismo contrato que `syncBans`); tras escribir, hace un
 POST con una entrada por jugador.
 
-- [ ] **Paso 2: correr y verlo fallar.**
+- [x] **Paso 2: correr y verlo fallar.**
 
-- [ ] **Paso 3: implementar** — copiar la forma de `syncRules()` (`bats-ingest.ts:144`):
+- [x] **Paso 3: implementar** — copiar la forma de `syncRules()` (`bats-ingest.ts:144`):
 
 ```ts
 async function syncRosters() {
@@ -1397,10 +1397,10 @@ falso error de tamaño, así que `validateTeam` se llama sobre el paste completo
 `validator.validateSet` y quedarse con esos errores. Elegir la vía en el paso de implementación y
 dejarlo anotado en el código.
 
-- [ ] **Paso 4: verificar** — `npx tsc --noEmit`, `npx eslint server/chat-plugins/bats-ingest.ts`,
+- [x] **Paso 4: verificar** — `npx tsc --noEmit`, `npx eslint server/chat-plugins/bats-ingest.ts`,
 `npx mocha test/server/chat-plugins/bats-ingest.js`.
 
-- [ ] **Paso 5: commit.**
+- [x] **Paso 5: commit.**
 
 ---
 
@@ -1424,13 +1424,13 @@ dejarlo anotado en el código.
 - Produce: `speciesById(dex, nameOrId): Species | null` (resuelve "Mr. Mime", "mrmime",
   "Urshifu-Rapid-Strike").
 
-- [ ] **Paso 1: tests** (vitest, con `fetch` mockeado sobre un snapshot mínimo): resolución por
+- [x] **Paso 1: tests** (vitest, con `fetch` mockeado sobre un snapshot mínimo): resolución por
   nombre/id/forma, búsqueda con filtros combinados, un solo `fetch` por archivo aunque se llame dos
   veces, learnset cacheado por bucket, especie inexistente → `null`.
-- [ ] **Paso 2: `cd web && npx vitest run src/lib/dex` → FAIL.**
-- [ ] **Paso 3: implementar.**
-- [ ] **Paso 4: `npx vitest run` → PASS (los 13 tests de `showdown.test.ts` siguen verdes).**
-- [ ] **Paso 5: commit.**
+- [x] **Paso 2: `cd web && npx vitest run src/lib/dex` → FAIL.**
+- [x] **Paso 3: implementar.**
+- [x] **Paso 4: `npx vitest run` → PASS (los 13 tests de `showdown.test.ts` siguen verdes).**
+- [x] **Paso 5: commit.**
 
 ---
 
@@ -1453,8 +1453,8 @@ la autoridad sigue siendo el servidor. Cada regla nueva se implementa primero en
 `validate.test.ts` debe cubrir los mismos casos que `tests/test_rules.py` (tipo del mes, color,
 generación, egg group, item clause, paradox, pseudo, restricted, UB, tamaño, baneados).
 
-- [ ] **Paso 1: tests** (un caso por regla, más uno de "equipo completo válido").
-- [ ] **Paso 2: FAIL. Paso 3: implementar. Paso 4: PASS. Paso 5: commit.**
+- [x] **Paso 1: tests** (un caso por regla, más uno de "equipo completo válido").
+- [x] **Paso 2: FAIL. Paso 3: implementar. Paso 4: PASS. Paso 5: commit.**
 
 ---
 
@@ -1478,7 +1478,7 @@ generación, egg group, item clause, paradox, pseudo, restricted, UB, tamaño, b
 Reutilizar sin reescribir: `components/app/PokemonSprite.tsx`, `components/app/TypeBadge.tsx`,
 `components/ui/input.tsx`, `components/ui/badge.tsx`, `lib/motion.ts`.
 
-- [ ] **Pasos:** test de `Combobox` con vitest + Testing Library (filtra, selecciona con teclado,
+- [x] **Pasos:** test de `Combobox` con vitest + Testing Library (filtra, selecciona con teclado,
   anuncia resultados) → FAIL → implementar → PASS → commit. `SpeciesPicker` se verifica en la
   Task 16 (revisión visual).
 
@@ -1501,7 +1501,7 @@ Reutilizar sin reescribir: `components/app/PokemonSprite.tsx`, `components/app/T
 
 Los errores se muestran junto al campo que los causa, no en un bloque al final.
 
-- [ ] **Pasos:** tests (no deja elegir un movimiento fuera del learnset; pasar de 510 EVs marca
+- [x] **Pasos:** tests (no deja elegir un movimiento fuera del learnset; pasar de 510 EVs marca
   error; cambiar la naturaleza actualiza el resumen de stats) → FAIL → implementar → PASS → commit.
 
 ---
@@ -1534,7 +1534,7 @@ Detalle que no se puede perder: `usePoolPayloads` (hoy en `TeamPage.tsx:88`) exi
 pokémon guardados no traen color/gen/egg group y había que ir a PokéAPI. Con el snapshot local se
 resuelven en memoria: **borrar ese hook**.
 
-- [ ] **Pasos:** test de `PasteIO` (pegar el equipo de ejemplo de `showdown.test.ts` produce 1 mon
+- [x] **Pasos:** test de `PasteIO` (pegar el equipo de ejemplo de `showdown.test.ts` produce 1 mon
   resuelto con tipos correctos; una especie inventada se marca) → FAIL → implementar → `npx tsc -b`,
   `npm run lint` (0 errores), `npx vitest run` → PASS → commit.
 

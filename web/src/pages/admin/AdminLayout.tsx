@@ -1,7 +1,7 @@
 import { Navigate, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   Activity, BarChart2, Bot, CalendarDays, ChevronsUpDown, DatabaseZap, ExternalLink, LogOut, ScrollText,
-  ShieldAlert, ShieldOff, Swords, UserCog,
+  ShieldAlert, ShieldOff, Swords, UserCog, Users,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarInset,
@@ -24,6 +24,7 @@ const GROUPS = [
     { label: "Temporadas", to: "/admin/seasons", icon: CalendarDays },
     { label: "Reglas", to: "/admin/leaguesettings", icon: ScrollText },
     { label: "Jugadores", to: "/admin/jugadores", icon: UserCog },
+    { label: "Equipos", to: "/admin/rosters", icon: Users },
   ] },
   { label: "Comunidad", items: [
     { label: "Bans", to: "/admin/bans", icon: ShieldOff },

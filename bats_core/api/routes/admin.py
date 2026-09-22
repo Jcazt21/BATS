@@ -12,6 +12,7 @@ Endpoints:
   GET    /api/admin/battles            → lista de batallas humanas
   DELETE /api/admin/battles/{id}       → borra una batalla
   POST   /api/admin/reset-battles      → borra toda la data de batallas
+  GET    /api/admin/rosters            → equipos registrados en la temporada activa
 """
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -283,3 +284,47 @@ def get_bans():
         "bans": [dict(r) for r in bans],
         "progress": {"voted": int(voted), "total": int(authorized)},
     }
+
+
+@router.get("/rosters", dependencies=[Depends(require_admin)])
+def list_rosters():
+    """
+    Equipos registrados en la temporada activa: nº de pokémon, veredicto del
+    TeamValidator real de Showdown (Task 6), cambios usados y si ya fijó lineup.
+    """
+    with get_db() as db:
+        season_id = get_active_season_id(db)
+        rows = db.fetchall(
+            """
+            SELECT r.roster_id, r.username, r.changes_used, r.is_locked, r.registered_at,
+                   r.validation_errors, r.validated_at,
+                   COUNT(rp.roster_pokemon_id) AS pokemon_count,
+                   EXISTS (
+                       SELECT 1 FROM tournament.roster_lineup rl WHERE rl.roster_id = r.roster_id
+                   ) AS has_lineup
+            FROM tournament.roster r
+            LEFT JOIN tournament.roster_pokemon rp ON rp.roster_id = r.roster_id
+            WHERE r.season_id = %s
+            GROUP BY r.roster_id
+            ORDER BY LOWER(r.username)
+            """,
+            (season_id,),
+        )
+
+    def validation_of(r: dict) -> dict:
+        errors = r["validation_errors"] if isinstance(r["validation_errors"], list) else []
+        state = "pending" if r["validated_at"] is None else ("errors" if errors else "ok")
+        return {"state": state, "errors": errors, "checked_at": iso(r["validated_at"])}
+
+    return [
+        {
+            "username":      r["username"],
+            "pokemon_count": int(r["pokemon_count"]),
+            "changes_used":  r["changes_used"],
+            "is_locked":     r["is_locked"],
+            "has_lineup":    r["has_lineup"],
+            "registered_at": iso(r["registered_at"]),
+            "validation":    validation_of(r),
+        }
+        for r in rows
+    ]

@@ -522,6 +522,27 @@ export const deletePlayerAccount = (accountId: number) =>
 
 export const getBans = () => request<ActiveSeasonBansResponse>("/api/admin/bans", admin);
 
+/** Fila de GET /api/admin/rosters — un equipo registrado en la temporada activa. */
+export interface AdminRosterRow {
+  username:      string;
+  pokemon_count: number;
+  changes_used:  number;
+  is_locked:     boolean;
+  has_lineup:    boolean;
+  registered_at: string | null;
+  validation:    RosterValidation;
+}
+export const getAdminRosters = () => request<AdminRosterRow[]>("/api/admin/rosters", admin);
+
+/** Metadatos del snapshot importado en la base (tournament.dex_meta), público. */
+export interface DexMeta {
+  generated_at:  string | null;
+  ps_commit:     string | null;
+  species_count: number;
+  imported_at:   string | null;
+}
+export const getDexMeta = () => request<DexMeta>("/api/dex/meta");
+
 export const getBattles = () => request<BattleEntry[]>("/api/admin/battles", admin);
 export const deleteBattle = (battleId: string) =>
   request<void>(`/api/admin/battles/${encodeURIComponent(battleId)}`, { ...admin, method: "DELETE", fallback: "Error al borrar la batalla" });

@@ -24,6 +24,7 @@ const BattlesPage = lazy(() => import("@/pages/admin/BattlesPage").then((m) => (
 const AdminBansPage = lazy(() => import("@/pages/admin/BansPage").then((m) => ({ default: m.BansPage })));
 const SeasonsPage = lazy(() => import("@/pages/admin/SeasonsPage").then((m) => ({ default: m.SeasonsPage })));
 const PlayersPage = lazy(() => import("@/pages/admin/PlayersPage").then((m) => ({ default: m.PlayersPage })));
+const RostersPage = lazy(() => import("@/pages/admin/RostersPage").then((m) => ({ default: m.RostersPage })));
 const IngestPage = lazy(() => import("@/pages/admin/IngestPage").then((m) => ({ default: m.IngestPage })));
 const FairPlayPage = lazy(() => import("@/pages/admin/FairPlayPage").then((m) => ({ default: m.FairPlayPage })));
 const LeagueSettingsPage = lazy(() => import("@/pages/admin/LeagueSettingsPage").then((m) => ({ default: m.LeagueSettingsPage })));
@@ -68,6 +69,7 @@ export default function App() {
                       <Route path="/admin/bans" element={<AdminBansPage />} />
                       <Route path="/admin/seasons" element={<SeasonsPage />} />
                       <Route path="/admin/jugadores" element={<PlayersPage />} />
+                      <Route path="/admin/rosters" element={<RostersPage />} />
                       <Route path="/admin/fairplay" element={<FairPlayPage />} />
                       <Route path="/admin/ingestas" element={<IngestPage />} />
                       <Route path="/admin/leaguesettings" element={<LeagueSettingsPage />} />

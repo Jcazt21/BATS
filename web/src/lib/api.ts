@@ -350,12 +350,38 @@ export interface PokemonPayload {
 }
 
 export interface PlayerAccount {
-  account_id:    number;
-  email:         string;
-  username:      string;
-  is_admin:      boolean;
-  has_logged_in: boolean;
-  created_at:    string;
+  account_id: number;
+  email:      string;
+  username:   string;
+  is_admin:   boolean;
+  /** uuid de auth.users si ya se enlazó; null hasta el primer login (o si se desenlazó). */
+  user_id:    string | null;
+  /** `user_id !== null`. Antes se llamaba `has_logged_in`, pero eso es falso: solo significa "enlazada". */
+  is_linked:  boolean;
+  created_at: string;
+}
+
+/** Login de Supabase Auth (auth.users), enlazado o no a una cuenta de la liga. */
+export interface AuthLogin {
+  user_id:           string;
+  email:             string;
+  provider:          string | null;
+  full_name:         string | null;
+  created_at:        string | null;
+  last_sign_in_at:   string | null;
+  linked_account_id: number | null;
+  linked_username:   string | null;
+}
+
+export interface AuthLoginsResponse {
+  /** false en Postgres local: el esquema auth de Supabase no existe ahí. */
+  available: boolean;
+  logins:    AuthLogin[];
+}
+
+/** Cuántas filas movió el rename de un username en tournament.roster/bans/ban_whitelist/ban_participation. */
+export interface UsernameRenameCascade {
+  roster: number; bans: number; whitelist: number; participation: number;
 }
 
 // ── Tipos de las funciones nuevas ─────────────────────────────────────────────
@@ -515,10 +541,24 @@ export const editSet = (pokemonId: number, payload: PokemonPayload) =>
 const admin = { auth: true } as const;
 
 export const getPlayerAccounts = () => request<PlayerAccount[]>("/api/admin/players", admin);
-export const addPlayerAccount = (payload: { email: string; username: string; is_admin: boolean }) =>
-  request("/api/admin/players", { ...admin, method: "POST", body: payload, fallback: "Error al crear la cuenta" });
+export const addPlayerAccount = (payload: { email: string; username: string; is_admin: boolean; user_id?: string | null }) =>
+  request<PlayerAccount>("/api/admin/players", { ...admin, method: "POST", body: payload, fallback: "Error al crear la cuenta" });
+/**
+ * Edita email/username/rol de una cuenta ya creada. Cambiar `email` desenlaza el
+ * login (user_id -> NULL) salvo que se mande `link_user_id` a la vez (pegar un
+ * login de Supabase a esta cuenta). Cambiar `username` mueve en cascada su roster,
+ * bans y whitelist de la temporada — el resumen viene en la respuesta (`cascade`).
+ */
+export const updatePlayerAccount = (accountId: number, payload: {
+  email?: string; username?: string; is_admin?: boolean; link_user_id?: string; clear_user_id?: boolean;
+}) =>
+  request<PlayerAccount & { cascade: UsernameRenameCascade; user_id_cleared: boolean }>(
+    `/api/admin/players/${accountId}`, { ...admin, method: "PATCH", body: payload, fallback: "Error al editar la cuenta" });
 export const deletePlayerAccount = (accountId: number) =>
   request(`/api/admin/players/${accountId}`, { ...admin, method: "DELETE", fallback: "Error al eliminar la cuenta" });
+
+/** Logins de Supabase Auth y si ya tienen cuenta en la liga. `available: false` en Postgres local. */
+export const getAuthLogins = () => request<AuthLoginsResponse>("/api/admin/auth-logins", admin);
 
 export const getBans = () => request<ActiveSeasonBansResponse>("/api/admin/bans", admin);
 

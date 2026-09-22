@@ -17,6 +17,7 @@ import json
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from ...dex import DexNotLoaded, resolve_entries
 from ...rules import check_team, normalize_restrictions, rule_checklist
 from ..auth import require_player
 from ..common import get_active_season as _get_active_season, iso, upsert_pokemon
@@ -28,9 +29,26 @@ router = APIRouter(prefix="/api/teams", tags=["teams"])
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
-def _upsert_pokemon(db, entry: PokemonEntry) -> int:
+def _resolve(db, pokemon: list[PokemonEntry]) -> list[dict]:
+    """
+    Metadatos reales de cada pokémon (tournament.dex_species). Lo que el cliente declare
+    de tipos, color, generación o egg groups se ignora: si no, cualquiera podría
+    declarar "amarillo" y saltarse las restricciones de la temporada.
+    """
+    try:
+        entries, unknown = resolve_entries(db, pokemon)
+    except DexNotLoaded:
+        raise HTTPException(status_code=503, detail="dex_not_loaded")
+    if unknown:
+        raise HTTPException(status_code=422, detail=f"unknown_species:{','.join(unknown)}")
+    return entries
+
+
+def _upsert_pokemon(db, entry: dict) -> int:
+    """Upsert en pokemon_cache con los datos del dex (`entry` sale de _resolve)."""
     return upsert_pokemon(
-        db, entry.name, entry.national_dex, entry.types, entry.sprite_url, entry.color, entry.generation
+        db, entry["name"], entry["national_dex"], entry["types"], entry.get("sprite_url"),
+        entry["color"], entry["generation"],
     )
 
 
@@ -54,7 +72,7 @@ def _check_whitelist(db, username: str, season_id: int) -> None:
         raise HTTPException(status_code=403, detail="not_in_whitelist")
 
 
-def _insert_roster_pokemon(db, roster_id: int, pokemon_id: int, entry: PokemonEntry) -> None:
+def _insert_roster_pokemon(db, roster_id: int, pokemon_id: int, entry: dict) -> None:
     """Inserta o reemplaza un slot de roster_pokemon con datos completos de Showdown."""
     db.execute(
         """
@@ -73,13 +91,13 @@ def _insert_roster_pokemon(db, roster_id: int, pokemon_id: int, entry: PokemonEn
         (
             roster_id,
             pokemon_id,
-            entry.held_item,
-            entry.ability,
-            entry.nature,
-            entry.tera_type,
-            json.dumps(entry.moves),
-            json.dumps(entry.evs),
-            json.dumps(entry.ivs),
+            entry.get("held_item"),
+            entry.get("ability"),
+            entry.get("nature"),
+            entry.get("tera_type"),
+            json.dumps(entry.get("moves") or []),
+            json.dumps(entry.get("evs") or {}),
+            json.dumps(entry.get("ivs") or {}),
         ),
     )
 
@@ -312,14 +330,16 @@ def add_pokemon(body: AddPokemonRequest, player: dict = Depends(require_player))
                 detail=f"El equipo quedaría con {new_total} pokémon (máximo {season['max_team_size']}).",
             )
 
+        entries = _resolve(db, body.pokemon)
+
         # Check bans
         banned = _get_active_bans(db, season["season_id"], username)
         if banned:
-            violations = [p.name for p in body.pokemon if p.name.lower() in banned]
+            violations = [e["name"] for e in entries if e["name"].lower() in banned]
             if violations:
                 raise HTTPException(status_code=422, detail=f"banned:{','.join(violations)}")
 
-        for entry in body.pokemon:
+        for entry in entries:
             pokemon_id = _upsert_pokemon(db, entry)
             _insert_roster_pokemon(db, roster_id, pokemon_id, entry)
 
@@ -367,10 +387,12 @@ def register_team(body: RegisterRequest, player: dict = Depends(require_player))
                 (existing["roster_id"],),
             )
 
+        entries = _resolve(db, body.pokemon)
+
         # Validate no banned pokémon are in the team
         banned = _get_active_bans(db, season["season_id"], username)
         if banned:
-            violations = [p.name for p in body.pokemon if p.name.lower() in banned]
+            violations = [e["name"] for e in entries if e["name"].lower() in banned]
             if violations:
                 raise HTTPException(
                     status_code=422,
@@ -379,7 +401,7 @@ def register_team(body: RegisterRequest, player: dict = Depends(require_player))
 
         # Restricciones de la temporada (bats_core/rules.py). Se rechaza con la primera
         # violación, con el mismo código de detalle que ya interpreta el frontend.
-        violations = check_team([p.model_dump() for p in body.pokemon], season["restrictions"])
+        violations = check_team(entries, season["restrictions"])
         if violations:
             raise HTTPException(status_code=422, detail=violations[0]["code"])
 
@@ -389,7 +411,7 @@ def register_team(body: RegisterRequest, player: dict = Depends(require_player))
         )
         roster_id = roster_row["roster_id"]
 
-        for entry in body.pokemon:
+        for entry in entries:
             pokemon_id = _upsert_pokemon(db, entry)
             _insert_roster_pokemon(db, roster_id, pokemon_id, entry)
 
@@ -427,10 +449,11 @@ def swap_pokemon(body: SwapRequest, player: dict = Depends(require_player)):
         ):
             raise HTTPException(status_code=404, detail="El pokémon no está en el equipo.")
 
-        if body.add.name.lower() in _get_active_bans(db, season["season_id"], username):
-            raise HTTPException(status_code=422, detail=f"banned:{body.add.name}")
+        new_entry = _resolve(db, [body.add])[0]
+        if new_entry["name"].lower() in _get_active_bans(db, season["season_id"], username):
+            raise HTTPException(status_code=422, detail=f"banned:{new_entry['name']}")
 
-        new_id = _upsert_pokemon(db, body.add)
+        new_id = _upsert_pokemon(db, new_entry)
         if new_id != body.remove_pokemon_id and db.fetchone(
             "SELECT 1 FROM tournament.roster_pokemon WHERE roster_id = %s AND pokemon_id = %s",
             (roster_id, new_id),
@@ -441,7 +464,7 @@ def swap_pokemon(body: SwapRequest, player: dict = Depends(require_player)):
                    (roster_id, body.remove_pokemon_id))
         db.execute("DELETE FROM tournament.roster_pokemon WHERE roster_id = %s AND pokemon_id = %s",
                    (roster_id, body.remove_pokemon_id))
-        _insert_roster_pokemon(db, roster_id, new_id, body.add)
+        _insert_roster_pokemon(db, roster_id, new_id, new_entry)
     return {"ok": True, "pokemon_id": new_id}
 
 
@@ -455,12 +478,13 @@ def validate_my_team(body: ValidateRequest, player: dict = Depends(require_playe
     with get_db() as db:
         season = _get_active_season(db)
         banned = _get_active_bans(db, season["season_id"], username)
-    entries = [p.model_dump() for p in body.pokemon]
+        entries = _resolve(db, body.pokemon)
     checklist = rule_checklist(
         entries, season["restrictions"],
         type_of_month=season["type_of_month"],
         max_team_size=season["max_team_size"],
         banned_names=banned,
+        lineup=body.lineup,
     )
     return {"ok": all(row["ok"] for row in checklist), "checklist": checklist}
 

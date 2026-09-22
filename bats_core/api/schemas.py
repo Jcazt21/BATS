@@ -43,6 +43,7 @@ class SwapRequest(BaseModel):
 
 class ValidateRequest(BaseModel):
     pokemon: list[PokemonEntry]
+    lineup:  bool = False      # True: son los (hasta 6) que se llevan a batalla; aplica los límites del dex
 
 
 # ── Bans (bats_core/api/routes/ban.py) ─────────────────────────────────────────

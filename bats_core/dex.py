@@ -74,3 +74,39 @@ def species_meta(db, names: list[str]) -> dict[str, dict]:
         if row:
             out[original] = dict(row)
     return out
+
+
+class DexNotLoaded(RuntimeError):
+    """tournament.dex_meta está vacío: falta `python -m bats_core dex --import`."""
+
+
+def resolve_entries(db, pokemon: list) -> tuple[list[dict], list[str]]:
+    """
+    Enriquece los pokémon que manda el cliente con los metadatos reales del dex.
+    Lo que el cliente declare de tipos/color/generación/egg groups se IGNORA: manda
+    tournament.dex_species. Devuelve (entradas, nombres desconocidos).
+    Lanza DexNotLoaded si el dex nunca se importó (evita rechazar a todos como "desconocidos").
+    """
+    if not pokemon:
+        return [], []
+    if not db.fetchone("SELECT 1 FROM tournament.dex_meta"):
+        raise DexNotLoaded("El dex de Showdown no está importado.")
+    raws = [p.model_dump() if hasattr(p, "model_dump") else dict(p) for p in pokemon]
+    meta = species_meta(db, [r["name"] for r in raws])
+    entries, unknown = [], []
+    for raw in raws:
+        info = meta.get(raw["name"])
+        if not info:
+            unknown.append(raw["name"])
+            continue
+        raw.update({
+            "name": info["name"],   # nombre canónico ("garchomp" → "Garchomp")
+            "types": info["types"], "color": (info["color"] or "").lower() or None,
+            "generation": info["generation"], "egg_groups": [g.lower().replace(" ", "") for g in info["egg_groups"] or []],   # "Water 1" → "water1"
+            "bst": info["bst"], "national_dex": info["national_dex"], "sprite_id": info["sprite_id"],
+            "is_paradox": info["is_paradox"], "is_pseudo": info["is_pseudo"],
+            "is_restricted": info["is_restricted"], "is_ultra_beast": info["is_ultra_beast"],
+            "league_legal": info["league_legal"],
+        })
+        entries.append(raw)
+    return entries, unknown

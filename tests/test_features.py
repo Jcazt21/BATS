@@ -15,6 +15,7 @@ from unittest import mock
 
 from fastapi.testclient import TestClient
 
+from bats_core import dex
 from bats_core.api import auth
 from bats_core.api.crypto import hash_username
 from bats_core.api.main import app
@@ -23,7 +24,8 @@ from bats_core.db.etl import ingest_payload
 from test_bats import SAMPLE_BATTLE_JSON
 
 DSN = os.environ.get("BATS_TEST_DSN")
-POOL = ["Garchomp", "Clefable", "Rotom-Wash", "Heatran", "Corviknight", "Dragapult", "Gyarados", "Milotic"]
+DEX_DIR = Path(__file__).parent.parent / "web" / "public" / "dex"
+POOL = ["Garchomp", "Clefable", "Rotom-Wash", "Heatran", "Corviknight", "Dragapult", "Gyarados", "Pikachu"]
 
 
 def _mon(name, **kw):
@@ -39,6 +41,7 @@ class TestFeatures(unittest.TestCase):
         with BATSDatabase(DSN) as db:
             db.apply_schema(db_dir / "schema.sql")
             db.apply_migrations(db_dir / "migrations")
+            dex.import_snapshot(db, DEX_DIR)
 
     def setUp(self):
         env = mock.patch.dict(os.environ, {"BATS_DB_DSN": DSN})
@@ -191,7 +194,7 @@ class TestFeatures(unittest.TestCase):
     # ── Teambuilder en vivo ───────────────────────────────────────────────────
 
     def test_checklist_del_teambuilder(self):
-        team = [_mon("Glaceon", types="Ice", color="yellow"), _mon("Mew")]
+        team = [_mon("Glaceon"), _mon("Pikachu")]   # hielo y amarillo, según el dex
         r = self.client.post("/api/teams/me/validate", json={"pokemon": team}).json()
         rows = {c["rule"]: c for c in r["checklist"]}
         self.assertTrue(r["ok"])
@@ -213,11 +216,11 @@ class TestFeatures(unittest.TestCase):
     def test_swap_reemplaza_en_una_sola_transaccion(self):
         self.assertEqual(self._register().status_code, 200)
         me = self.client.get("/api/teams/me").json()
-        old = next(p for p in me["pool"] if p["name"] == "Milotic")["pokemon_id"]
+        old = next(p for p in me["pool"] if p["name"] == "Pikachu")["pokemon_id"]
         r = self.client.post("/api/teams/me/swap", json={"remove_pokemon_id": old, "add": _mon("Salamence", color="yellow")})
         self.assertEqual(r.status_code, 200)
         names = {p["name"] for p in self.client.get("/api/teams/me").json()["pool"]}
-        self.assertEqual(names, (set(POOL) - {"Milotic"}) | {"Salamence"})
+        self.assertEqual(names, (set(POOL) - {"Pikachu"}) | {"Salamence"})
 
     def test_swap_fallido_no_quita_nada(self):
         self.assertEqual(self._register().status_code, 200)

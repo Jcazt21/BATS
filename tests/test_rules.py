@@ -14,15 +14,18 @@ from unittest import mock
 
 from fastapi.testclient import TestClient
 
+from bats_core import dex
 from bats_core.api import auth
 from bats_core.api.crypto import hash_username
 from bats_core.api.main import app
 from bats_core.db.connection import BATSDatabase
 from bats_core.rules import (
-    RESTRICTION_SPEC, RuleError, active_rules_payload, check_team, normalize_restrictions, validate_restriction,
+    RESTRICTION_SPEC, RuleError, active_rules_payload, check_team, normalize_restrictions, rule_checklist,
+    validate_restriction,
 )
 
 DSN = os.environ.get("BATS_TEST_DSN")
+DEX_DIR = Path(__file__).parent.parent / "web" / "public" / "dex"
 
 
 def mon(name="Mon", **kw):
@@ -121,6 +124,65 @@ class TestRutaPublica(unittest.TestCase):
         self.assertEqual(body["restrictions"]["max_paradox"], 1)
 
 
+class TestReglasDelDex(unittest.TestCase):
+    """Reglas que antes solo aplicaba config/formats.ts; ahora los datos vienen del dex."""
+
+    def test_limita_paradox(self):
+        team = [mon("Great Tusk", is_paradox=True), mon("Iron Treads", is_paradox=True)]
+        codes = [v["code"] for v in check_team(team, {"max_paradox": 1}, lineup=True)]
+        self.assertIn("max_paradox:2/1", codes)
+        self.assertEqual(check_team(team, {"max_paradox": 2}, lineup=True), [])
+
+    def test_limita_pseudo_legendarios(self):
+        team = [mon("Garchomp", is_pseudo=True), mon("Dragonite", is_pseudo=True)]
+        codes = [v["code"] for v in check_team(team, {"max_pseudo_legendary": 1}, lineup=True)]
+        self.assertIn("max_pseudo_legendary:2/1", codes)
+
+    def test_prohibe_ultra_beasts_y_no_legales(self):
+        codes = [v["code"] for v in check_team([mon("Buzzwole", is_ultra_beast=True)], {})]
+        self.assertIn("ultra_beast:Buzzwole", codes)
+        codes = [v["code"] for v in check_team([mon("Zacian-Crowned", league_legal=False)], {})]
+        self.assertIn("not_legal:Zacian-Crowned", codes)
+
+    def test_un_solo_restricted(self):
+        team = [mon("Koraidon", is_restricted=True), mon("Miraidon", is_restricted=True)]
+        codes = [v["code"] for v in check_team(team, {}, lineup=True)]
+        self.assertIn("max_restricted:2/1", codes)
+
+    def test_el_pool_no_cuenta_los_limites_del_lineup(self):
+        team = [mon("Garchomp", is_pseudo=True), mon("Dragonite", is_pseudo=True),
+                mon("Great Tusk", is_paradox=True), mon("Iron Treads", is_paradox=True)]
+        self.assertEqual(check_team(team, {}), [])
+        rows = {r["rule"] for r in rule_checklist(team, {})}
+        self.assertNotIn("max_pseudo_legendary", rows)
+        self.assertNotIn("max_paradox", rows)
+
+    def test_sin_datos_del_dex_no_hay_violaciones(self):
+        self.assertEqual(check_team([mon("Garchomp")], {}), [])
+
+    def test_checklist_incluye_las_reglas_del_dex(self):
+        rows = {r["rule"]: r for r in rule_checklist([mon("Garchomp", is_pseudo=True)], {}, lineup=True)}
+        self.assertTrue(rows["max_paradox"]["ok"])
+        self.assertTrue(rows["max_pseudo_legendary"]["ok"])
+        self.assertTrue(rows["max_restricted"]["ok"])
+        self.assertIn("(1/1)", rows["max_pseudo_legendary"]["label"])
+
+    def test_checklist_marca_el_exceso(self):
+        team = [mon("Garchomp", is_pseudo=True), mon("Dragonite", is_pseudo=True)]
+        rows = {r["rule"]: r for r in rule_checklist(team, {}, lineup=True)}
+        self.assertFalse(rows["max_pseudo_legendary"]["ok"])
+        self.assertEqual(rows["max_pseudo_legendary"]["names"], ["Garchomp", "Dragonite"])
+
+    def test_roster_enforcement_es_una_restriccion(self):
+        self.assertIn("roster_enforcement", RESTRICTION_SPEC)
+        self.assertIs(normalize_restrictions({})["roster_enforcement"], False)
+        self.assertIs(validate_restriction("roster_enforcement", True), True)
+
+    def test_max_restricted_por_defecto_es_uno(self):
+        self.assertEqual(normalize_restrictions({})["max_restricted"], 1)
+
+
+
 @unittest.skipUnless(DSN, "Define BATS_TEST_DSN apuntando a una base desechable.")
 class TestRegistroConReglas(unittest.TestCase):
 
@@ -130,6 +192,7 @@ class TestRegistroConReglas(unittest.TestCase):
         with BATSDatabase(DSN) as db:
             db.apply_schema(db_dir / "schema.sql")
             db.apply_migrations(db_dir / "migrations")
+            dex.import_snapshot(db, DEX_DIR)
 
     def setUp(self):
         env = mock.patch.dict(os.environ, {"BATS_DB_DSN": DSN})
@@ -165,6 +228,40 @@ class TestRegistroConReglas(unittest.TestCase):
         self.assertEqual((r.status_code, r.json()["detail"]), (422, "item_clause:Focus Sash"))
         r = self._register({"name": "Bulbasaur", "color": "green"})
         self.assertEqual((r.status_code, r.json()["detail"]), (422, "missing_color:yellow"))
+
+    def test_no_confia_en_los_metadatos_del_cliente(self):
+        """El cliente declara color amarillo; el dex dice azul: el registro se rechaza."""
+        r = self._register({"name": "Garchomp", "color": "yellow", "generation": 4,
+                            "egg_groups": ["dragon"], "types": "Dragon / Ground"})
+        self.assertEqual((r.status_code, r.json()["detail"]), (422, "missing_color:yellow"))
+
+    def test_una_especie_que_no_existe_se_rechaza(self):
+        r = self._register({"name": "Pokemonfalso", "color": "yellow"})
+        self.assertEqual((r.status_code, r.json()["detail"]), (422, "unknown_species:Pokemonfalso"))
+
+    def test_el_limite_de_paradox_aplica_al_lineup_no_al_pool(self):
+        with BATSDatabase(DSN) as db:
+            db.execute("UPDATE tournament.seasons SET restrictions = %s::jsonb WHERE season_id = %s",
+                       (json.dumps({"max_paradox": 1}), self.season))
+        team = [{"name": "Pikachu"}, {"name": "Great Tusk"}, {"name": "Iron Treads"}]
+        pool = self.client.post("/api/teams/me/validate", json={"pokemon": team}).json()
+        self.assertNotIn("max_paradox", {r["rule"] for r in pool["checklist"]})
+        lineup = self.client.post("/api/teams/me/validate", json={"pokemon": team, "lineup": True}).json()
+        row = next(r for r in lineup["checklist"] if r["rule"] == "max_paradox")
+        self.assertFalse(row["ok"])
+        self.assertEqual(row["names"], ["Great Tusk", "Iron Treads"])
+        self.assertEqual(self._register(*team).status_code, 200)   # el pool de 3 sí se registra
+
+    def test_sin_dex_cargado_responde_503(self):
+        with BATSDatabase(DSN) as db:
+            db.execute("DELETE FROM tournament.dex_meta")
+        self.addCleanup(self._reimportar_dex)
+        r = self._register({"name": "Pikachu"})
+        self.assertEqual((r.status_code, r.json()["detail"]), (503, "dex_not_loaded"))
+
+    def _reimportar_dex(self):
+        with BATSDatabase(DSN) as db:
+            dex.import_snapshot(db, DEX_DIR)
 
     def test_registra_y_la_identidad_sale_de_la_sesion(self):
         r = self._register({"name": "Pikachu", "color": "yellow"}, {"name": "Bulbasaur", "color": "green"})

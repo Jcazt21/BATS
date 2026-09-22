@@ -66,7 +66,15 @@ RESTRICTION_SPEC: dict[str, dict[str, Any]] = {
         "label":   "Registro cerrado",
         "hint":    "Nadie puede registrar ni editar equipos, y los equipos pasan a ser públicos.",
     },
-    # Las dos siguientes las aplica el formato de Showdown (necesita tags y BST del dex).
+    "roster_enforcement": {
+        "type":    "bool",
+        "default": False,
+        "label":   "Exigir el equipo registrado",
+        "hint":    "Showdown rechaza en batalla cualquier set que no esté registrado en BATS. "
+                   "Actívala solo cuando todos los equipos registrados estén validados.",
+    },
+    # Los tres límites siguientes los aplican la API (con los metadatos de tournament.dex_species)
+    # y el formato de Showdown (config/formats.ts).
     "max_paradox": {
         "type":    "int",
         "min":     0,
@@ -82,6 +90,14 @@ RESTRICTION_SPEC: dict[str, dict[str, Any]] = {
         "default": 1,
         "label":   "Máximo de pseudo-legendarios",
         "hint":    "Cuántos pseudo-legendarios (BST 600 sin tag legendario) admite un equipo (6 = sin límite).",
+    },
+    "max_restricted": {
+        "type":    "int",
+        "min":     0,
+        "max":     6,
+        "default": 1,
+        "label":   "Máximo de legendarios restringidos",
+        "hint":    "Cuántos Sub-Legendary / Restricted Legendary / Mythical admite un equipo (6 = sin límite).",
     },
 }
 
@@ -155,6 +171,7 @@ def check_team(
     entries: list[dict],
     restrictions: Optional[dict | str],
     type_of_month: Optional[str] = None,
+    lineup: bool = False,
 ) -> list[dict]:
     """
     Comprueba un equipo contra las restricciones y devuelve TODAS las violaciones
@@ -163,7 +180,14 @@ def check_team(
     `code` conserva el formato que ya entiende el frontend
     ("item_clause:Leftovers", "missing_color:yellow", ...).
 
-    `entries`: dicts con held_item, color, generation, egg_groups y types ("Ice / Flying").
+    `entries`: dicts con held_item, color, generation, egg_groups y types ("Ice / Flying"),
+    más las banderas del dex (is_paradox, is_pseudo, is_restricted, is_ultra_beast,
+    league_legal). Las banderas ausentes no generan violación: así se puede comprobar un
+    equipo sin dex (tests, CLI). En la API las rellena dex.resolve_entries().
+
+    `lineup`: True cuando `entries` son los (hasta 6) pokémon que se llevan a batalla. Los
+    límites de Paradox / pseudo-legendarios / restringidos (DEX_LIMITS) solo se cuentan ahí,
+    igual que en config/formats.ts; el pool registrado (hasta 8) no los cuenta.
 
     `type_of_month` es opcional: /api/teams/me solo lo pasa cuando quiere mostrarlo
     como comprobación informativa; el registro NO lo exige (lo hace el formato de
@@ -199,7 +223,31 @@ def check_team(
     ):
         violations.append({"rule": "type_of_month", "code": f"missing_type:{type_of_month}", "names": []})
 
+    # Reglas del dex (antes solo las aplicaba config/formats.ts).
+    illegal = [e["name"] for e in entries if e.get("league_legal") is False]
+    if illegal:
+        violations.append({"rule": "not_legal", "code": f"not_legal:{','.join(illegal)}", "names": illegal})
+
+    ubs = [e["name"] for e in entries if e.get("is_ultra_beast")]
+    if ubs:
+        violations.append({"rule": "ultra_beast", "code": f"ultra_beast:{','.join(ubs)}", "names": ubs})
+
+    for key, flag in (DEX_LIMITS if lineup else ()):
+        hits = _flagged(entries, flag)
+        if len(hits) > rules[key]:
+            violations.append({"rule": key, "code": f"{key}:{len(hits)}/{rules[key]}", "names": hits})
+
     return violations
+
+
+# Límite de equipo → bandera del dex que se cuenta.
+DEX_LIMITS = (("max_paradox", "is_paradox"),
+              ("max_pseudo_legendary", "is_pseudo"),
+              ("max_restricted", "is_restricted"))
+
+
+def _flagged(entries: list[dict], flag: str) -> list[str]:
+    return [e["name"] for e in entries if e.get(flag)]
 
 
 # ── Checklist para el teambuilder ─────────────────────────────────────────────
@@ -210,14 +258,15 @@ def rule_checklist(
     type_of_month: Optional[str] = None,
     max_team_size: Optional[int] = None,
     banned_names: Optional[set[str]] = None,
+    lineup: bool = False,
 ) -> list[dict]:
     """
     Una fila por cada regla aplicable, cumpla o no: {"rule", "label", "ok", "names"}.
-    Es lo que pinta el teambuilder en vivo. Solo incluye lo verificable con los datos
-    del equipo; los límites de Paradox/pseudo-legendarios los aplica el formato de PS.
+    Es lo que pinta el teambuilder en vivo. Los límites de Paradox, pseudo-legendarios y restringidos
+    solo aparecen con lineup=True (ver check_team).
     """
     rules = normalize_restrictions(restrictions)
-    failed = {v["rule"]: v for v in check_team(entries, rules, type_of_month)}
+    failed = {v["rule"]: v for v in check_team(entries, rules, type_of_month, lineup)}
     rows: list[dict] = []
 
     def add(rule: str, label: str, names: Optional[list[str]] = None) -> None:
@@ -240,4 +289,14 @@ def rule_checklist(
         add("required_color", f"Al menos 1 pokémon de color {rules['required_color']}")
     if rules["item_clause"]:
         add("item_clause", "Sin objetos repetidos", failed.get("item_clause", {}).get("names"))
+    if any(e.get("league_legal") is False for e in entries):
+        add("not_legal", "Solo pokémon legales en la liga", failed.get("not_legal", {}).get("names"))
+    if any(e.get("is_ultra_beast") for e in entries):
+        add("ultra_beast", "Sin Ultra Beasts", failed.get("ultra_beast", {}).get("names"))
+    labels = {"max_paradox": "Paradox", "max_pseudo_legendary": "pseudo-legendarios",
+              "max_restricted": "legendarios restringidos"}
+    for key, flag in (DEX_LIMITS if lineup else ()):
+        hits = _flagged(entries, flag)
+        rows.append({"rule": key, "label": f"Máximo {rules[key]} {labels[key]} ({len(hits)}/{rules[key]})",
+                     "ok": key not in failed, "names": hits if key in failed else []})
     return rows

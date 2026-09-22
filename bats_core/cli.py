@@ -1038,6 +1038,16 @@ Una vez corriendo, desafialo desde PS con:
     backfill_parser.add_argument("--format", type=str, default=None, help="Enviar solo este formato.")
     backfill_parser.add_argument("--dry-run", action="store_true", help="Lista lo que enviaría, sin enviar.")
 
+    dex_parser = subparsers.add_parser(
+        "dex",
+        help="Importa el snapshot del dex de Showdown (tools/export_dex.js) a la base.",
+    )
+    dex_parser.add_argument("--import", dest="do_import", action="store_true",
+                            help="Importa species.json y meta.json a tournament.dex_species.")
+    dex_parser.add_argument("--dir", default=str(Path(__file__).parent.parent / "web" / "public" / "dex"),
+                            help="Carpeta del snapshot (por defecto web/public/dex).")
+    dex_parser.add_argument("--dsn", default=None, help="DSN alternativo (por defecto BATS_DB_DSN).")
+
     ban_parser = subparsers.add_parser(
         "ban",
         help="Gestión de bans del torneo (registrar, revocar, listar).",
@@ -1180,6 +1190,16 @@ Ejemplos:
 
     if args.subcommand == "clean":
         run_clean_command(args)
+        return
+
+    if args.subcommand == "dex":
+        if not args.do_import:
+            dex_parser.error("Usa --import.")
+        from . import dex as dex_module
+        from .db.connection import BATSDatabase
+        with BATSDatabase(args.dsn) as db:
+            result = dex_module.import_snapshot(db, args.dir)
+        print(f"Dex importado: {result['species']} especies (PS {result['ps_commit']}).")
         return
 
     if args.subcommand == "bot":

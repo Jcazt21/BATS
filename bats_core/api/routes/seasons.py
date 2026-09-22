@@ -432,7 +432,7 @@ def get_season_team_violations(season_id: int):
             JOIN battle.dim_players  dpl ON dpl.player_id = v.player_id
             JOIN battle.dim_pokemon  dp  ON dp.pokemon_id = v.pokemon_id
             WHERE v.season_id = %s
-            ORDER BY v.detected_at DESC
+            ORDER BY v.detected_at DESC, v.violation_id DESC
             """,
             (season_id,),
         )

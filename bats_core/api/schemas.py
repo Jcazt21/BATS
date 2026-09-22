@@ -28,6 +28,10 @@ class PokemonEntry(BaseModel):
     egg_groups:   list[str]            = []
 
 
+class EditSetRequest(PokemonEntry):
+    """Campos editables de un set; la especie debe seguir siendo la registrada."""
+
+
 class RegisterRequest(BaseModel):
     pokemon:  list[PokemonEntry]
 
@@ -63,6 +67,12 @@ class IngestBattleRequest(BaseModel):
     format: str = Field(pattern=r"^[a-z0-9]{1,60}$", description="id del formato, p.ej. gen9pinchesgueysleague")
     date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$", description="YYYY-MM-DD")
     log: dict = Field(description="Contenido del .log.json de PS (p1, p2, winner, turns, log, ...)")
+
+
+class RosterValidationRequest(BaseModel):
+    """Veredictos producidos por el TeamValidator real de Showdown."""
+    ps_commit: str | None = None
+    results: dict[str, list[str]]
 
 
 # ── Temporadas (bats_core/api/routes/seasons.py) ───────────────────────────────

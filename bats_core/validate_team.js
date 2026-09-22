@@ -5,7 +5,7 @@
  * Validador standalone de equipos Pokémon Showdown.
  * Lee un JSON por stdin, retorna un JSON por stdout.
  *
- * Stdin:  { "format": "gen9pinchesgueysleague", "team": "<paste>" }
+ * Stdin:  { "format": "gen9pinchesgueysleague", "team": "<paste>", "user": "<userid>" }
  * Stdout: { "valid": true|false, "errors": ["..."] }
  *
  * No requiere que el servidor PS esté corriendo.
@@ -24,7 +24,7 @@ process.stdin.setEncoding('utf8');
 process.stdin.on('data', chunk => { input += chunk; });
 process.stdin.on('end', () => {
 	try {
-		const { format, team } = JSON.parse(input);
+		const { format, team, user } = JSON.parse(input);
 
 		const { Dex }           = require(path.join(PS_DIR, 'dist/sim/dex'));
 		const { Teams }         = require(path.join(PS_DIR, 'dist/sim/teams'));
@@ -39,7 +39,7 @@ process.stdin.on('end', () => {
 			return;
 		}
 
-		const errors = TeamValidator.get(format).validateTeam(sets) ?? [];
+		const errors = TeamValidator.get(format).validateTeam(sets, user ? { user } : undefined) ?? [];
 		respond({ valid: errors.length === 0, errors });
 
 	} catch (err) {

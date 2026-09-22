@@ -1,0 +1,73 @@
+[
+  {
+    "set": {
+      "name": "Garchomp",
+      "held_item": "Rocky Helmet",
+      "ability": "Rough Skin",
+      "nature": "Impish",
+      "tera_type": "Steel",
+      "moves": ["Earthquake", "Dragon Tail", "Stealth Rock", "Spikes"],
+      "evs": {"HP": 252, "Atk": 4, "SpD": 252},
+      "ivs": {}
+    },
+    "canonical": "garchomp|rockyhelmet|roughskin|impish|steel|dragontail,earthquake,spikes,stealthrock|252,4,0,0,252,0|31,31,31,31,31,31"
+  },
+  {
+    "set": {
+      "name": "Clefable",
+      "ability": "Magic Guard",
+      "nature": "Bold",
+      "moves": ["Moonblast", "Soft-Boiled"]
+    },
+    "primary_type": "Fairy",
+    "canonical": "clefable||magicguard|bold|fairy|moonblast,softboiled|0,0,0,0,0,0|31,31,31,31,31,31"
+  },
+  {
+    "set": {
+      "name": "Rotom-Wash",
+      "held_item": "Leftovers",
+      "ability": "Levitate",
+      "nature": "Calm",
+      "moves": []
+    },
+    "primary_type": "Electric",
+    "canonical": "rotomwash|leftovers|levitate|calm|electric||0,0,0,0,0,0|31,31,31,31,31,31"
+  },
+  {
+    "set": {
+      "name": "Ditto",
+      "held_item": "Choice Scarf",
+      "ability": "Imposter",
+      "nature": "Relaxed",
+      "moves": ["Transform"],
+      "ivs": {"Spe": 0}
+    },
+    "primary_type": "Normal",
+    "canonical": "ditto|choicescarf|imposter|relaxed|normal|transform|0,0,0,0,0,0|31,31,31,31,31,0"
+  },
+  {
+    "set": {
+      "name": "Heatran",
+      "held_item": "Air Balloon",
+      "ability": "Flash Fire",
+      "nature": "Timid",
+      "tera_type": "Grass",
+      "moves": ["Magma Storm", "Earth Power", "Taunt", "Stealth Rock"],
+      "evs": {"SpA": 252, "SpD": 4, "Spe": 252}
+    },
+    "primary_type": "Fire",
+    "canonical": "heatran|airballoon|flashfire|timid|grass|earthpower,magmastorm,stealthrock,taunt|0,0,0,252,4,252|31,31,31,31,31,31"
+  },
+  {
+    "set": {
+      "name": "Urshifu-Rapid-Strike",
+      "held_item": "Choice Band",
+      "ability": "Unseen Fist",
+      "nature": "Jolly",
+      "moves": ["Surging Strikes", "Close Combat", "Aqua Jet", "U-turn"],
+      "evs": {"Atk": 252, "SpD": 4, "Spe": 252}
+    },
+    "primary_type": "Fighting",
+    "canonical": "urshifurapidstrike|choiceband|unseenfist|jolly|fighting|aquajet,closecombat,surgingstrikes,uturn|0,252,0,0,4,252|31,31,31,31,31,31"
+  }
+]

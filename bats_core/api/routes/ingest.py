@@ -5,14 +5,18 @@ Reemplaza al watcher de filesystem: en vez de que BATS vigile una carpeta de
 logs, el server de Pokémon Showdown envía cada batalla por HTTPS al terminar.
 
   POST /api/ingest/battle         PS → BATS  (Bearer BATS_INGEST_TOKEN)
+  POST /api/ingest/roster-validation       → veredictos del TeamValidator
   POST /api/ingest/refresh-views  PS → BATS  (Bearer BATS_INGEST_TOKEN), con debounce en PS
   GET  /api/cron/refresh-views    Vercel Cron, respaldo diario (Bearer CRON_SECRET)
 """
+import json
+
 from fastapi import APIRouter, Depends
 
 from ..auth import service_token
+from ..common import get_active_season
 from ..db import get_db
-from ..schemas import IngestBattleRequest
+from ..schemas import IngestBattleRequest, RosterValidationRequest
 from ...db.etl import load_pushed
 from ...parser import parse_battle_dict
 
@@ -44,6 +48,43 @@ def ingest_battle(body: IngestBattleRequest, _: None = Depends(require_ingest_to
     with get_db() as db:
         status = load_pushed(db, battle)
     return {"status": status, "battle_id": body.battle_id}
+
+
+@router.post("/ingest/roster-validation")
+def ingest_roster_validation(
+    body: RosterValidationRequest,
+    _: None = Depends(require_ingest_token),
+):
+    """
+    Guarda el resultado del TeamValidator de Showdown para cada roster activo.
+
+    Una lista vacía significa que el equipo es válido. Los usernames que no
+    tienen roster en la temporada activa se ignoran: el plugin puede enviar una
+    foto completa sin sincronizar altas y bajas de forma especial.
+    """
+    normalized = {
+        username.strip().lower(): list(errors)
+        for username, errors in body.results.items()
+        if username.strip()
+    }
+    updated = 0
+    with get_db() as db:
+        season = get_active_season(db)
+        for username, errors in normalized.items():
+            row = db.fetchone(
+                """
+                UPDATE tournament.roster
+                SET validation_errors = %s::jsonb,
+                    validated_at = NOW(),
+                    validated_commit = %s
+                WHERE season_id = %s AND LOWER(username) = %s
+                RETURNING roster_id
+                """,
+                (json.dumps(errors), body.ps_commit or None, season["season_id"], username),
+            )
+            if row:
+                updated += 1
+    return {"ok": True, "updated": updated}
 
 
 def _refresh_views() -> None:

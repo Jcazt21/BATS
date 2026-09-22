@@ -7,10 +7,12 @@ Endpoints (la identidad sale de la sesión; ya no viaja en la URL):
   GET    /api/teams/me/banned              → pokémon que no puedo llevar
   POST   /api/teams/me                     → registro del equipo inicial
   POST   /api/teams/me/pokemon             → agrega pokémon a mi roster
+  PATCH  /api/teams/me/pokemon/{id}        → edita un set sin consumir rotaciones
   POST   /api/teams/me/swap                → reemplaza un pokémon por otro en una sola transacción
   DELETE /api/teams/me/pokemon/{id}        → quita un pokémon de mi roster
   POST   /api/teams/me/validate            → checklist en vivo contra las reglas activas
   GET    /api/teams/me/history             → historial de rotaciones (lo escribe el ETL)
+  GET    /api/teams/rosters                → sets canónicos privados para Showdown
   GET    /api/teams/{username}             → roster ajeno: solo si el registro está cerrado o el equipo bloqueado (o eres admin)
 """
 import json
@@ -19,12 +21,14 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from ...dex import DexNotLoaded, resolve_entries
 from ...rules import check_team, normalize_restrictions, rule_checklist
-from ..auth import require_player
+from ...teamset import canonical_set, to_id, to_paste
+from ..auth import require_player, service_token
 from ..common import get_active_season as _get_active_season, iso, upsert_pokemon
 from ..db import get_db
-from ..schemas import AddPokemonRequest, PokemonEntry, RegisterRequest, SwapRequest, ValidateRequest
+from ..schemas import AddPokemonRequest, EditSetRequest, PokemonEntry, RegisterRequest, SwapRequest, ValidateRequest
 
 router = APIRouter(prefix="/api/teams", tags=["teams"])
+require_ingest_token = service_token("BATS_INGEST_TOKEN")
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -100,6 +104,49 @@ def _insert_roster_pokemon(db, roster_id: int, pokemon_id: int, entry: dict) -> 
             json.dumps(entry.get("ivs") or {}),
         ),
     )
+    _mark_validation_pending(db, roster_id)
+
+
+def _mark_validation_pending(db, roster_id: int) -> None:
+    """Un cambio de roster invalida el último veredicto recibido de Showdown."""
+    db.execute(
+        """
+        UPDATE tournament.roster
+        SET validation_errors = NULL, validated_at = NULL,
+            validated_commit = NULL, updated_at = NOW()
+        WHERE roster_id = %s
+        """,
+        (roster_id,),
+    )
+
+
+def _pool_entries(db, roster_id: int, replace: dict[int, PokemonEntry] | None = None) -> list[dict]:
+    """Carga los sets del pool y permite sustituir slots antes de validar el conjunto."""
+    rows = db.fetchall(
+        """
+        SELECT pc.pokemon_id, pc.name, rp.held_item, rp.ability, rp.nature,
+               rp.tera_type, rp.moves, rp.evs, rp.ivs
+        FROM tournament.roster_pokemon rp
+        JOIN tournament.pokemon_cache pc ON pc.pokemon_id = rp.pokemon_id
+        WHERE rp.roster_id = %s
+        ORDER BY rp.added_at, rp.roster_pokemon_id
+        """,
+        (roster_id,),
+    )
+    replacements = replace or {}
+    entries = []
+    for row in rows:
+        replacement = replacements.get(row["pokemon_id"])
+        if replacement is not None:
+            entries.append(replacement.model_dump())
+        else:
+            entries.append({
+                "name": row["name"], "held_item": row["held_item"],
+                "ability": row["ability"], "nature": row["nature"],
+                "tera_type": row["tera_type"], "moves": row["moves"] or [],
+                "evs": row["evs"] or {}, "ivs": row["ivs"] or {},
+            })
+    return entries
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -188,7 +235,8 @@ def _load_roster(username: str, viewer: dict, own: bool):
 
         row = db.fetchone(
             """
-            SELECT roster_id, changes_used, is_locked, registered_at
+            SELECT roster_id, changes_used, is_locked, registered_at,
+                   validation_errors, validated_at, validated_commit
             FROM tournament.roster
             WHERE season_id = %s AND LOWER(username) = %s
             """,
@@ -239,6 +287,13 @@ def _load_roster(username: str, viewer: dict, own: bool):
             "in_lineup":  p["pokemon_id"] in lineup_ids,
         }
 
+    validation_errors = row["validation_errors"] if isinstance(row["validation_errors"], list) else []
+    validation = {
+        "state": "pending" if row["validated_at"] is None else ("errors" if validation_errors else "ok"),
+        "errors": validation_errors,
+        "checked_at": iso(row["validated_at"]),
+    }
+
     return {
         "username":          username,
         "season_id":         season["season_id"],
@@ -250,6 +305,7 @@ def _load_roster(username: str, viewer: dict, own: bool):
         "is_locked":         row["is_locked"],
         "registered_at":     iso(row["registered_at"]),
         "lineup_set":        len(lineup_ids) > 0,
+        "validation":        validation,
         "pool": [_fmt(p) for p in pool_rows],
     }
 
@@ -257,6 +313,54 @@ def _load_roster(username: str, viewer: dict, own: bool):
 @router.get("/me")
 def get_my_roster(player: dict = Depends(require_player)):
     return _load_roster(player["username"], player, own=True)
+
+
+@router.patch("/me/pokemon/{pokemon_id}")
+def edit_set(
+    pokemon_id: int,
+    body: EditSetRequest,
+    player: dict = Depends(require_player),
+):
+    """
+    Cambia los detalles de un set sin consumir rotaciones. La especie permanece
+    congelada; para sustituirla se usa ``/me/swap``.
+    """
+    username = player["username"].lower()
+    with get_db() as db:
+        season = _get_active_season(db)
+        _ensure_open(season)
+        _check_whitelist(db, username, season["season_id"])
+        roster = db.fetchone(
+            """SELECT roster_id, is_locked FROM tournament.roster
+               WHERE season_id = %s AND LOWER(username) = %s""",
+            (season["season_id"], username),
+        )
+        if not roster:
+            raise HTTPException(status_code=404, detail="No hay equipo registrado.")
+        if roster["is_locked"]:
+            raise HTTPException(status_code=409, detail="roster_locked")
+
+        current = db.fetchone(
+            """SELECT pc.name
+               FROM tournament.roster_pokemon rp
+               JOIN tournament.pokemon_cache pc ON pc.pokemon_id = rp.pokemon_id
+               WHERE rp.roster_id = %s AND rp.pokemon_id = %s""",
+            (roster["roster_id"], pokemon_id),
+        )
+        if not current:
+            raise HTTPException(status_code=404, detail="El pokémon no está en el equipo.")
+        if to_id(body.name) != to_id(current["name"]):
+            raise HTTPException(status_code=422, detail="species_mismatch")
+
+        pool = _pool_entries(db, roster["roster_id"], replace={pokemon_id: body})
+        entries = _resolve(db, pool)
+        violations = check_team(entries, season["restrictions"])
+        if violations:
+            raise HTTPException(status_code=422, detail=violations[0]["code"])
+
+        edited = next(entry for entry in entries if to_id(entry["name"]) == to_id(current["name"]))
+        _insert_roster_pokemon(db, roster["roster_id"], pokemon_id, edited)
+    return {"ok": True, "pokemon_id": pokemon_id}
 
 
 @router.delete("/me/pokemon/{pokemon_id}")
@@ -293,6 +397,7 @@ def remove_pokemon(pokemon_id: int, player: dict = Depends(require_player)):
             "DELETE FROM tournament.roster_pokemon WHERE roster_id = %s AND pokemon_id = %s",
             (roster_id, pokemon_id),
         )
+        _mark_validation_pending(db, roster_id)
 
     return {"ok": True}
 
@@ -519,6 +624,49 @@ def my_rotation_history(player: dict = Depends(require_player)):
         if r["added"]:
             c["added"].append(r["added"])
     return {"max_rotations": season["max_team_changes"], "rotations": list(by_change.values())}
+
+
+@router.get("/rosters")
+def rosters_for_showdown(_: None = Depends(require_ingest_token)):
+    """Publica los sets de la temporada activa exclusivamente para el plugin de PS."""
+    with get_db() as db:
+        season = _get_active_season(db)
+        rows = db.fetchall(
+            """
+            SELECT LOWER(r.username) AS username, pc.name, ds.types,
+                   rp.held_item, rp.ability, rp.nature, rp.tera_type,
+                   rp.moves, rp.evs, rp.ivs
+            FROM tournament.roster r
+            JOIN tournament.roster_pokemon rp ON rp.roster_id = r.roster_id
+            JOIN tournament.pokemon_cache pc ON pc.pokemon_id = rp.pokemon_id
+            LEFT JOIN tournament.dex_species ds ON LOWER(ds.name) = LOWER(pc.name)
+            WHERE r.season_id = %s
+            ORDER BY LOWER(r.username), rp.added_at, rp.roster_pokemon_id
+            """,
+            (season["season_id"],),
+        )
+
+    rosters: dict[str, dict] = {}
+    for row in rows:
+        entry = {
+            "name": row["name"], "held_item": row["held_item"],
+            "ability": row["ability"], "nature": row["nature"],
+            "tera_type": row["tera_type"], "moves": row["moves"] or [],
+            "evs": row["evs"] or {}, "ivs": row["ivs"] or {},
+        }
+        primary_type = (row["types"] or "").split("/")[0].strip() or None
+        bucket = rosters.setdefault(row["username"], {"sets": [], "paste": []})
+        bucket["sets"].append(canonical_set(entry, primary_type))
+        bucket["paste"].append(to_paste(entry))
+
+    return {
+        "season_id": season["season_id"],
+        "enforcement": normalize_restrictions(season["restrictions"])["roster_enforcement"],
+        "rosters": {
+            username: {"sets": data["sets"], "paste": "\n\n".join(data["paste"])}
+            for username, data in rosters.items()
+        },
+    }
 
 
 @router.get("/{username}")

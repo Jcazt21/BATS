@@ -369,5 +369,119 @@ class TestIngestDB(unittest.TestCase):
         self.assertFalse([c for c in cols if "user" in c or "voter" in c], cols)
 
 
+@unittest.skipUnless(os.environ.get("BATS_TEST_DSN"), "define BATS_TEST_DSN (base DESECHABLE) para correr estos tests")
+class TestRosterValidation(unittest.TestCase):
+    """Veredictos asíncronos del TeamValidator real de Showdown."""
+
+    @classmethod
+    def setUpClass(cls):
+        from bats_core.db.connection import BATSDatabase
+
+        cls.BATSDatabase = BATSDatabase
+        cls.dsn = os.environ["BATS_TEST_DSN"]
+        db_dir = Path(__file__).parent.parent / "bats_core" / "db"
+        with BATSDatabase(cls.dsn) as db:
+            db.apply_schema(db_dir / "schema.sql")
+            db.apply_migrations(db_dir / "migrations")
+
+    def setUp(self):
+        from bats_core.api import auth
+        from bats_core.api.main import app
+        from bats_core.api.crypto import hash_username
+
+        self.auth = auth
+        self.app = app
+        self.username = "PGL_Tester"
+        self.tag = uuid.uuid4().hex[:8]
+        self.env = mock.patch.dict(os.environ, {
+            "BATS_DB_DSN": self.dsn,
+            "BATS_INGEST_TOKEN": "tok-ingest",
+        })
+        self.env.start()
+        self.addCleanup(self.env.stop)
+
+        with self.BATSDatabase(self.dsn) as db:
+            db.execute("UPDATE tournament.seasons SET is_active = FALSE")
+            self.season_id = db.fetchone(
+                """INSERT INTO tournament.seasons
+                       (season_name, type_of_month, start_date, is_active, restrictions)
+                   VALUES (%s, 'Ice', '2034-01-01', TRUE, '{}'::jsonb)
+                   RETURNING season_id""",
+                (f"Validation-{self.tag}",),
+            )["season_id"]
+            db.execute(
+                "INSERT INTO tournament.ban_whitelist (voter_hash, season_id, username) VALUES (%s, %s, %s)",
+                (hash_username(self.username), self.season_id, self.username),
+            )
+            self.roster_id = db.fetchone(
+                "INSERT INTO tournament.roster (season_id, username) VALUES (%s, %s) RETURNING roster_id",
+                (self.season_id, self.username),
+            )["roster_id"]
+
+        app.dependency_overrides[auth.require_player] = lambda: {
+            "user_id": "u", "email": "tester@example.test",
+            "username": self.username, "is_admin": False,
+        }
+        self.addCleanup(app.dependency_overrides.clear)
+        self.client = TestClient(app, raise_server_exceptions=False)
+        self.ingest_headers = _bearer("tok-ingest")
+        self.addCleanup(self._cleanup)
+
+    def _cleanup(self):
+        with self.BATSDatabase(self.dsn) as db:
+            db.execute("DELETE FROM tournament.roster WHERE season_id = %s", (self.season_id,))
+            db.execute("DELETE FROM tournament.ban_whitelist WHERE season_id = %s", (self.season_id,))
+            db.execute("DELETE FROM tournament.seasons WHERE season_id = %s", (self.season_id,))
+
+    def test_guarda_el_veredicto_del_validador(self):
+        response = self.client.post(
+            "/api/ingest/roster-validation",
+            headers=self.ingest_headers,
+            json={
+                "ps_commit": "abc1234",
+                "results": {"pgl_tester": ["Garchomp no aprende Psychic."]},
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"ok": True, "updated": 1})
+        validation = self.client.get("/api/teams/me").json()["validation"]
+        self.assertEqual(validation["state"], "errors")
+        self.assertEqual(validation["errors"], ["Garchomp no aprende Psychic."])
+        self.assertIsNotNone(validation["checked_at"])
+        with self.BATSDatabase(self.dsn) as db:
+            row = db.fetchone(
+                "SELECT validated_commit FROM tournament.roster WHERE roster_id = %s",
+                (self.roster_id,),
+            )
+        self.assertEqual(row["validated_commit"], "abc1234")
+
+    def test_lista_vacia_significa_equipo_valido(self):
+        self.client.post(
+            "/api/ingest/roster-validation",
+            headers=self.ingest_headers,
+            json={"ps_commit": "abc1234", "results": {"PGL_Tester": []}},
+        )
+        validation = self.client.get("/api/teams/me").json()["validation"]
+        self.assertEqual(validation["state"], "ok")
+        self.assertEqual(validation["errors"], [])
+
+    def test_sin_veredicto_queda_pendiente(self):
+        validation = self.client.get("/api/teams/me").json()["validation"]
+        self.assertEqual(validation, {"state": "pending", "errors": [], "checked_at": None})
+
+    def test_exige_token(self):
+        response = self.client.post("/api/ingest/roster-validation", json={"results": {}})
+        self.assertEqual(response.status_code, 401)
+
+    def test_ignora_jugadores_sin_roster(self):
+        response = self.client.post(
+            "/api/ingest/roster-validation",
+            headers=self.ingest_headers,
+            json={"results": {"nadie": ["x"]}},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"ok": True, "updated": 0})
+
+
 if __name__ == "__main__":
     unittest.main()

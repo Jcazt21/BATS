@@ -623,23 +623,44 @@ El secret del JWT se deriva de: `SHA-256(BATS_VOTER_SALT)`. Expira en 24h.
 
 ---
 
-### `/api/teams/*` — Equipos de Torneo (Público)
+### `/api/teams/*` — Equipos de Torneo (teambuilder)
 
-| Método | Ruta | Descripción |
-|---|---|---|
-| `GET` | `/api/teams/active-season` | Config pública de la temporada activa |
-| `GET` | `/api/teams/banned/{username}` | Pokémon no permitidos para el jugador |
-| `GET` | `/api/teams/{username}` | Roster completo del jugador (requiere whitelist) |
-| `POST` | `/api/teams/register` | Registra equipo inicial del jugador |
-| `DELETE` | `/api/teams/{username}/pokemon/{pokemon_id}` | Elimina un pokémon del roster |
+**⚠️ Sección reescrita** (la versión anterior describía rutas por `{username}` en la URL; la
+identidad sale siempre de la sesión, nunca de la URL ni del body — ver "Seguridad" en
+`CLAUDE.md`). Detalle completo del diseño en
+[PLAN_TEAMBUILDER.md](PLAN_TEAMBUILDER.md).
 
-**Validaciones en `/api/teams/register`:**
-- El jugador debe estar en el whitelist de la temporada activa
-- No puede incluir pokémon baneados
-- Item Clause (si está activo en `restrictions`)
-- Color requerido (si `required_color` está en `restrictions`)
-- Generación requerida
-- Egg group requerido
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| `GET` | `/api/teams/active-season` | — | Config pública de la temporada activa |
+| `GET` | `/api/teams/me` | jugador | Mi roster: pool, rotaciones, y `validation` (veredicto del `TeamValidator` real de Showdown) |
+| `POST` | `/api/teams/me` | jugador | Registra el equipo inicial (sets completos: objeto, habilidad, naturaleza, tera, movimientos, EVs, IVs) |
+| `POST` | `/api/teams/me/validate` | jugador | Checklist en vivo contra las reglas de la temporada (lo pinta el teambuilder) |
+| `PATCH` | `/api/teams/me/pokemon/{id}` | jugador | Edita el set de un pokémon ya registrado, **sin** consumir cambios. No permite cambiar de especie (usa `/me/swap`) |
+| `POST` | `/api/teams/me/pokemon` | jugador | Agrega pokémon al pool (mientras haya espacio) |
+| `DELETE` | `/api/teams/me/pokemon/{id}` | jugador | Quita un pokémon del pool |
+| `POST` | `/api/teams/me/swap` | jugador | Reemplaza un pokémon por otro; atómico (todo o nada) |
+| `GET` | `/api/teams/me/banned` | jugador | Pokémon baneados que afectan a mi equipo |
+| `GET` | `/api/teams/me/history` | jugador | Historial de rotaciones (lo escribe el ETL al detectar cambios de lineup) |
+| `GET` | `/api/teams/rosters` | token de ingesta | Sets canónicos + paste por jugador, para que `config/formats.ts` exija el equipo registrado en batalla (`roster_enforcement`) |
+
+**Los metadatos de cada especie (color/generación/egg groups/tags/BST) NO salen del body del
+cliente**: la API los resuelve contra `tournament.dex_species` (`bats_core/dex.py`), un espejo
+del dex de Showdown exportado por `bats/tools/export_dex.js`. Lo que declare el cliente para
+esos campos se ignora.
+
+### `/api/dex/*` y `/api/ingest/roster-validation`
+
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| `GET` | `/api/dex/meta` | — | Metadatos del snapshot del dex importado en la base (`ps_commit`, fecha, nº de especies) |
+| `POST` | `/api/ingest/roster-validation` | token de ingesta | Guarda el veredicto del `TeamValidator` real de Showdown para cada roster (lo llama el plugin `bats-ingest` tras sincronizar `/api/teams/rosters`) |
+
+### `/api/admin/rosters`
+
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| `GET` | `/api/admin/rosters` | admin | Equipos de la temporada activa: nº de pokémon, cambios usados, si fijó lineup y el veredicto de Showdown |
 
 ---
 

@@ -1555,7 +1555,7 @@ resuelven en memoria: **borrar ese hook**.
 - La página de reglas avisa si `tournament.dex_meta.ps_commit` no coincide con el `meta.json`
   estático: "el dex de la base y el del navegador no son el mismo; vuelve a importar".
 
-- [ ] **Pasos:** test del endpoint en `tests/test_features.py` → FAIL → implementar → PASS → commit.
+- [x] **Pasos:** test del endpoint en `tests/test_features.py` → FAIL → implementar → PASS → commit.
 
 ---
 
@@ -1566,14 +1566,14 @@ resuelven en memoria: **borrar ese hook**.
   `bats/MIGRACION_VERCEL_SUPABASE.md`, `bats/BATS_API.postman_collection.json`,
   `bats/bats_core/paths.py` (`BATS_ACTIVE_ROSTERS_FILE`)
 
-- [ ] **Paso 1:** en `CLAUDE.md`, actualizar: el diagrama de arquitectura (tercer archivo
+- [x] **Paso 1:** en `CLAUDE.md`, actualizar: el diagrama de arquitectura (tercer archivo
   sincronizado, `active_rosters.json`), la lista de puntos de contacto por filesystem, el apartado de
   parches a PS (ahora son **tres**: `sockets.ts`, `onBattleLogged` y `validatingUser`), los comandos
   (`node tools/export_dex.js`, `python -m bats_core dex --import`) y la sección de reglas del dominio
   (el dex es la fuente de verdad; PokéAPI ya no se usa en el teambuilder).
-- [ ] **Paso 2:** endpoints nuevos en la colección de Postman.
-- [ ] **Paso 3:** verificación completa (abajo).
-- [ ] **Paso 4:** commit.
+- [x] **Paso 2:** endpoints nuevos en la colección de Postman.
+- [x] **Paso 3:** verificación completa (abajo).
+- [x] **Paso 4:** commit.
 
 ---
 

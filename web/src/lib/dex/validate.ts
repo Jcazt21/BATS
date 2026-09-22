@@ -232,8 +232,20 @@ export function checkTeam(
 // ── Validación de un set individual ────────────────────────────────────────────
 
 const STATS = ["hp", "atk", "def", "spa", "spd", "spe"];
+const STAT_LABELS: Record<string, string> = { hp: "HP", atk: "Atk", def: "Def", spa: "SpA", spd: "SpD", spe: "Spe" };
 const MAX_EVS_TOTAL = 510;
 const MAX_EV_PER_STAT = 252;
+
+/**
+ * "SpA"/"spa"/"Sp. Atk" -> { spa: n }. Los sets de Showdown (lib/showdown.ts::parseSpread)
+ * conservan la mayúscula tal cual la escribió el jugador ("252 SpA"); se normaliza con
+ * `toId` igual que bats_core/teamset.py::_spread, para no depender de cómo vino la clave.
+ */
+function normalizeSpread(raw: Record<string, number>): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const [k, v] of Object.entries(raw)) out[toId(k)] = v;
+  return out;
+}
 
 function speciesAbilities(sp: Species): Set<string> {
   return new Set(sp.abilities.map(toId));
@@ -270,17 +282,20 @@ export function checkSet(dex: Dex, learnset: string[], mon: BuilderMon): string[
     errors.push(`"${mon.held_item}" no es un objeto válido.`);
   }
 
+  const evs = normalizeSpread(mon.evs);
+  const ivs = normalizeSpread(mon.ivs);
+
   let evTotal = 0;
   for (const stat of STATS) {
-    const ev = mon.evs[stat] ?? mon.evs[stat.toUpperCase()] ?? 0;
-    if (ev < 0 || ev > MAX_EV_PER_STAT) errors.push(`Los EVs de ${stat.toUpperCase()} deben estar entre 0 y ${MAX_EV_PER_STAT}.`);
+    const ev = evs[stat] ?? 0;
+    if (ev < 0 || ev > MAX_EV_PER_STAT) errors.push(`Los EVs de ${STAT_LABELS[stat]} deben estar entre 0 y ${MAX_EV_PER_STAT}.`);
     evTotal += Math.max(0, Math.min(ev, MAX_EV_PER_STAT));
   }
   if (evTotal > MAX_EVS_TOTAL) errors.push(`El total de EVs no puede pasar de ${MAX_EVS_TOTAL} (tiene ${evTotal}).`);
 
   for (const stat of STATS) {
-    const iv = mon.ivs[stat] ?? mon.ivs[stat.toUpperCase()];
-    if (iv != null && (iv < 0 || iv > 31)) errors.push(`Los IVs de ${stat.toUpperCase()} deben estar entre 0 y 31.`);
+    const iv = ivs[stat];
+    if (iv != null && (iv < 0 || iv > 31)) errors.push(`Los IVs de ${STAT_LABELS[stat]} deben estar entre 0 y 31.`);
   }
 
   return errors;

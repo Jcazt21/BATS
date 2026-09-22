@@ -182,6 +182,13 @@ describe("checkSet", () => {
     expect(checkSet(DEX, learnset, mon("garchomp", { evs: { hp: 252, atk: 252, def: 252 } })).length).toBeGreaterThan(0);
   });
 
+  it("lee EVs/IVs con las mayúsculas de un paste de Showdown (SpA, no spa)", () => {
+    // parseSpread (lib/showdown.ts) conserva la mayúscula tal cual la escribió el jugador.
+    expect(checkSet(DEX, learnset, mon("garchomp", { evs: { SpA: 252, Atk: 4, SpD: 252 } }))).toEqual([]);
+    expect(checkSet(DEX, learnset, mon("garchomp", { evs: { SpA: 300 } })).length).toBeGreaterThan(0);
+    expect(checkSet(DEX, learnset, mon("garchomp", { ivs: { Spe: 32 } })).length).toBeGreaterThan(0);
+  });
+
   it("IVs fuera de 0-31", () => {
     expect(checkSet(DEX, learnset, mon("garchomp", { ivs: { spe: 32 } })).length).toBeGreaterThan(0);
   });

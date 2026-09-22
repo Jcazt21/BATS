@@ -38,6 +38,19 @@ describe("parseBlock", () => {
   it("devuelve null con texto vacío", () => {
     expect(parseBlock("  \n ")).toBeNull();
   });
+
+  it("lee género, nivel, shiny y felicidad", () => {
+    const m = parseBlock("Garchomp (F) @ Leftovers\nLevel: 50\nShiny: Yes\nHappiness: 0");
+    expect(m?.gender).toBe("F");
+    expect(m?.level).toBe(50);
+    expect(m?.shiny).toBe(true);
+    expect(m?.happiness).toBe(0);
+  });
+
+  it("shiny ausente o 'No' es false/undefined", () => {
+    expect(parseBlock("Garchomp\nShiny: No")?.shiny).toBe(false);
+    expect(parseBlock("Garchomp")?.shiny).toBeUndefined();
+  });
 });
 
 describe("parsePaste", () => {
@@ -56,6 +69,14 @@ describe("toPaste", () => {
     const m = parseBlock(GARCHOMP)!;
     const again = parseBlock(toPaste({ name: m.species, ...m }));
     expect(again).toEqual(m);
+  });
+
+  it("escribe género, nivel, shiny y felicidad", () => {
+    const paste = toPaste({ name: "Garchomp", gender: "F", level: 50, shiny: true, happiness: 0, moves: [] });
+    expect(paste).toContain("Garchomp (F)");
+    expect(paste).toContain("Level: 50");
+    expect(paste).toContain("Shiny: Yes");
+    expect(paste).toContain("Happiness: 0");
   });
 });
 

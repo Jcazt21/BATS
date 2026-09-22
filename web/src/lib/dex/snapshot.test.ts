@@ -1,0 +1,134 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { __resetDexForTests, loadDex, searchSpecies, speciesById, toId } from "./snapshot";
+import { __resetLearnsetsForTests, loadLearnset } from "./learnsets";
+
+const META = {
+  generated_at: "2026-09-21T00:00:00.000Z",
+  ps_commit: "abc1234",
+  counts: { species: 2, moves: 1 },
+  formats: { league: "gen9pinchesgueysleague", sparring: "gen9pglsparring" },
+};
+
+const SPECIES = {
+  garchomp: {
+    id: "garchomp", name: "Garchomp", num: 445, types: ["Dragon", "Ground"], bst: 600,
+    baseStats: { hp: 108, atk: 130, def: 95, spa: 80, spd: 85, spe: 102 }, color: "Blue",
+    eggGroups: ["Monster", "Dragon"], gen: 4, tags: [], abilities: ["Sand Veil", "Rough Skin"],
+    spriteid: "garchomp", baseSpecies: "Garchomp", forme: null, prevo: "Gabite", isNonstandard: null,
+    restricted: false, paradox: false, ultraBeast: false, pseudo: true, leagueLegal: true,
+  },
+  urshifurapidstrike: {
+    id: "urshifurapidstrike", name: "Urshifu-Rapid-Strike", num: 892, types: ["Fighting", "Water"],
+    bst: 550, baseStats: { hp: 100, atk: 130, def: 100, spa: 63, spd: 60, spe: 97 }, color: "Gray",
+    eggGroups: ["Undiscovered"], gen: 8, tags: ["Sub-Legendary"], abilities: ["Unseen Fist"],
+    spriteid: "urshifu-rapidstrike", baseSpecies: "Urshifu", forme: "Rapid-Strike", prevo: "Kubfu",
+    isNonstandard: null, restricted: true, paradox: false, ultraBeast: false, pseudo: false,
+    leagueLegal: true,
+  },
+};
+
+const MOVES = {
+  earthquake: {
+    id: "earthquake", name: "Earthquake", type: "Ground", category: "Physical", basePower: 100,
+    accuracy: 100, pp: 10, priority: 0, shortDesc: "Hits adjacent Pokemon.",
+  },
+};
+
+const FILES: Record<string, unknown> = {
+  "/dex/meta.json": META,
+  [`/dex/species.json?v=${encodeURIComponent(META.generated_at)}`]: SPECIES,
+  [`/dex/moves.json?v=${encodeURIComponent(META.generated_at)}`]: MOVES,
+  [`/dex/items.json?v=${encodeURIComponent(META.generated_at)}`]: {},
+  [`/dex/abilities.json?v=${encodeURIComponent(META.generated_at)}`]: {},
+  [`/dex/natures.json?v=${encodeURIComponent(META.generated_at)}`]: { impish: { name: "Impish", plus: "def", minus: "spa" } },
+  "/dex/learnsets/g.json": { garchomp: ["earthquake", "dragontail"] },
+  "/dex/learnsets/u.json": { urshifurapidstrike: ["closecombat", "surgingstrikes"] },
+};
+
+function installFetchMock() {
+  let calls = 0;
+  const seen: string[] = [];
+  const fetchMock = vi.fn((url: string) => {
+    calls++;
+    seen.push(url);
+    if (!(url in FILES)) return Promise.resolve({ ok: false, status: 404 } as Response);
+    return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(FILES[url]) } as Response);
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  return { fetchMock, calls: () => calls, seen };
+}
+
+describe("loadDex", () => {
+  beforeEach(() => {
+    __resetDexForTests();
+    __resetLearnsetsForTests();
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("carga meta y los cinco archivos del snapshot", async () => {
+    installFetchMock();
+    const dex = await loadDex();
+    expect(dex.meta.ps_commit).toBe("abc1234");
+    expect(dex.species.garchomp.name).toBe("Garchomp");
+    expect(dex.moves.earthquake.basePower).toBe(100);
+    expect(dex.natures.impish.plus).toBe("def");
+  });
+
+  it("un solo fetch por archivo aunque loadDex() se llame dos veces", async () => {
+    const { fetchMock } = installFetchMock();
+    await loadDex();
+    await loadDex();
+    // meta + species + moves + items + abilities + natures = 6 archivos, una vez cada uno.
+    expect(fetchMock).toHaveBeenCalledTimes(6);
+  });
+
+  it("especie inexistente por nombre o id devuelve null", async () => {
+    installFetchMock();
+    const dex = await loadDex();
+    expect(speciesById(dex, "Missingno")).toBeNull();
+  });
+
+  it("resuelve por nombre, id y forma", async () => {
+    installFetchMock();
+    const dex = await loadDex();
+    expect(speciesById(dex, "garchomp")?.name).toBe("Garchomp");
+    expect(speciesById(dex, "Garchomp")?.id).toBe("garchomp");
+    expect(speciesById(dex, "Urshifu-Rapid-Strike")?.baseSpecies).toBe("Urshifu");
+  });
+});
+
+describe("searchSpecies", () => {
+  it("busca por nombre y combina filtros", async () => {
+    installFetchMock();
+    const dex = await loadDex();
+    expect(searchSpecies(dex, "gar").map((s) => s.id)).toEqual(["garchomp"]);
+    expect(searchSpecies(dex, "", { type: "Water" }).map((s) => s.id)).toEqual(["urshifurapidstrike"]);
+    expect(searchSpecies(dex, "", { type: "Water", gen: 4 })).toEqual([]);
+    expect(searchSpecies(dex, "", { onlyLegal: true }).length).toBe(2);
+  });
+});
+
+describe("toId", () => {
+  it.each([
+    ["Mr. Mime", "mrmime"], ["Urshifu-Rapid-Strike", "urshifurapidstrike"], [undefined, ""],
+  ])("%s -> %s", (input, expected) => expect(toId(input as string)).toBe(expected));
+});
+
+describe("loadLearnset", () => {
+  beforeEach(() => __resetLearnsetsForTests());
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("carga el bucket de la especie y cachea por bucket", async () => {
+    const { fetchMock } = installFetchMock();
+    expect(await loadLearnset("Garchomp")).toEqual(["earthquake", "dragontail"]);
+    await loadLearnset("garchomp");
+    expect(fetchMock).toHaveBeenCalledTimes(1); // mismo bucket, un solo fetch
+    expect(await loadLearnset("Urshifu-Rapid-Strike")).toEqual(["closecombat", "surgingstrikes"]);
+    expect(fetchMock).toHaveBeenCalledTimes(2); // bucket distinto
+  });
+
+  it("especie sin entrada en su bucket devuelve []", async () => {
+    installFetchMock();
+    expect(await loadLearnset("Gabite")).toEqual([]); // bucket "g" existe, pero sin "gabite"
+  });
+});

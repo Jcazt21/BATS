@@ -113,6 +113,29 @@ class AddAccountRequest(BaseModel):
     email:    str
     username: str
     is_admin: bool = False
+    # Enlaza la cuenta a un login ya existente en Supabase Auth (auth.users.id) al
+    # crearla, en vez de esperar a que se enlace sola en el primer login.
+    user_id:  Optional[str] = None
+
+
+class UpdatePlayerAccountRequest(BaseModel):
+    """
+    PATCH /api/admin/players/{id} — todos los campos son opcionales.
+
+    Cambiar `email` desenlaza la cuenta (user_id -> NULL) salvo que se mande
+    `link_user_id` en la misma petición: la identidad de sesión sale del email
+    (bats_core/api/auth.py::require_player), así que un user_id viejo con un
+    email nuevo dejaría al jugador fuera con 403.
+
+    Cambiar `username` hace cascada sobre tournament.roster/bans/ban_whitelist/
+    ban_participation en la misma transacción (ver admin.py::_rename_username_cascade).
+    NO toca battle.* (hechos históricos con el nick que se usó en Showdown).
+    """
+    email:          Optional[str]  = None
+    username:       Optional[str]  = None
+    is_admin:       Optional[bool] = None
+    link_user_id:   Optional[str]  = None   # uuid de auth.users: enlaza esta cuenta a ese login
+    clear_user_id:  bool           = False  # desenlaza (user_id -> NULL)
 
 
 class AddPlayerRequest(BaseModel):

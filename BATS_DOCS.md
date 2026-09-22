@@ -589,9 +589,17 @@ El secret del JWT se deriva de: `SHA-256(BATS_VOTER_SALT)`. Expira en 24h.
 
 ### `/api/admin/*` — Panel de Administración (JWT requerido)
 
+**⚠️ `POST /api/admin/login` ya no existe** (Fase 4: magic link de Supabase Auth,
+ver "Seguridad" en `CLAUDE.md`). La sesión sale del Bearer JWT de Supabase; la
+API resuelve identidad y rol en `tournament.player_accounts`.
+
 | Método | Ruta | Descripción |
 |---|---|---|
-| `POST` | `/api/admin/login` | Login → JWT |
+| `GET` | `/api/admin/players` | Cuentas de jugador: email, username, rol, `user_id` e `is_linked` (si ya se enlazó a un login de Supabase) |
+| `POST` | `/api/admin/players` | Da de alta una cuenta; acepta `user_id` opcional para crearla ya enlazada a un login |
+| `PATCH` | `/api/admin/players/{id}` | Edita email/username/rol. Cambiar `username` mueve en cascada su roster/bans/whitelist de cada temporada donde tenga datos (nunca toca `battle.*`). Cambiar `email` desenlaza el login salvo que se mande `link_user_id` a la vez. `clear_user_id: true` desenlaza |
+| `DELETE` | `/api/admin/players/{id}` | Elimina una cuenta (no la propia, no el último admin) |
+| `GET` | `/api/admin/auth-logins` | Logins de Supabase Auth y si ya tienen cuenta (`available: false` en Postgres local, donde ese esquema no existe) |
 | `GET` | `/api/admin/whitelist` | Lista whitelist de la temporada activa |
 | `POST` | `/api/admin/whitelist/add` | Agrega jugador al whitelist |
 | `DELETE` | `/api/admin/whitelist/{hash}` | Elimina jugador (solo si no ha votado) |
@@ -599,6 +607,7 @@ El secret del JWT se deriva de: `SHA-256(BATS_VOTER_SALT)`. Expira en 24h.
 | `GET` | `/api/admin/battles` | Lista todas las batallas humanas |
 | `DELETE` | `/api/admin/battles/{id}` | Elimina una batalla y refresca vistas |
 | `POST` | `/api/admin/reset-battles` | Elimina toda la data de batallas |
+| `GET` | `/api/admin/rosters` | Equipos de la temporada activa: nº de pokémon, cambios usados, lineup fijado y veredicto de Showdown |
 
 ---
 

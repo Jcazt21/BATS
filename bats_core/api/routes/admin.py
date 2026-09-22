@@ -3,8 +3,10 @@ BATS — Rutas del panel de administración.
 
 Endpoints:
   GET    /api/admin/players            → cuentas de jugador (email → username)
-  POST   /api/admin/players            → da de alta una cuenta
-  DELETE /api/admin/players/{id}       → elimina una cuenta (no la propia)
+  POST   /api/admin/players            → da de alta una cuenta (opcionalmente ya enlazada)
+  PATCH  /api/admin/players/{id}       → edita email/username/rol; enlaza o desenlaza el login
+  DELETE /api/admin/players/{id}       → elimina una cuenta (no la propia, no el último admin)
+  GET    /api/admin/auth-logins        → logins de Supabase Auth y si tienen cuenta en la liga
   GET    /api/admin/whitelist          → lista jugadores de la temporada activa
   POST   /api/admin/whitelist/add      → agrega jugador al whitelist de la temporada activa
   DELETE /api/admin/whitelist/{hash}   → elimina jugador del whitelist (solo si no ha votado)
@@ -14,18 +16,95 @@ Endpoints:
   POST   /api/admin/reset-battles      → borra toda la data de batallas
   GET    /api/admin/rosters            → equipos registrados en la temporada activa
 """
+import uuid
+
+import psycopg2
 from fastapi import APIRouter, Depends, HTTPException
 
 from ..auth import require_admin
 from ..common import get_active_season_id, iso
 from ..crypto import hash_username
 from ..db import get_db
-from ..schemas import AddAccountRequest, AddPlayerRequest
+from ..schemas import AddAccountRequest, AddPlayerRequest, UpdatePlayerAccountRequest
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _rename_username_cascade(db, old: str, new: str) -> dict:
+    """
+    Todo lo que cuelga de `username` en tournament.* sigue al nombre nuevo, en la
+    MISMA transacción que ya abrió el llamador. NO toca battle.* (son hechos
+    históricos con el nick que se usó en Showdown en su momento).
+
+    tournament.ban_participation referencia a ban_whitelist por
+    (voter_hash, season_id) con ON DELETE CASCADE pero SIN ON UPDATE CASCADE: no
+    se puede hacer un UPDATE directo del voter_hash de ban_whitelist si hay una
+    fila de participación colgando (violaría la FK). Se resuelve insertando la
+    fila del hash nuevo, migrando la participación, y borrando la fila vieja.
+
+    Los votos siguen siendo anónimos: nunca se guarda el username junto al voto,
+    solo se recalcula el hash (ban_votes no se toca).
+    """
+    old_l, new_l = old.strip().lower(), new.strip().lower()
+
+    # Pre-checks: si el nombre nuevo ya tiene datos en una temporada donde el
+    # viejo también los tiene, abortar ANTES de escribir nada.
+    if db.fetchone(
+        """
+        SELECT 1 FROM tournament.roster r1 JOIN tournament.roster r2 ON r2.season_id = r1.season_id
+        WHERE LOWER(r1.username) = %s AND LOWER(r2.username) = %s
+        """,
+        (old_l, new_l),
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail=f'Ya hay un equipo registrado como "{new}" en una temporada donde "{old}" también tiene equipo.',
+        )
+    if db.fetchone(
+        """
+        SELECT 1 FROM tournament.bans b1 JOIN tournament.bans b2 ON b2.season_id = b1.season_id
+        WHERE LOWER(b1.player_username) = %s AND LOWER(b2.player_username) = %s
+        """,
+        (old_l, new_l),
+    ):
+        raise HTTPException(
+            status_code=409,
+            detail=f'Ya hay un ban registrado a nombre de "{new}" en una temporada donde "{old}" también tiene uno.',
+        )
+
+    roster_n = len(db.fetchall(
+        "UPDATE tournament.roster SET username = %s WHERE LOWER(username) = %s RETURNING 1", (new_l, old_l)))
+    bans_n = len(db.fetchall(
+        "UPDATE tournament.bans SET player_username = %s WHERE LOWER(player_username) = %s RETURNING 1",
+        (new_l, old_l)))
+
+    old_hash, new_hash = hash_username(old), hash_username(new)
+    whitelist_n = len(db.fetchall(
+        """
+        INSERT INTO tournament.ban_whitelist (voter_hash, season_id, username, added_at)
+        SELECT %s, season_id, %s, added_at FROM tournament.ban_whitelist WHERE voter_hash = %s
+        ON CONFLICT DO NOTHING RETURNING 1
+        """,
+        (new_hash, new_l, old_hash),
+    ))
+    participation_n = len(db.fetchall(
+        """
+        UPDATE tournament.ban_participation p1 SET voter_hash = %s
+        WHERE voter_hash = %s
+          AND NOT EXISTS (
+              SELECT 1 FROM tournament.ban_participation p2
+              WHERE p2.voter_hash = %s AND p2.season_id = p1.season_id
+          )
+        RETURNING 1
+        """,
+        (new_hash, old_hash, new_hash),
+    ))
+    db.execute("DELETE FROM tournament.ban_whitelist WHERE voter_hash = %s", (old_hash,))
+
+    return {"roster": roster_n, "bans": bans_n, "whitelist": whitelist_n, "participation": participation_n}
+
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
@@ -34,8 +113,8 @@ def list_players(_: dict = Depends(require_admin)):
     with get_db() as db:
         rows = db.fetchall(
             """
-            SELECT account_id, email, username, is_admin,
-                   user_id IS NOT NULL AS has_logged_in, created_at
+            SELECT account_id, email, username, is_admin, user_id::text AS user_id,
+                   user_id IS NOT NULL AS is_linked, created_at
             FROM tournament.player_accounts
             ORDER BY LOWER(username)
             """
@@ -59,29 +138,177 @@ def add_player_account(body: AddAccountRequest, _: dict = Depends(require_admin)
         )
         if dup:
             raise HTTPException(status_code=409, detail="Ya existe una cuenta con ese email o username.")
+        try:
+            row = db.fetchone(
+                """
+                INSERT INTO tournament.player_accounts (email, username, is_admin, user_id)
+                VALUES (%s, %s, %s, %s) RETURNING account_id
+                """,
+                (email, username, body.is_admin, body.user_id),
+            )
+        except psycopg2.IntegrityError:
+            # Carrera con el pre-check, o user_id (UNIQUE) ya enlazado a otra cuenta.
+            raise HTTPException(status_code=409, detail="Ya existe una cuenta con ese email, username o login.")
+    return {
+        "account_id": row["account_id"], "email": email, "username": username,
+        "is_admin": body.is_admin, "user_id": body.user_id,
+    }
+
+
+@router.patch("/players/{account_id}")
+def update_player_account(account_id: int, body: UpdatePlayerAccountRequest, me: dict = Depends(require_admin)):
+    if body.link_user_id and body.clear_user_id:
+        raise HTTPException(status_code=422, detail="No puedes enlazar y desenlazar a la vez.")
+    if body.link_user_id:
+        try:
+            uuid.UUID(body.link_user_id)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="El identificador del login no es válido.")
+    if body.email is None and body.username is None and body.is_admin is None \
+            and not body.link_user_id and not body.clear_user_id:
+        raise HTTPException(status_code=422, detail="Sin campos para actualizar.")
+
+    with get_db() as db:
         row = db.fetchone(
             """
-            INSERT INTO tournament.player_accounts (email, username, is_admin)
-            VALUES (%s, %s, %s) RETURNING account_id
+            SELECT account_id, email, username, is_admin, user_id::text AS user_id
+            FROM tournament.player_accounts WHERE account_id = %s
             """,
-            (email, username, body.is_admin),
+            (account_id,),
         )
-    return {"account_id": row["account_id"], "email": email, "username": username, "is_admin": body.is_admin}
+        if row is None:
+            raise HTTPException(status_code=404, detail="Cuenta no encontrada.")
+
+        new_email, new_username, new_is_admin = row["email"], row["username"], row["is_admin"]
+        email_changed = False
+
+        if body.email is not None:
+            email = body.email.strip().lower()
+            if "@" not in email:
+                raise HTTPException(status_code=422, detail="Email y username son obligatorios.")
+            if email != row["email"].lower():
+                if db.fetchone(
+                    "SELECT 1 FROM tournament.player_accounts WHERE LOWER(email) = %s AND account_id != %s",
+                    (email, account_id),
+                ):
+                    raise HTTPException(status_code=409, detail="Ya existe una cuenta con ese correo.")
+                new_email = email
+                email_changed = True
+
+        if body.username is not None:
+            username = body.username.strip()
+            if not username:
+                raise HTTPException(status_code=422, detail="Email y username son obligatorios.")
+            if username.lower() != row["username"].lower():
+                if db.fetchone(
+                    "SELECT 1 FROM tournament.player_accounts WHERE LOWER(username) = %s AND account_id != %s",
+                    (username.lower(), account_id),
+                ):
+                    raise HTTPException(status_code=409, detail="Ya existe una cuenta con ese usuario de Showdown.")
+                new_username = username
+
+        if body.is_admin is not None:
+            new_is_admin = body.is_admin
+        if row["is_admin"] and not new_is_admin:
+            if row["email"].lower() == me["email"].lower():
+                raise HTTPException(status_code=409, detail="No puedes quitarte a ti mismo el rol de administrador.")
+            others = db.fetchone(
+                "SELECT COUNT(*) AS n FROM tournament.player_accounts WHERE is_admin AND account_id != %s",
+                (account_id,),
+            )["n"]
+            if others == 0:
+                raise HTTPException(status_code=409, detail="Debe quedar al menos un administrador.")
+
+        # Resolución del enlace: enlazar > desenlazar > (email cambió sin enlazar -> desenlaza).
+        # La identidad de sesión sale del email (auth.py::require_player), así que un
+        # user_id viejo con un email nuevo dejaría al jugador fuera con 403.
+        if body.link_user_id:
+            dup = db.fetchone(
+                "SELECT username FROM tournament.player_accounts WHERE user_id = %s AND account_id != %s",
+                (body.link_user_id, account_id),
+            )
+            if dup:
+                raise HTTPException(
+                    status_code=409, detail=f'Ese login ya está enlazado a la cuenta de "{dup["username"]}".')
+            new_user_id = body.link_user_id
+        elif body.clear_user_id:
+            new_user_id = None
+        elif email_changed:
+            new_user_id = None
+        else:
+            new_user_id = row["user_id"]
+
+        cascade = {"roster": 0, "bans": 0, "whitelist": 0, "participation": 0}
+        if new_username.lower() != row["username"].lower():
+            cascade = _rename_username_cascade(db, row["username"], new_username)
+
+        db.execute(
+            "UPDATE tournament.player_accounts SET email = %s, username = %s, is_admin = %s, user_id = %s "
+            "WHERE account_id = %s",
+            (new_email, new_username, new_is_admin, new_user_id, account_id),
+        )
+
+    return {
+        "account_id": account_id, "email": new_email, "username": new_username, "is_admin": new_is_admin,
+        "user_id": new_user_id, "cascade": cascade,
+        "user_id_cleared": row["user_id"] is not None and new_user_id is None,
+    }
 
 
 @router.delete("/players/{account_id}")
 def delete_player_account(account_id: int, me: dict = Depends(require_admin)):
     with get_db() as db:
         row = db.fetchone(
-            "SELECT LOWER(email) AS email FROM tournament.player_accounts WHERE account_id = %s",
+            "SELECT LOWER(email) AS email, is_admin FROM tournament.player_accounts WHERE account_id = %s",
             (account_id,),
         )
         if row is None:
             raise HTTPException(status_code=404, detail="Cuenta no encontrada.")
         if row["email"] == me["email"].lower():
             raise HTTPException(status_code=409, detail="No puedes eliminar tu propia cuenta.")
+        if row["is_admin"]:
+            others = db.fetchone(
+                "SELECT COUNT(*) AS n FROM tournament.player_accounts WHERE is_admin AND account_id != %s",
+                (account_id,),
+            )["n"]
+            if others == 0:
+                raise HTTPException(status_code=409, detail="No puedes eliminar al último administrador.")
         db.execute("DELETE FROM tournament.player_accounts WHERE account_id = %s", (account_id,))
     return {"ok": True}
+
+
+@router.get("/auth-logins", dependencies=[Depends(require_admin)])
+def list_auth_logins():
+    """
+    Logins de Supabase Auth (auth.users) y si ya tienen cuenta en la liga.
+    En Postgres local ese esquema no existe: responde `available: false` en vez
+    de fallar, para no romper la página de admin en desarrollo.
+    """
+    with get_db() as db:
+        exists = db.fetchone("SELECT to_regclass('auth.users') IS NOT NULL AS ok")["ok"]
+        if not exists:
+            return {"available": False, "logins": []}
+        rows = db.fetchall(
+            """
+            SELECT u.id::text AS user_id, u.email,
+                   u.raw_app_meta_data->>'provider'   AS provider,
+                   u.raw_user_meta_data->>'full_name'  AS full_name,
+                   u.created_at, u.last_sign_in_at,
+                   pa.account_id AS linked_account_id, pa.username AS linked_username
+            FROM auth.users u
+            LEFT JOIN tournament.player_accounts pa ON pa.user_id = u.id
+            WHERE u.deleted_at IS NULL AND NOT u.is_anonymous
+            ORDER BY u.last_sign_in_at DESC NULLS LAST
+            LIMIT 200
+            """
+        )
+    return {
+        "available": True,
+        "logins": [
+            {**r, "created_at": iso(r["created_at"]), "last_sign_in_at": iso(r["last_sign_in_at"])}
+            for r in rows
+        ],
+    }
 
 
 @router.get("/whitelist", dependencies=[Depends(require_admin)])

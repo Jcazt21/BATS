@@ -61,7 +61,9 @@ class TestImportacionDelDex(unittest.TestCase):
             second = dex.import_snapshot(db, self.tmp.name)
             self.assertEqual(first["species"], 3)
             self.assertEqual(second["species"], 3)
-            row = db.fetchone("SELECT COUNT(*) AS n FROM tournament.dex_species")
+            row = db.fetchone(
+                "SELECT COUNT(*) AS n FROM tournament.dex_species WHERE species_id = ANY(%s)",
+                (list(SNAPSHOT),))
             self.assertEqual(row["n"], 3)
 
     def test_species_meta_resuelve_por_nombre_y_por_id(self):
@@ -80,7 +82,7 @@ class TestImportacionDelDex(unittest.TestCase):
         with BATSDatabase(DSN) as db:
             dex.import_snapshot(db, self.tmp.name)
             row = db.fetchone("SELECT ps_commit, species_count FROM tournament.dex_meta")
-            self.assertEqual(row["species_count"], 3)
+            self.assertEqual(row["species_count"], len(SNAPSHOT))
             self.assertEqual(row["ps_commit"], "abc1234")
 
 

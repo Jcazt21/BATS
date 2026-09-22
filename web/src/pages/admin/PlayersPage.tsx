@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link2Off, MoreHorizontal, Pencil, Trash2, UserPlus } from "lucide-react";
+import { Link, Link2Off, MoreHorizontal, Pencil, Trash2, UserPlus } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Group, GroupRow } from "@/components/app/Group";
 import { PlayerAvatar } from "@/components/app/PlayerAvatar";
@@ -80,7 +80,13 @@ export function PlayersPage() {
               <GroupRow key={a.account_id} leading={<PlayerAvatar name={a.username} />} title={a.username} subtitle={a.email}
                 trailing={<span className="flex items-center gap-2">
                   {a.is_admin && <Badge>Admin</Badge>}
-                  <Badge variant={a.is_linked ? "success" : "secondary"}>{a.is_linked ? "Enlazada" : "Sin enlazar"}</Badge>
+                  {a.is_linked ? (
+                    <Badge variant="success" title="Cuenta enlazada" aria-label="Cuenta enlazada" className="px-1.5">
+                      <Link className="size-3" aria-hidden />
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary">Sin enlazar</Badge>
+                  )}
                   <DropdownMenu>
                     <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={`Acciones de ${a.username}`} />}>
                       <MoreHorizontal />

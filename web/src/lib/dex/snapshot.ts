@@ -53,30 +53,30 @@ export interface Item {
   desc: string;
 }
 
-export interface Ability {
-  id: string;
-  name: string;
-  desc: string;
-}
-
 export interface Nature {
   name: string;
   plus: string | null;
   minus: string | null;
 }
 
-export interface Dex {
+export interface DexEssentials {
   meta: DexMeta;
   species: Record<string, Species>;
-  moves: Record<string, Move>;
   items: Record<string, Item>;
-  abilities: Record<string, Ability>;
+}
+
+export interface DexDetails {
+  moves: Record<string, Move>;
   natures: Record<string, Nature>;
 }
 
+export type Dex = DexEssentials & DexDetails;
+
 const DEX_BASE = "/dex";
 
-let cached: Promise<Dex> | null = null;
+let metaCache: Promise<DexMeta> | null = null;
+let essentialsCache: Promise<DexEssentials> | null = null;
+let detailsCache: Promise<DexDetails> | null = null;
 
 async function fetchJson<T>(path: string): Promise<T> {
   const res = await fetch(path);
@@ -84,32 +84,53 @@ async function fetchJson<T>(path: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-/** Carga el snapshot completo (memoizado). La URL de cada archivo se versiona con `meta.generated_at`. */
-export function loadDex(): Promise<Dex> {
-  if (!cached) {
-    cached = (async () => {
-      const meta = await fetchJson<DexMeta>(`${DEX_BASE}/meta.json`);
-      const v = encodeURIComponent(meta.generated_at);
-      const [species, moves, items, abilities, natures] = await Promise.all([
-        fetchJson<Record<string, Species>>(`${DEX_BASE}/species.json?v=${v}`),
-        fetchJson<Record<string, Move>>(`${DEX_BASE}/moves.json?v=${v}`),
-        fetchJson<Record<string, Item>>(`${DEX_BASE}/items.json?v=${v}`),
-        fetchJson<Record<string, Ability>>(`${DEX_BASE}/abilities.json?v=${v}`),
-        fetchJson<Record<string, Nature>>(`${DEX_BASE}/natures.json?v=${v}`),
-      ]);
-      return { meta, species, moves, items, abilities, natures };
-    })();
-    // Si falla, no dejar el error cacheado: un reintento (p. ej. tras recuperar la red) vuelve a pedirlo.
-    cached.catch(() => {
-      cached = null;
-    });
+function loadMeta(): Promise<DexMeta> {
+  if (!metaCache) {
+    metaCache = fetchJson<DexMeta>(`${DEX_BASE}/meta.json`);
+    metaCache.catch(() => { metaCache = null; });
   }
-  return cached;
+  return metaCache;
 }
 
-/** Solo para tests: limpia el snapshot memoizado entre casos. */
+/** Especies y objetos para el picker, el equipo y sus reglas. */
+export function loadDexEssentials(): Promise<DexEssentials> {
+  if (!essentialsCache) {
+    essentialsCache = (async () => {
+      const meta = await loadMeta();
+      const v = encodeURIComponent(meta.generated_at);
+      const [species, items] = await Promise.all([
+        fetchJson<Record<string, Species>>(`${DEX_BASE}/species.json?v=${v}`),
+        fetchJson<Record<string, Item>>(`${DEX_BASE}/items.json?v=${v}`),
+      ]);
+      return { meta, species, items };
+    })();
+    essentialsCache.catch(() => { essentialsCache = null; });
+  }
+  return essentialsCache;
+}
+
+/** Movimientos y naturalezas para el editor de sets. */
+export function loadDexDetails(): Promise<DexDetails> {
+  if (!detailsCache) {
+    detailsCache = (async () => {
+      const meta = await loadMeta();
+      const v = encodeURIComponent(meta.generated_at);
+      const [moves, natures] = await Promise.all([
+        fetchJson<Record<string, Move>>(`${DEX_BASE}/moves.json?v=${v}`),
+        fetchJson<Record<string, Nature>>(`${DEX_BASE}/natures.json?v=${v}`),
+      ]);
+      return { moves, natures };
+    })();
+    detailsCache.catch(() => { detailsCache = null; });
+  }
+  return detailsCache;
+}
+
+/** Solo para tests: limpia las tres cachés entre casos. */
 export function __resetDexForTests(): void {
-  cached = null;
+  metaCache = null;
+  essentialsCache = null;
+  detailsCache = null;
 }
 
 /** "Mr. Mime" / "mrmime" / "Urshifu-Rapid-Strike" -> el mismo id que usa Showdown (`toID`). */
@@ -118,7 +139,7 @@ export function toId(value: string | null | undefined): string {
 }
 
 /** Resuelve una especie por nombre o por id. `null` si no existe en el snapshot. */
-export function speciesById(dex: Dex, nameOrId: string): Species | null {
+export function speciesById(dex: DexEssentials, nameOrId: string): Species | null {
   return dex.species[toId(nameOrId)] ?? null;
 }
 
@@ -132,7 +153,7 @@ export interface SpeciesFilters {
 }
 
 /** Búsqueda por nombre/id con filtros combinables. Sin límite: quien llama recorta el resultado. */
-export function searchSpecies(dex: Dex, query: string, filters: SpeciesFilters = {}): Species[] {
+export function searchSpecies(dex: DexEssentials, query: string, filters: SpeciesFilters = {}): Species[] {
   const q = query.trim().toLowerCase();
   const qId = toId(query);
   return Object.values(dex.species).filter((sp) => {

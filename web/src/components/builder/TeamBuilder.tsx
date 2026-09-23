@@ -1,21 +1,23 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronUp, Loader2, Plus, X } from "lucide-react";
 import { MonCard } from "@/components/team/MonCard";
 import { ChecklistPanel } from "@/components/team/ChecklistPanel";
+import { TypeCoveragePanel } from "@/components/team/TypeCoveragePanel";
 import { PasteIO } from "@/components/builder/PasteIO";
 import { SetEditor } from "@/components/builder/SetEditor";
 import { SpeciesPicker, type SpeciesHint } from "@/components/builder/SpeciesPicker";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import type { Dex } from "@/lib/dex/snapshot";
+import type { DexEssentials } from "@/lib/dex/snapshot";
 import { speciesById } from "@/lib/dex/snapshot";
 import { useLearnset, useLearnsets } from "@/lib/dex/useLearnset";
 import { checkSet, checkTeam, type BuilderMon, type RuleSeason } from "@/lib/dex/validate";
+import { computeTypeCoverage } from "@/lib/dex/coverage";
 import { errorMessage } from "@/lib/http";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  dex: Dex;
+  dex: DexEssentials;
   initial: BuilderMon[];
   /**
    * Pokémon ya registrados que no se editan aquí pero SÍ cuentan para las reglas de
@@ -63,6 +65,7 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
 
   const combined = [...context, ...team];
   const { rows } = checkTeam(dex, combined, season, banned, false);
+  const coverage = useMemo(() => computeTypeCoverage(dex, team), [dex, team]);
   const hint = buildHint(rows, season);
 
   const speciesIds = team.map((m) => speciesById(dex, m.species)?.id).filter((id): id is string => !!id);
@@ -158,9 +161,10 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
         </div>
       </div>
 
-      {/* Escritorio: reglas siempre visibles. */}
-      <div className="hidden sm:block">
+      {/* Escritorio: reglas y cobertura siempre visibles. */}
+      <div className="hidden flex-col gap-4 sm:flex">
         <ChecklistPanel rows={rows} empty={team.length === 0} />
+        <TypeCoveragePanel rows={coverage} empty={team.length === 0} />
       </div>
 
       {/* Móvil: barra inferior plegable. */}
@@ -170,8 +174,9 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
             <span>{passedCount} de {rows.length} reglas cumplidas</span>
             <ChevronUp className={cn("transition-transform", checklistOpen && "rotate-180")} />
           </CollapsibleTrigger>
-          <CollapsibleContent className="max-h-[50vh] overflow-y-auto px-4 pb-4">
+          <CollapsibleContent className="flex max-h-[50vh] flex-col gap-4 overflow-y-auto px-4 pb-4">
             <ChecklistPanel rows={rows} empty={team.length === 0} />
+            <TypeCoveragePanel rows={coverage} empty={team.length === 0} />
           </CollapsibleContent>
         </Collapsible>
       </div>

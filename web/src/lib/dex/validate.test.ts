@@ -38,7 +38,6 @@ const DEX: Dex = {
     dragontail: { id: "dragontail", name: "Dragon Tail", type: "Dragon", category: "Physical", basePower: 60, accuracy: 90, pp: 10, priority: -6, shortDesc: "" },
   },
   items: { leftovers: { id: "leftovers", name: "Leftovers", desc: "" }, lifeorb: { id: "lifeorb", name: "Life Orb", desc: "" } },
-  abilities: {},
   natures: {},
 };
 

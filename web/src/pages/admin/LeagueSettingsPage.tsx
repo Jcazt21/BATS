@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DEFAULT_RESTRICTION_SPEC, updateLeagueSettings, type LeagueSettings, type SeasonRestrictions } from "@/lib/api";
 import { errorMessage } from "@/lib/http";
-import { useAdminMutation, useDex, useDexMeta, useLeagueSettings } from "@/lib/queries";
+import { useAdminMutation, useDexEssentials, useDexMeta, useLeagueSettings } from "@/lib/queries";
 import { POKEMON_TYPES, typeLabel } from "@/lib/pokemon-types";
 import { useToast } from "@/lib/toast";
 
@@ -16,7 +16,7 @@ const selectCls = "h-10 w-full rounded-xl border border-input bg-card px-3 text-
 
 /** Avisa si el snapshot estático (web/public/dex/) y el importado en la base no son el mismo commit de PS. */
 function DexDriftWarning() {
-  const staticDex = useDex();
+  const staticDex = useDexEssentials();
   const dbMeta = useDexMeta();
   if (!staticDex.data || !dbMeta.data) return null;
   const staticCommit = staticDex.data.meta.ps_commit;

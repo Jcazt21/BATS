@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { __resetDexForTests, loadDex, searchSpecies, speciesById, toId } from "./snapshot";
+import { __resetDexForTests, loadDexDetails, loadDexEssentials, searchSpecies, speciesById, toId } from "./snapshot";
 import { __resetLearnsetsForTests, loadLearnset } from "./learnsets";
 
 const META = {
@@ -39,7 +39,6 @@ const FILES: Record<string, unknown> = {
   [`/dex/species.json?v=${encodeURIComponent(META.generated_at)}`]: SPECIES,
   [`/dex/moves.json?v=${encodeURIComponent(META.generated_at)}`]: MOVES,
   [`/dex/items.json?v=${encodeURIComponent(META.generated_at)}`]: {},
-  [`/dex/abilities.json?v=${encodeURIComponent(META.generated_at)}`]: {},
   [`/dex/natures.json?v=${encodeURIComponent(META.generated_at)}`]: { impish: { name: "Impish", plus: "def", minus: "spa" } },
   "/dex/learnsets/g.json": { garchomp: ["earthquake", "dragontail"] },
   "/dex/learnsets/u.json": { urshifurapidstrike: ["closecombat", "surgingstrikes"] },
@@ -58,49 +57,62 @@ function installFetchMock() {
   return { fetchMock, calls: () => calls, seen };
 }
 
-describe("loadDex", () => {
+describe("loadDexEssentials", () => {
   beforeEach(() => {
     __resetDexForTests();
     __resetLearnsetsForTests();
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it("carga meta y los cinco archivos del snapshot", async () => {
+  it("carga meta, species e items", async () => {
     installFetchMock();
-    const dex = await loadDex();
+    const dex = await loadDexEssentials();
     expect(dex.meta.ps_commit).toBe("abc1234");
     expect(dex.species.garchomp.name).toBe("Garchomp");
-    expect(dex.moves.earthquake.basePower).toBe(100);
-    expect(dex.natures.impish.plus).toBe("def");
+    expect(dex.items).toEqual({});
   });
 
-  it("un solo fetch por archivo aunque loadDex() se llame dos veces", async () => {
+  it("un solo fetch por archivo aunque loadDexEssentials() se llame dos veces", async () => {
     const { fetchMock } = installFetchMock();
-    await loadDex();
-    await loadDex();
-    // meta + species + moves + items + abilities + natures = 6 archivos, una vez cada uno.
-    expect(fetchMock).toHaveBeenCalledTimes(6);
+    await loadDexEssentials();
+    await loadDexEssentials();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it("especie inexistente por nombre o id devuelve null", async () => {
     installFetchMock();
-    const dex = await loadDex();
+    const dex = await loadDexEssentials();
     expect(speciesById(dex, "Missingno")).toBeNull();
   });
 
   it("resuelve por nombre, id y forma", async () => {
     installFetchMock();
-    const dex = await loadDex();
+    const dex = await loadDexEssentials();
     expect(speciesById(dex, "garchomp")?.name).toBe("Garchomp");
     expect(speciesById(dex, "Garchomp")?.id).toBe("garchomp");
     expect(speciesById(dex, "Urshifu-Rapid-Strike")?.baseSpecies).toBe("Urshifu");
   });
 });
 
+describe("loadDexDetails", () => {
+  beforeEach(() => __resetDexForTests());
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("carga movimientos y naturalezas solo al pedir detalles", async () => {
+    const { seen } = installFetchMock();
+    await loadDexEssentials();
+    expect(seen.some((url) => url.includes("moves.json") || url.includes("natures.json") || url.includes("abilities.json"))).toBe(false);
+    const details = await loadDexDetails();
+    expect(details.moves.earthquake.basePower).toBe(100);
+    expect(details.natures.impish.plus).toBe("def");
+    expect(seen.filter((url) => url === "/dex/meta.json")).toHaveLength(1);
+  });
+});
+
 describe("searchSpecies", () => {
   it("busca por nombre y combina filtros", async () => {
     installFetchMock();
-    const dex = await loadDex();
+    const dex = await loadDexEssentials();
     expect(searchSpecies(dex, "gar").map((s) => s.id)).toEqual(["garchomp"]);
     expect(searchSpecies(dex, "", { type: "Water" }).map((s) => s.id)).toEqual(["urshifurapidstrike"]);
     expect(searchSpecies(dex, "", { type: "Water", gen: 4 })).toEqual([]);

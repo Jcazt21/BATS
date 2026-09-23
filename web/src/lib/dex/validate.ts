@@ -8,7 +8,7 @@
  * ambos con el mismo componente.
  */
 import type { ChecklistRow, SeasonRestrictions } from "@/lib/api";
-import type { Dex, Species } from "./snapshot";
+import type { DexEssentials, Species } from "./snapshot";
 import { speciesById, toId } from "./snapshot";
 
 export interface BuilderMon {
@@ -68,7 +68,7 @@ function normalize(restrictions: SeasonRestrictions) {
 }
 
 /** Resuelve cada BuilderMon contra el dex, tal como bats_core.dex.resolve_entries en el servidor. */
-function resolveEntries(dex: Dex, team: BuilderMon[]): { entries: Entry[]; unknown: string[] } {
+function resolveEntries(dex: DexEssentials, team: BuilderMon[]): { entries: Entry[]; unknown: string[] } {
   const entries: Entry[] = [];
   const unknownSpecies: string[] = [];
   for (const mon of team) {
@@ -175,7 +175,7 @@ export interface CheckTeamResult {
  * nombres de especie ya en minúsculas.
  */
 export function checkTeam(
-  dex: Dex,
+  dex: DexEssentials,
   team: BuilderMon[],
   season: RuleSeason,
   banned: Set<string> = new Set(),
@@ -256,7 +256,7 @@ function speciesAbilities(sp: Species): Set<string> {
  * habilidad que la especie no tiene, más de 4 movimientos, objeto inexistente.
  * `learnset` son los ids de movimiento legales de la especie (lib/dex/learnsets.ts).
  */
-export function checkSet(dex: Dex, learnset: string[], mon: BuilderMon): string[] {
+export function checkSet(dex: DexEssentials, learnset: string[], mon: BuilderMon): string[] {
   const errors: string[] = [];
   const sp = speciesById(dex, mon.species);
   if (!sp) return [`"${mon.species}" no existe en el dex.`];

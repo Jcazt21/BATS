@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { PasteIO } from "./PasteIO";
-import type { Dex, Species } from "@/lib/dex/snapshot";
+import type { DexEssentials, Species } from "@/lib/dex/snapshot";
 
 function species(over: Partial<Species> & { id: string; name: string }): Species {
   return {
@@ -13,10 +13,10 @@ function species(over: Partial<Species> & { id: string; name: string }): Species
   };
 }
 
-const DEX: Dex = {
+const DEX: DexEssentials = {
   meta: { generated_at: "x", ps_commit: "x", counts: { species: 0, moves: 0 }, formats: { league: "x", sparring: "x" } },
   species: { garchomp: species({ id: "garchomp", name: "Garchomp" }) },
-  moves: {}, items: {}, abilities: {}, natures: {},
+  items: {},
 };
 
 // El mismo bloque que showdown.test.ts (GARCHOMP).

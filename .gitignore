@@ -32,3 +32,4 @@ web/dist-ssr/
 .vercel
 .env*
 propuestas/
+.worktrees/

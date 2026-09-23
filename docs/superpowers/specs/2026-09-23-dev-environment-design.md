@@ -64,13 +64,16 @@ funciona `main` hoy ni crear un segundo proyecto Vercel.
   futuro.
 - `BATS_VOTER_SALT` de dev es un valor nuevo, no el de producción (es
   también el secreto de firma de JWT — no debe compartirse entre entornos).
-- `bats/vercel.json` gana:
-  ```json
-  "git": { "deploymentEnabled": { "main": false, "dev": true } }
-  ```
-  Esto no dispara el deploy (lo sigue haciendo GitHub Actions); solo evita
-  que el git-integration nativo de Vercel intente desplegar por su cuenta
-  cuando detecte push a `dev` con `deploymentEnabled` global en `false`.
+- `bats/vercel.json` **no cambia** — se queda en
+  `"git": { "deploymentEnabled": false }`. (Corrección: una versión
+  anterior de este documento proponía `{ "main": false, "dev": true }`,
+  asumiendo que eso solo afectaba a `dev`. Es al revés: según la doc de
+  Vercel, en la forma objeto **cualquier rama no listada queda en `true`
+  por default** — ese cambio reactivaba el deploy nativo de Vercel no
+  solo en `dev` (duplicando el deploy de GitHub Actions, sin pasar por
+  los tests) sino en *cualquier* rama, incluidas las de PR. Se detectó
+  en la revisión final y se revirtió; ver la Task 7 del plan de
+  implementación.)
 
 ### 3. CI/CD (`.github/workflows/ci.yml`)
 

@@ -14,7 +14,7 @@ import { HomePage } from "@/pages/HomePage";
 
 // Cada página se carga cuando se visita (o antes, al intuir que se va a visitar: ver routes.ts).
 const {
-  stats: StatsPage, pokedex: PokedexPage, pokedexEntry: PokedexEntryPage, player: PlayerPage, bans: BansPage, team: TeamPage,
+  blog: BlogPage, blogPost: BlogPostPage, stats: StatsPage, pokedex: PokedexPage, pokedexEntry: PokedexEntryPage, player: PlayerPage, bans: BansPage, team: TeamPage,
   login: LoginPage, adminLayout: AdminLayout, statsBot: StatsBotPage, battles: BattlesPage, adminBans: AdminBansPage,
   seasons: SeasonsPage, players: PlayersPage, rosters: RostersPage, ingest: IngestPage, fairPlay: FairPlayPage,
   leagueSettings: LeagueSettingsPage,
@@ -41,6 +41,8 @@ export default function App() {
                   <Routes>
                     <Route element={<AppShell />}>
                       <Route path="/" element={<HomePage />} />
+                      <Route path="/blog" element={<BlogPage />} />
+                      <Route path="/blog/:slug" element={<BlogPostPage />} />
                       <Route path="/stats" element={<StatsPage />} />
                       <Route path="/pokedex" element={<PokedexPage />} />
                       <Route path="/pokedex/:species" element={<PokedexEntryPage />} />

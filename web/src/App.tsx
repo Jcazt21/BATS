@@ -17,7 +17,7 @@ const {
   blog: BlogPage, blogPost: BlogPostPage, stats: StatsPage, pokedex: PokedexPage, pokedexEntry: PokedexEntryPage, player: PlayerPage, bans: BansPage, team: TeamPage,
   login: LoginPage, adminLayout: AdminLayout, statsBot: StatsBotPage, battles: BattlesPage, adminBans: AdminBansPage,
   seasons: SeasonsPage, players: PlayersPage, rosters: RostersPage, ingest: IngestPage, fairPlay: FairPlayPage,
-  leagueSettings: LeagueSettingsPage,
+  leagueSettings: LeagueSettingsPage, adminBlog: BlogAdminPage,
 } = pages;
 // Mismo chunk que /stats: precargar uno sirve para el otro.
 const AdminStatsPage = lazyPage(() => pages.stats.preload().then(({ default: Stats }) => ({ default: () => <Stats showAdminControls /> })));
@@ -59,6 +59,7 @@ export default function App() {
                       <Route path="/admin/stats/bot" element={<StatsBotPage />} />
                       <Route path="/admin/battles" element={<BattlesPage />} />
                       <Route path="/admin/bans" element={<AdminBansPage />} />
+                      <Route path="/admin/blog" element={<BlogAdminPage />} />
                       <Route path="/admin/seasons" element={<SeasonsPage />} />
                       <Route path="/admin/jugadores" element={<PlayersPage />} />
                       <Route path="/admin/rosters" element={<RostersPage />} />

@@ -27,6 +27,7 @@ export const pages = {
   ingest: lazyPage(() => import("@/pages/admin/IngestPage").then((m) => ({ default: m.IngestPage }))),
   fairPlay: lazyPage(() => import("@/pages/admin/FairPlayPage").then((m) => ({ default: m.FairPlayPage }))),
   leagueSettings: lazyPage(() => import("@/pages/admin/LeagueSettingsPage").then((m) => ({ default: m.LeagueSettingsPage }))),
+  adminBlog: lazyPage(() => import("@/pages/admin/BlogAdminPage").then((m) => ({ default: m.BlogAdminPage }))),
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- cada página tiene sus props
@@ -53,6 +54,7 @@ const ROUTES: [RegExp, AnyPage[]][] = [
   [/^\/admin\/fairplay/, [pages.adminLayout, pages.fairPlay]],
   [/^\/admin\/ingestas/, [pages.adminLayout, pages.ingest]],
   [/^\/admin\/leaguesettings/, [pages.adminLayout, pages.leagueSettings]],
+  [/^\/admin\/blog/, [pages.adminLayout, pages.adminBlog]],
 ];
 
 const ignore = () => {};
@@ -99,7 +101,7 @@ export function preloadWhenIdle(list: AnyPage[]): () => void {
 export const publicPages: AnyPage[] = [pages.blog, pages.blogPost, pages.stats, pages.pokedex, pages.bans, pages.team, pages.player, pages.pokedexEntry];
 export const adminPages: AnyPage[] = [
   pages.stats, pages.battles, pages.seasons, pages.players, pages.rosters, pages.adminBans,
-  pages.fairPlay, pages.ingest, pages.statsBot, pages.leagueSettings,
+  pages.fairPlay, pages.ingest, pages.statsBot, pages.leagueSettings, pages.adminBlog,
 ];
 
 /**

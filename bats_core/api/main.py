@@ -16,7 +16,7 @@ from ..paths import ENV_FILE
 
 load_dotenv(ENV_FILE)
 
-from .routes import ban, admin, stats, seasons, etl_cleaner, leaguesettings, teams, ingest, rules, players, pokedex, me, dex  # noqa: E402
+from .routes import ban, admin, stats, seasons, etl_cleaner, leaguesettings, teams, ingest, rules, players, pokedex, me, dex, blog  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +51,8 @@ app.include_router(players.router)
 app.include_router(pokedex.router)
 app.include_router(me.router)
 app.include_router(dex.router)
+app.include_router(blog.router)
+app.include_router(blog.admin_router)
 
 
 @app.exception_handler(Exception)

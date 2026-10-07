@@ -25,8 +25,8 @@ export class MarkdownFileError extends Error {}
 export async function readMarkdownFile(file: File): Promise<{ title: string; content: string }> {
   if (!/\.(md|markdown)$/i.test(file.name)) throw new MarkdownFileError("Elige un archivo .md.");
   // Los editores de Windows a veces guardan con BOM y CRLF.
-  const content = (await file.text()).replace(/^﻿/, "").replace(/\r\n?/g, "\n");
+  const content = (await file.text()).replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
   if (!content.trim()) throw new MarkdownFileError("El archivo está vacío.");
-  if (content.length > BLOG_MAX_CHARS) throw new MarkdownFileError("El archivo es demasiado grande (máx. 200 000 caracteres).");
+  if (content.length > BLOG_MAX_CHARS) throw new MarkdownFileError("El archivo es demasiado grande (máx. 200000 caracteres).");
   return { title: titleFromMarkdown(content, file.name).slice(0, BLOG_TITLE_MAX), content };
 }

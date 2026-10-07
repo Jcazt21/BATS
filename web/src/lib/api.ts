@@ -384,6 +384,27 @@ export interface UsernameRenameCascade {
   roster: number; bans: number; whitelist: number; participation: number;
 }
 
+export interface BlogPostSummary {
+  post_id:      number;
+  slug:         string;
+  title:        string;
+  excerpt:      string;
+  author:       string | null;
+  published_at: string | null;
+}
+
+export interface BlogPost extends BlogPostSummary {
+  content_md: string;
+  updated_at: string | null;
+}
+
+export interface AdminBlogPost extends BlogPostSummary {
+  is_published: boolean;
+  created_at:   string | null;
+  updated_at:   string | null;
+  content_md?:  string;
+}
+
 // ── Tipos de las funciones nuevas ─────────────────────────────────────────────
 
 export interface PlayerProfile {
@@ -536,6 +557,11 @@ export const addPokemonToRoster = (pokemon: PokemonPayload[]) =>
 export const editSet = (pokemonId: number, payload: PokemonPayload) =>
   request<{ ok: boolean }>(`/api/teams/me/pokemon/${pokemonId}`, { method: "PATCH", body: payload, auth: true, fallback: "Error al editar el set" });
 
+// ── Blog (público) ────────────────────────────────────────────────────────────
+
+export const getBlogPosts = () => request<BlogPostSummary[]>("/api/blog");
+export const getBlogPost = (slug: string) => request<BlogPost>(`/api/blog/${encodeURIComponent(slug)}`);
+
 // ── Administración ────────────────────────────────────────────────────────────
 
 const admin = { auth: true } as const;
@@ -556,6 +582,15 @@ export const updatePlayerAccount = (accountId: number, payload: {
     `/api/admin/players/${accountId}`, { ...admin, method: "PATCH", body: payload, fallback: "Error al editar la cuenta" });
 export const deletePlayerAccount = (accountId: number) =>
   request(`/api/admin/players/${accountId}`, { ...admin, method: "DELETE", fallback: "Error al eliminar la cuenta" });
+
+export const getAdminBlogPosts = () => request<AdminBlogPost[]>("/api/admin/blog", admin);
+export const getAdminBlogPost = (id: number) => request<AdminBlogPost>(`/api/admin/blog/${id}`, admin);
+export const createBlogPost = (payload: { title: string; content_md: string; publish: boolean }) =>
+  request<AdminBlogPost>("/api/admin/blog", { ...admin, method: "POST", body: payload, fallback: "Error al subir la entrada" });
+export const updateBlogPost = (id: number, payload: { title?: string; content_md?: string; is_published?: boolean }) =>
+  request<AdminBlogPost>(`/api/admin/blog/${id}`, { ...admin, method: "PATCH", body: payload, fallback: "Error al guardar la entrada" });
+export const deleteBlogPost = (id: number) =>
+  request(`/api/admin/blog/${id}`, { ...admin, method: "DELETE", fallback: "Error al eliminar la entrada" });
 
 /** Logins de Supabase Auth y si ya tienen cuenta en la liga. `available: false` en Postgres local. */
 export const getAuthLogins = () => request<AuthLoginsResponse>("/api/admin/auth-logins", admin);

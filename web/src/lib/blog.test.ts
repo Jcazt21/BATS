@@ -28,6 +28,15 @@ describe("readMarkdownFile", () => {
     expect(out.content.startsWith("#")).toBe(true);
     expect(out.content).not.toContain("\r");
   });
+  it("quita el front matter YAML de Obsidian: no es contenido de la entrada", async () => {
+    const out = await readMarkdownFile(md("---\nactualizado: 2026-10-07\ntags: [liga]\n---\n# Hola liga\n\nTexto"));
+    expect(out.title).toBe("Hola liga");
+    expect(out.content).toBe("# Hola liga\n\nTexto");
+  });
+  it("no toca un --- que no abre front matter", async () => {
+    const out = await readMarkdownFile(md("# Hola\n\n---\n\nTexto"));
+    expect(out.content).toBe("# Hola\n\n---\n\nTexto");
+  });
   it("rechaza archivos que no son .md", async () => {
     await expect(readMarkdownFile(md("hola", "nota.txt"))).rejects.toBeInstanceOf(MarkdownFileError);
   });

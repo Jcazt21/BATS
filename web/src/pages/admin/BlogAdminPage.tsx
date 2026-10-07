@@ -11,7 +11,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createBlogPost, deleteBlogPost, updateBlogPost, type AdminBlogPost } from "@/lib/api";
@@ -20,6 +20,7 @@ import { fmtDate } from "@/lib/format";
 import { errorMessage } from "@/lib/http";
 import { useAdminBlogPost, useAdminBlogPosts, useBlogMutation } from "@/lib/queries";
 import { useToast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 
 export function BlogAdminPage() {
   return (
@@ -102,6 +103,19 @@ function PostList() {
   const preview = useAdminBlogPost(previewId);
   const update = useBlogMutation((v: { id: number; is_published: boolean }) => updateBlogPost(v.id, { is_published: v.is_published }));
   const del = useBlogMutation(deleteBlogPost);
+  const replace = useBlogMutation((v: { id: number; content_md: string }) => updateBlogPost(v.id, { content_md: v.content_md }));
+
+  /** Cambia solo el contenido: el título, el slug y la fecha de publicación se conservan. */
+  async function replaceContent(p: AdminBlogPost, file: File | undefined, input: HTMLInputElement) {
+    if (!file) return;
+    try {
+      const { content } = await readMarkdownFile(file);
+      await replace.mutateAsync({ id: p.post_id, content_md: content });
+      toast({ title: "Contenido actualizado", description: p.title, tone: "success" });
+    } catch (err) {
+      toast({ title: "No se pudo reemplazar", description: err instanceof MarkdownFileError ? err.message : errorMessage(err), tone: "error" });
+    } finally { input.value = ""; }
+  }
 
   async function togglePublished(p: AdminBlogPost) {
     try {
@@ -125,6 +139,11 @@ function PostList() {
               trailing={
                 <span className="flex shrink-0 items-center gap-1">
                   <Button variant="ghost" size="sm" onClick={() => setPreviewId(p.post_id)}>Ver</Button>
+                  <label className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "cursor-pointer focus-within:ring-3 focus-within:ring-ring", replace.isPending && "pointer-events-none opacity-50")}>
+                    Reemplazar
+                    <input type="file" accept=".md,.markdown,text/markdown" aria-label={`Reemplazar el .md de ${p.title}`} className="sr-only"
+                      onChange={(e) => void replaceContent(p, e.target.files?.[0], e.currentTarget)} />
+                  </label>
                   <Button variant="ghost" size="icon" aria-label={p.is_published ? `Retirar ${p.title}` : `Publicar ${p.title}`}
                     disabled={update.isPending} onClick={() => void togglePublished(p)}>
                     {p.is_published ? <EyeOff /> : <Eye />}

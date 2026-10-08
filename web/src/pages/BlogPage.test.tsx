@@ -23,6 +23,18 @@ describe("BlogPage", () => {
     expect(screen.getByText("Arranca el lunes.")).toBeInTheDocument();
   });
 
+  it("destaca la más reciente y lista el resto en «Más entradas»", async () => {
+    vi.spyOn(api, "getBlogPosts").mockResolvedValue([
+      { post_id: 2, slug: "nueva", title: "Nueva", excerpt: "", author: null, published_at: "2026-10-08T12:00:00Z" },
+      { post_id: 1, slug: "vieja", title: "Vieja", excerpt: "", author: null, published_at: "2026-10-01T12:00:00Z" },
+    ]);
+    renderPage();
+    const spotlight = await screen.findByRole("link", { name: /Lo último.*Nueva/ });
+    expect(spotlight).toHaveAttribute("href", "/blog/nueva");
+    expect(screen.getByRole("heading", { name: "Más entradas" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Vieja/ })).toHaveAttribute("href", "/blog/vieja");
+  });
+
   it("estado vacío sin entradas", async () => {
     vi.spyOn(api, "getBlogPosts").mockResolvedValue([]);
     renderPage();

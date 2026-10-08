@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { Navigate, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Activity, BarChart2, Bot, CalendarDays, ChevronsUpDown, DatabaseZap, ExternalLink, LogOut, ScrollText,
-  ShieldAlert, ShieldOff, Swords, UserCog, Users,
+  Newspaper, ShieldAlert, ShieldOff, Swords, UserCog, Users,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarHeader, SidebarInset,
@@ -31,6 +31,7 @@ const GROUPS = [
     { label: "Equipos", to: "/admin/rosters", icon: Users },
   ] },
   { label: "Comunidad", items: [
+    { label: "Blog", to: "/admin/blog", icon: Newspaper },
     { label: "Bans", to: "/admin/bans", icon: ShieldOff },
     { label: "Fair play", to: "/admin/fairplay", icon: ShieldAlert },
   ] },

@@ -17,13 +17,13 @@ import { MonCard } from "@/components/team/MonCard";
 import { SetEditor } from "@/components/builder/SetEditor";
 import { TeamBuilder } from "@/components/builder/TeamBuilder";
 import type { PokemonPayload, RosterPokemon, RosterValidation } from "@/lib/api";
-import type { Dex } from "@/lib/dex/snapshot";
+import type { DexEssentials } from "@/lib/dex/snapshot";
 import { speciesById } from "@/lib/dex/snapshot";
 import { useLearnset } from "@/lib/dex/useLearnset";
 import { checkSet, type BuilderMon, type RuleSeason } from "@/lib/dex/validate";
 import { ApiError, errorMessage } from "@/lib/http";
 import {
-  useActiveSeason, useAddPokemon, useDex, useEditSet, usePlayerBans, useRegisterTeam, useRemovePokemon,
+  useActiveSeason, useAddPokemon, useDexEssentials, useEditSet, usePlayerBans, useRegisterTeam, useRemovePokemon,
   useRoster, useRotationHistory, useSwapPokemon,
 } from "@/lib/queries";
 import { useSession } from "@/lib/session";
@@ -40,7 +40,7 @@ function toBuilderMon(p: RosterPokemon): BuilderMon {
 
 /** Los metadatos (color/generación/egg groups/tipos) salen del dex local; la API los vuelve a
  *  resolver del lado del servidor (bats_core.dex.resolve_entries) — lo que viaje aquí es orientativo. */
-function toPayload(dex: Dex, mon: BuilderMon): PokemonPayload {
+function toPayload(dex: DexEssentials, mon: BuilderMon): PokemonPayload {
   const sp = speciesById(dex, mon.species);
   return {
     name: sp?.name ?? mon.species, national_dex: sp?.num ?? null, types: sp ? sp.types.join(" / ") : null,
@@ -54,7 +54,7 @@ export function TeamPage() {
   const { session, loading } = useSession();
   const season = useActiveSeason();
   const roster = useRoster();
-  const dex = useDex();
+  const dex = useDexEssentials();
   const closed = !!season.data?.restrictions?.registration_closed;
 
   let body;
@@ -91,7 +91,7 @@ export function TeamPage() {
 
 // ── Registro ──────────────────────────────────────────────────────────────────
 
-function Register({ dex, maxSize }: { dex: Dex; maxSize: number }) {
+function Register({ dex, maxSize }: { dex: DexEssentials; maxSize: number }) {
   const season = useActiveSeason();
   const bans = usePlayerBans();
   const register = useRegisterTeam();
@@ -116,7 +116,7 @@ function Register({ dex, maxSize }: { dex: Dex; maxSize: number }) {
 
 // ── Equipo registrado ─────────────────────────────────────────────────────────
 
-function RosterView({ closed, dex }: { closed: boolean; dex: Dex }) {
+function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
   const roster = useRoster();
   const season = useActiveSeason();
   const bans = usePlayerBans();
@@ -263,7 +263,7 @@ function RosterView({ closed, dex }: { closed: boolean; dex: Dex }) {
   );
 }
 
-function EditSetForm({ dex, pokemon, onDone }: { dex: Dex; pokemon: RosterPokemon; onDone: () => void }) {
+function EditSetForm({ dex, pokemon, onDone }: { dex: DexEssentials; pokemon: RosterPokemon; onDone: () => void }) {
   const [mon, setMon] = useState<BuilderMon>(() => toBuilderMon(pokemon));
   const editSet = useEditSet();
   const { toast } = useToast();

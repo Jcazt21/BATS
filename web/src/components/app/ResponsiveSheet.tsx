@@ -27,12 +27,14 @@ export function ResponsiveSheet(props: Props) {
   if (wide) {
     return (
       <Dialog open={props.open} onOpenChange={props.onOpenChange}>
-        <DialogContent className={cn("sm:max-w-lg", props.className)}>
-          <DialogHeader>
+        {/* Alto acotado y contenido desplazable: un formulario largo no se sale de la pantalla
+            ni se lleva el botón de enviar fuera de la vista. */}
+        <DialogContent className={cn("flex max-h-[85svh] flex-col overflow-hidden sm:max-w-lg", props.className)}>
+          <DialogHeader className="shrink-0 pr-8">
             <DialogTitle>{props.title}</DialogTitle>
             {props.description && <DialogDescription>{props.description}</DialogDescription>}
           </DialogHeader>
-          {props.children}
+          <div className="-mx-6 -mb-6 min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-6">{props.children}</div>
         </DialogContent>
       </Dialog>
     );

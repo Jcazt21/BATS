@@ -5,7 +5,7 @@
  */
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as api from "@/lib/api";
-import { loadDex } from "@/lib/dex/snapshot";
+import { loadDexEssentials, loadDexDetails } from "@/lib/dex/snapshot";
 import { useSession } from "@/lib/session";
 
 /** Temporada: un id, `undefined` = todas, `null` = aún no se sabe cuál (la consulta espera). */
@@ -29,6 +29,8 @@ export const keys = {
   roster: ["team", "me"] as const,
   rosterBans: ["team", "me", "banned"] as const,
   rotations: ["team", "me", "history"] as const,
+  blog: ["blog"] as const,
+  blogPost: (slug: string) => ["blog", slug] as const,
   admin: {
     seasons: ["admin", "seasons"] as const,
     battles: ["admin", "battles"] as const,
@@ -43,6 +45,8 @@ export const keys = {
     seasonBans: (seasonId: number) => ["admin", "season-bans", seasonId] as const,
     banViolations: (seasonId: number) => ["admin", "ban-violations", seasonId] as const,
     teamViolations: (seasonId: number) => ["admin", "team-violations", seasonId] as const,
+    blog: ["admin", "blog"] as const,
+    blogPost: (id: number) => ["admin", "blog", id] as const,
   },
 };
 
@@ -75,6 +79,8 @@ export const useBanStatus = () =>
 export const useBanCandidates = (minBattles = 3) =>
   useQuery({ queryKey: keys.banCandidates(minBattles), queryFn: () => api.getBanCandidates(minBattles) });
 export const useActiveSeason = () => useQuery({ queryKey: keys.activeSeason, queryFn: api.getActiveSeason });
+export const useBlogPosts = () => useQuery({ queryKey: keys.blog, queryFn: api.getBlogPosts });
+export const useBlogPost = (slug: string) => useQuery({ queryKey: keys.blogPost(slug), queryFn: () => api.getBlogPost(slug) });
 
 // ── Con sesión ────────────────────────────────────────────────────────────────
 
@@ -137,7 +143,8 @@ export function useEditSet() {
   });
 }
 /** Snapshot del dex de Showdown (bats/tools/export_dex.js): estático, se cachea indefinidamente. */
-export const useDex = () => useQuery({ queryKey: ["dex"], queryFn: loadDex, staleTime: Infinity, gcTime: Infinity });
+export const useDexEssentials = () => useQuery({ queryKey: ["dex", "essentials"], queryFn: loadDexEssentials, staleTime: Infinity, gcTime: Infinity });
+export const useDexDetails = () => useQuery({ queryKey: ["dex", "details"], queryFn: loadDexDetails, staleTime: Infinity, gcTime: Infinity });
 export function useSubmitBan() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: api.submitBan, onSuccess: () => qc.invalidateQueries({ queryKey: ["ban"] }) });
@@ -168,6 +175,22 @@ export const useBanViolations = (id: number, enabled = true) =>
   useQuery({ queryKey: keys.admin.banViolations(id), queryFn: () => api.getSeasonBanViolations(id), enabled });
 export const useTeamViolations = (id: number, enabled = true) =>
   useQuery({ queryKey: keys.admin.teamViolations(id), queryFn: () => api.getSeasonTeamViolations(id), enabled });
+
+export const useAdminBlogPosts = () => useQuery({ queryKey: keys.admin.blog, queryFn: api.getAdminBlogPosts });
+export const useAdminBlogPost = (id: number | null) =>
+  useQuery({ queryKey: keys.admin.blogPost(id ?? 0), queryFn: () => api.getAdminBlogPost(id!), enabled: id !== null });
+
+/** Mutación del blog: refresca el panel y lo que ven los jugadores en /blog. */
+export function useBlogMutation<TVars, TResult>(fn: (vars: TVars) => Promise<TResult>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["admin"] });
+      void qc.invalidateQueries({ queryKey: keys.blog });
+    },
+  });
+}
 
 /** Mutación de administración que invalida todo lo `admin` (y las estadísticas públicas si `stats`). */
 export function useAdminMutation<TVars, TResult>(fn: (vars: TVars) => Promise<TResult>, opts: { stats?: boolean } = {}) {

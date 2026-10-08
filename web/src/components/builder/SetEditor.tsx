@@ -1,15 +1,18 @@
 import { useMemo, type ReactNode } from "react";
 import { EVEditor } from "@/components/builder/EVEditor";
 import { Combobox, type ComboboxItem } from "@/components/ui/combobox";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/app/States";
 import { useLearnset } from "@/lib/dex/useLearnset";
-import type { Dex } from "@/lib/dex/snapshot";
+import { useDexDetails } from "@/lib/queries";
+import type { DexEssentials } from "@/lib/dex/snapshot";
 import { speciesById, toId } from "@/lib/dex/snapshot";
 import type { BuilderMon } from "@/lib/dex/validate";
 import { POKEMON_TYPES, typeLabel } from "@/lib/pokemon-types";
 
 interface Props {
   mon: BuilderMon;
-  dex: Dex;
+  dex: DexEssentials;
   onChange: (mon: BuilderMon) => void;
   errors?: string[];
 }
@@ -46,26 +49,27 @@ function typeName(id: string): string {
 export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
   const species = speciesById(dex, mon.species);
   const learnset = useLearnset(species?.id ?? null);
+  const details = useDexDetails();
 
   const itemItems: ComboboxItem[] = useMemo(
     () => Object.values(dex.items).map((it) => ({ id: it.id, label: it.name })),
     [dex],
   );
   const natureItems: ComboboxItem[] = useMemo(
-    () => Object.values(dex.natures).map((n) => ({
+    () => Object.values(details.data?.natures ?? {}).map((n) => ({
       id: toId(n.name), label: n.name, sublabel: n.plus && n.minus ? `+${n.plus} / −${n.minus}` : "Neutra",
     })),
-    [dex],
+    [details.data],
   );
   const moveItems: ComboboxItem[] = useMemo(
     () => learnset
-      .map((id) => dex.moves[id])
+      .map((id) => details.data?.moves[id])
       .filter((mv): mv is NonNullable<typeof mv> => !!mv)
       .map((mv) => ({
         id: mv.id, label: mv.name,
         sublabel: `${mv.type} · ${mv.category}${mv.category === "Status" ? "" : ` · ${mv.basePower}`}`,
       })),
-    [learnset, dex],
+    [learnset, details.data],
   );
   const abilityItems: ComboboxItem[] = useMemo(
     () => (species?.abilities ?? []).map((a) => ({ id: toId(a), label: a })),
@@ -75,20 +79,27 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
   if (!species) {
     return <p className="text-footnote text-muted-foreground">Elige una especie para editar su set.</p>;
   }
+  if (details.isPending) {
+    return <div className="flex flex-col gap-3"><Skeleton className="h-10" /><Skeleton className="h-10" /><Skeleton className="h-32" /></div>;
+  }
+  if (details.isError) {
+    return <ErrorState error={details.error} onRetry={() => details.refetch()} />;
+  }
+  const dexDetails = details.data;
 
   function patch(next: Partial<BuilderMon>) {
     onChange({ ...mon, ...next });
   }
 
   function setMove(index: number, moveId: string) {
-    const move = dex.moves[moveId];
+    const move = dexDetails.moves[moveId];
     if (!move) return;
     const moves = [...mon.moves];
     moves[index] = move.name;
     onChange({ ...mon, moves });
   }
 
-  const nature = mon.nature ? dex.natures[toId(mon.nature)] : null;
+  const nature = mon.nature ? dexDetails.natures[toId(mon.nature)] : null;
   const evs = normalizeSpread(mon.evs);
   const ivs = normalizeSpread(mon.ivs);
   const stats = STAT_IDS.map((id) => {

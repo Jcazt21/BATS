@@ -8,6 +8,8 @@ import { keys } from "@/lib/queries";
 import * as api from "@/lib/api";
 
 export const pages = {
+  blog: lazyPage(() => import("@/pages/BlogPage").then((m) => ({ default: m.BlogPage }))),
+  blogPost: lazyPage(() => import("@/pages/BlogPostPage").then((m) => ({ default: m.BlogPostPage }))),
   stats: lazyPage(() => import("@/pages/StatsPage").then((m) => ({ default: m.StatsPage }))),
   pokedex: lazyPage(() => import("@/pages/PokedexPage").then((m) => ({ default: m.PokedexPage }))),
   pokedexEntry: lazyPage(() => import("@/pages/PokedexEntryPage").then((m) => ({ default: m.PokedexEntryPage }))),
@@ -25,6 +27,7 @@ export const pages = {
   ingest: lazyPage(() => import("@/pages/admin/IngestPage").then((m) => ({ default: m.IngestPage }))),
   fairPlay: lazyPage(() => import("@/pages/admin/FairPlayPage").then((m) => ({ default: m.FairPlayPage }))),
   leagueSettings: lazyPage(() => import("@/pages/admin/LeagueSettingsPage").then((m) => ({ default: m.LeagueSettingsPage }))),
+  adminBlog: lazyPage(() => import("@/pages/admin/BlogAdminPage").then((m) => ({ default: m.BlogAdminPage }))),
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- cada página tiene sus props
@@ -32,6 +35,8 @@ type AnyPage = PreloadablePage<any>;
 
 /** Qué chunk(s) necesita cada ruta. El orden importa: la primera coincidencia gana. */
 const ROUTES: [RegExp, AnyPage[]][] = [
+  [/^\/blog\/?$/, [pages.blog]],
+  [/^\/blog\/[^/]+/, [pages.blogPost]],
   [/^\/stats\/?$/, [pages.stats]],
   [/^\/pokedex\/?$/, [pages.pokedex]],
   [/^\/pokedex\/[^/]+/, [pages.pokedexEntry]],
@@ -49,6 +54,7 @@ const ROUTES: [RegExp, AnyPage[]][] = [
   [/^\/admin\/fairplay/, [pages.adminLayout, pages.fairPlay]],
   [/^\/admin\/ingestas/, [pages.adminLayout, pages.ingest]],
   [/^\/admin\/leaguesettings/, [pages.adminLayout, pages.leagueSettings]],
+  [/^\/admin\/blog/, [pages.adminLayout, pages.adminBlog]],
 ];
 
 const ignore = () => {};
@@ -64,6 +70,13 @@ export function preloadRoute(pathname: string): void {
  * Solo si ya se conoce la temporada activa: con otra clave, la página pediría de nuevo.
  */
 export function prefetchRouteData(pathname: string): void {
+  // El blog no depende de la temporada activa.
+  const post = /^\/blog\/([^/]+)\/?$/.exec(pathname);
+  if (post) {
+    const slug = decodeURIComponent(post[1]);
+    void queryClient.prefetchQuery({ queryKey: keys.blogPost(slug), queryFn: () => api.getBlogPost(slug) });
+    return;
+  }
   if (queryClient.getQueryState(keys.activeSeason)?.status !== "success") return;
   const seasonId = queryClient.getQueryData<api.ActiveSeasonInfo | null>(keys.activeSeason)?.season_id;
   const player = /^\/j\/([^/]+)\/?$/.exec(pathname);
@@ -85,10 +98,10 @@ export function preloadWhenIdle(list: AnyPage[]): () => void {
   return whenIdle(() => list.forEach((p) => p.preload().catch(ignore)));
 }
 
-export const publicPages: AnyPage[] = [pages.stats, pages.pokedex, pages.bans, pages.team, pages.player, pages.pokedexEntry];
+export const publicPages: AnyPage[] = [pages.blog, pages.blogPost, pages.stats, pages.pokedex, pages.bans, pages.team, pages.player, pages.pokedexEntry];
 export const adminPages: AnyPage[] = [
   pages.stats, pages.battles, pages.seasons, pages.players, pages.rosters, pages.adminBans,
-  pages.fairPlay, pages.ingest, pages.statsBot, pages.leagueSettings,
+  pages.fairPlay, pages.ingest, pages.statsBot, pages.leagueSettings, pages.adminBlog,
 ];
 
 /**

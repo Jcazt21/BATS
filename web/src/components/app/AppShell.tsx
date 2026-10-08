@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { motion, type Transition } from "motion/react";
-import { BarChart3, BookOpen, House, LogOut, Monitor, Moon, ShieldBan, ShieldCheck, Sun, UserRound, Users } from "lucide-react";
+import { BarChart3, BookOpen, House, LogOut, Monitor, Moon, Newspaper, ShieldBan, ShieldCheck, Sun, UserRound, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -19,6 +19,7 @@ import { preloadWhenIdle, publicPages } from "@/routes";
 
 const NAV = [
   { to: "/", label: "Inicio", icon: House, end: true },
+  { to: "/blog", label: "Blog", icon: Newspaper },
   { to: "/stats", label: "Estadísticas", icon: BarChart3 },
   { to: "/pokedex", label: "Pokédex", icon: BookOpen },
   { to: "/bans", label: "Bans", icon: ShieldBan },

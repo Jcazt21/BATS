@@ -8,6 +8,8 @@ from typing import Any, List, Optional
 
 from pydantic import BaseModel, Field
 
+from ..blog import MAX_CHARS, TITLE_MAX
+
 
 # ── Equipos (bats_core/api/routes/teams.py) ────────────────────────────────────
 
@@ -158,3 +160,18 @@ class DeleteFilesRequest(BaseModel):
     # empujadas por la API es 'push:<battle_id>'; para las cargadas antes de la
     # migración es la ruta absoluta que tenía el log en disco.
     file_paths: List[str]
+
+
+# ── Blog (bats_core/api/routes/blog.py) ───────────────────────────────────────
+
+class CreateBlogPostRequest(BaseModel):
+    title:      str  = Field(max_length=TITLE_MAX)
+    content_md: str  = Field(max_length=MAX_CHARS)
+    publish:    bool = False   # False = borrador
+
+
+class UpdateBlogPostRequest(BaseModel):
+    """PATCH /api/admin/blog/{id} — campos opcionales; el slug nunca cambia."""
+    title:        Optional[str]  = Field(None, max_length=TITLE_MAX)
+    content_md:   Optional[str]  = Field(None, max_length=MAX_CHARS)
+    is_published: Optional[bool] = None

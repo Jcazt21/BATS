@@ -220,7 +220,10 @@ class TestRutasReales(unittest.TestCase):
 
     def test_me_no_lo_captura_la_ruta_username(self):
         # Si /{username} se declarara antes, /me se trataría como un jugador llamado "me".
-        paths = [r.path for r in real_app.routes if getattr(r, "path", "").startswith("/api/teams/")]
+        # Se mira el router de teams y no real_app.routes: desde starlette 1.x los
+        # routers incluidos no se aplanan en app.routes.
+        from bats_core.api.routes import teams
+        paths = [r.path for r in teams.router.routes]
         self.assertLess(paths.index("/api/teams/me"), paths.index("/api/teams/{username}"))
 
     def test_votar_exige_sesion(self):
@@ -243,7 +246,7 @@ class TestRutasReales(unittest.TestCase):
         self.assertIn(r.status_code, (404, 405))
 
     def test_rutas_publicas_de_lectura_no_piden_sesion(self):
-        paths = {r.path for r in real_app.routes if getattr(r, "path", "")}
+        paths = set(real_app.openapi()["paths"])
         for p in ("/api/ban/ranking", "/api/ban/status", "/api/ban/active",
                   "/api/teams/active-season", "/api/stats/summary"):
             self.assertIn(p, paths)

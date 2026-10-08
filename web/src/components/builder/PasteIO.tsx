@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { ClipboardCopy, Import } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { Dex } from "@/lib/dex/snapshot";
+import type { DexEssentials } from "@/lib/dex/snapshot";
 import { speciesById } from "@/lib/dex/snapshot";
 import type { BuilderMon } from "@/lib/dex/validate";
 import { parsePaste, toPaste } from "@/lib/showdown";
 import { useToast } from "@/lib/toast";
 
 interface Props {
-  dex: Dex;
+  dex: DexEssentials;
   team: BuilderMon[];
   maxSize: number;
   onImport: (mons: BuilderMon[]) => void;

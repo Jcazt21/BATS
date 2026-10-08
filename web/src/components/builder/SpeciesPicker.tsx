@@ -5,7 +5,7 @@ import { TypeBadges } from "@/components/app/TypeBadge";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import type { BuilderMon } from "@/lib/dex/validate";
-import type { Dex, Species, SpeciesFilters } from "@/lib/dex/snapshot";
+import type { DexEssentials, Species, SpeciesFilters } from "@/lib/dex/snapshot";
 import { searchSpecies, speciesById } from "@/lib/dex/snapshot";
 import { POKEMON_TYPES, typeLabel } from "@/lib/pokemon-types";
 import { cn } from "@/lib/utils";
@@ -18,7 +18,7 @@ export interface SpeciesHint {
 }
 
 interface Props {
-  dex: Dex;
+  dex: DexEssentials;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onPick: (species: Species) => void;

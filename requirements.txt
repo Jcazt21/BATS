@@ -8,8 +8,8 @@
 # comportamiento de app.routes y rompe tests que lo inspeccionan, aunque el
 # ruteo real siga funcionando. Fijar ambas versiones da builds reproducibles
 # en CI y en Vercel en vez de agarrar lo último que exista el día del build.
-fastapi==0.135.1
-starlette==0.52.1
+fastapi==0.142.2
+starlette==1.7.0
 psycopg2-binary>=2.9
 python-dotenv>=1.0.0
 python-jose[cryptography]>=3.3

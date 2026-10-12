@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SetEditor } from "./SetEditor";
@@ -151,5 +151,13 @@ describe("SetEditor", () => {
     await user.click(await screen.findByPlaceholderText("Movimiento 4"));
     await user.click(await screen.findByRole("option", { name: /Fire Fang/ }));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ moves: ["Earthquake", "Fire Fang"] }));
+  });
+
+  it("marca en el resumen la stat que sube y la que baja la naturaleza", async () => {
+    renderWithClient(<SetEditor mon={baseMon({ nature: "Impish" })} dex={DEX} onChange={vi.fn()} />);
+    const summary = await screen.findByLabelText("Resumen de stats");
+    expect(within(summary).getByLabelText(/^Def .*sube por la naturaleza/)).toHaveTextContent("↑");
+    expect(within(summary).getByLabelText(/^SpA .*baja por la naturaleza/)).toHaveTextContent("↓");
+    expect(within(summary).getByLabelText(/^Atk \d+$/)).not.toHaveTextContent(/[↑↓]/);
   });
 });

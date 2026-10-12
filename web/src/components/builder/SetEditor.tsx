@@ -9,6 +9,7 @@ import type { DexEssentials } from "@/lib/dex/snapshot";
 import { speciesById, toId } from "@/lib/dex/snapshot";
 import type { BuilderMon } from "@/lib/dex/validate";
 import { POKEMON_TYPES, typeLabel, type PokemonType } from "@/lib/pokemon-types";
+import { cn } from "@/lib/utils";
 
 interface Props {
   mon: BuilderMon;
@@ -129,9 +130,12 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
   const evs = normalizeSpread(mon.evs);
   const ivs = normalizeSpread(mon.ivs);
   const stats = STAT_IDS.map((id) => {
-    const mult = nature ? (nature.plus === id ? 1.1 : nature.minus === id ? 0.9 : 1) : 1;
+    // Una naturaleza neutra tiene plus === minus: no marca nada.
+    const neutral = !nature || nature.plus === nature.minus;
+    const boost = neutral ? 0 : nature.plus === id ? 1 : nature.minus === id ? -1 : 0;
+    const mult = boost === 1 ? 1.1 : boost === -1 ? 0.9 : 1;
     const value = computeStat(species.baseStats[id] ?? 0, evs[id] ?? 0, ivs[id] ?? 31, id === "hp", mult);
-    return { id, label: STAT_LABELS[id], value };
+    return { id, label: STAT_LABELS[id], value, boost };
   });
 
   const pick = (pattern: RegExp) => errors.filter((e) => pattern.test(e));
@@ -224,9 +228,17 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
 
       <div aria-label="Resumen de stats" className="grid grid-cols-3 gap-2 rounded-xl border border-border bg-muted/30 p-3 text-caption sm:grid-cols-6">
         {stats.map((s) => (
-          <div key={s.id} className="flex flex-col items-center">
-            <span className="text-muted-foreground">{s.label}</span>
-            <span className="font-medium text-foreground">{s.value}</span>
+          <div
+            key={s.id}
+            aria-label={`${s.label} ${s.value}${s.boost === 1 ? ", sube por la naturaleza" : s.boost === -1 ? ", baja por la naturaleza" : ""}`}
+            className="flex flex-col items-center"
+          >
+            <span className={cn("text-muted-foreground", s.boost === 1 && "text-success", s.boost === -1 && "text-destructive")}>
+              {s.label}
+              {s.boost === 1 && " ↑"}
+              {s.boost === -1 && " ↓"}
+            </span>
+            <span className="font-medium text-foreground tabular">{s.value}</span>
           </div>
         ))}
       </div>

@@ -12,6 +12,14 @@ const STAT_META = [
   { id: "spe", label: "Spe" },
 ] as const;
 
+/** Repartos habituales: un toque y luego se ajusta a mano. Reemplazan los EVs, no los IVs. */
+const PRESETS: { label: string; evs: Record<string, number> }[] = [
+  { label: "Atacante físico", evs: { HP: 4, Atk: 252, Spe: 252 } },
+  { label: "Atacante especial", evs: { HP: 4, SpA: 252, Spe: 252 } },
+  { label: "Muro físico", evs: { HP: 252, Def: 252, SpD: 4 } },
+  { label: "Muro especial", evs: { HP: 252, Def: 4, SpD: 252 } },
+];
+
 const MAX_TOTAL = 510;
 const MAX_EV = 252;
 const MAX_IV = 31;
@@ -56,10 +64,31 @@ export function EVEditor({ evs, ivs, onChange }: Props) {
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between text-footnote">
         <span className="font-medium text-foreground">EVs</span>
-        <span className={cn("text-muted-foreground", remaining < 0 && "font-medium text-destructive")}>
+        <span className={cn("tabular text-muted-foreground", remaining < 0 && "font-medium text-destructive")}>
           {total}/{MAX_TOTAL}
-          {remaining < 0 && " — pasado del máximo"}
+          {remaining < 0 ? " — pasado del máximo" : remaining > 0 ? ` · quedan ${remaining}` : ""}
         </span>
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        {PRESETS.map((p) => (
+          <button
+            key={p.label}
+            type="button"
+            onClick={() => onChange({ evs: { ...p.evs }, ivs })}
+            className="rounded-full bg-muted px-2.5 py-1 text-caption text-foreground transition-colors hover:bg-accent"
+          >
+            {p.label}
+          </button>
+        ))}
+        <button
+          type="button"
+          aria-label="Limpiar EVs"
+          onClick={() => onChange({ evs: {}, ivs })}
+          className="rounded-full px-2.5 py-1 text-caption text-muted-foreground transition-colors hover:bg-muted"
+        >
+          Limpiar
+        </button>
       </div>
 
       {STAT_META.map((s) => {

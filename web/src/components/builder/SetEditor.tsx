@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from "react";
 import { EVEditor } from "@/components/builder/EVEditor";
+import { Button } from "@/components/ui/button";
 import { Combobox, type ComboboxItem } from "@/components/ui/combobox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/app/States";
@@ -60,7 +61,7 @@ function typeName(id: string): string {
  */
 export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
   const species = speciesById(dex, mon.species);
-  const learnset = useLearnset(species?.id ?? null);
+  const { learnset, error: learnsetError, retry: retryLearnset } = useLearnset(species?.id ?? null);
   const details = useDexDetails();
 
   const itemItems: ComboboxItem[] = useMemo(
@@ -75,7 +76,7 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
   );
   const moveItems: ComboboxItem[] = useMemo(() => {
     const speciesTypes = new Set((species?.types ?? []).map(toId));
-    return learnset
+    return (learnset ?? [])
       .map((id) => details.data?.moves[id])
       .filter((mv): mv is NonNullable<typeof mv> => !!mv)
       .map((mv) => {
@@ -125,6 +126,8 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
   }
 
   const chosenMoveIds = mon.moves.map(toId);
+  // Sin learnset (cargando o fallido) no hay qué ofrecer: los slots vacíos quedan apagados.
+  const learnsetLoading = learnset === null && !learnsetError;
 
   const nature = mon.nature ? dexDetails.natures[toId(mon.nature)] : null;
   const evs = normalizeSpread(mon.evs);
@@ -216,7 +219,8 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
                   onClear={() => clearMove(i)}
                   clearLabel={`Quitar movimiento ${i + 1}`}
                   // Si el valor no está en la lista (ilegal, o aún cargando), se ve tal cual.
-                  placeholder={mon.moves[i] ?? `Movimiento ${i + 1}`}
+                  placeholder={mon.moves[i] ?? (learnsetLoading ? "Cargando movimientos…" : `Movimiento ${i + 1}`)}
+                  disabled={learnset === null && !mon.moves[i]}
                   emptyText="Sin movimientos legales que coincidan"
                 />
                 {desc && <p className="px-1 text-caption text-muted-foreground">{desc}</p>}
@@ -224,6 +228,14 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
             );
           })}
         </div>
+        {learnsetError && (
+          <div role="alert" className="mt-1 flex items-center justify-between gap-2 rounded-xl bg-destructive/10 px-3 py-2 text-caption text-destructive">
+            <span>No se pudieron cargar los movimientos</span>
+            <Button type="button" variant="secondary" size="xs" onClick={retryLearnset}>
+              Reintentar
+            </Button>
+          </div>
+        )}
         <ErrorList items={moveErrors} />
       </Field>
 

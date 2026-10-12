@@ -170,6 +170,43 @@ describe("SetEditor", () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ moves: [] }));
   });
 
+  it("mientras carga el learnset, los slots vacíos están deshabilitados con 'Cargando movimientos…'", async () => {
+    vi.stubGlobal("fetch", vi.fn((url: string) => {
+      if (url === "/dex/learnsets/g.json") return new Promise(() => {}); // nunca resuelve
+      if (url === "/dex/meta.json") return Promise.resolve({ ok: true, json: () => Promise.resolve(DEX.meta) } as Response);
+      if (url.startsWith("/dex/moves.json")) return Promise.resolve({ ok: true, json: () => Promise.resolve(MOVES) } as Response);
+      if (url.startsWith("/dex/natures.json")) return Promise.resolve({ ok: true, json: () => Promise.resolve(NATURES) } as Response);
+      return Promise.resolve({ ok: false, status: 404 } as Response);
+    }));
+    renderWithClient(<SetEditor mon={baseMon({ moves: ["Earthquake"] })} dex={DEX} onChange={vi.fn()} />);
+    const loading = await screen.findAllByPlaceholderText("Cargando movimientos…");
+    expect(loading).toHaveLength(3);
+    for (const el of loading) expect(el).toBeDisabled();
+    // El movimiento ya elegido sigue mostrando su nombre.
+    expect(screen.getByPlaceholderText("Earthquake")).toBeInTheDocument();
+  });
+
+  it("si el learnset falla, avisa y Reintentar vuelve a pedirlo", async () => {
+    const user = userEvent.setup();
+    let fail = true;
+    vi.stubGlobal("fetch", vi.fn((url: string) => {
+      if (url === "/dex/learnsets/g.json") {
+        if (fail) return Promise.reject(new Error("sin red"));
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ garchomp: ["earthquake"] }) } as Response);
+      }
+      if (url === "/dex/meta.json") return Promise.resolve({ ok: true, json: () => Promise.resolve(DEX.meta) } as Response);
+      if (url.startsWith("/dex/moves.json")) return Promise.resolve({ ok: true, json: () => Promise.resolve(MOVES) } as Response);
+      if (url.startsWith("/dex/natures.json")) return Promise.resolve({ ok: true, json: () => Promise.resolve(NATURES) } as Response);
+      return Promise.resolve({ ok: false, status: 404 } as Response);
+    }));
+    renderWithClient(<SetEditor mon={baseMon()} dex={DEX} onChange={vi.fn()} />);
+    expect(await screen.findByText("No se pudieron cargar los movimientos")).toBeInTheDocument();
+    fail = false;
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(await screen.findAllByPlaceholderText(/Movimiento 1/)).toHaveLength(1);
+    expect(screen.queryByText("No se pudieron cargar los movimientos")).not.toBeInTheDocument();
+  });
+
   it("deja quitar una habilidad que la especie no tiene", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

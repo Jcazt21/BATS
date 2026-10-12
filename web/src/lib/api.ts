@@ -458,7 +458,9 @@ export interface BanRankingEntry {
 
 export interface BanStatus { total_authorized: number; total_voted: number; total_votes_cast: number; voting_open: boolean }
 
-export interface ChecklistRow { rule: string; label: string; ok: boolean; names: string[] }
+export interface ChecklistRow { rule: string; label: string; ok: boolean; names: string[];
+  /** `false` = informativa: no impide registrar el equipo (p. ej. tipo del mes). Por defecto bloquea. */
+  blocking?: boolean }
 export interface TeamValidation { ok: boolean; checklist: ChecklistRow[] }
 
 export interface RotationHistory {

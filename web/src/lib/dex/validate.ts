@@ -186,8 +186,11 @@ export function checkTeam(
   const violations = checkTeamEntries(entries, season.restrictions, season.type_of_month, lineup);
   const failed = new Map(violations.map((v) => [v.rule, v]));
   const rows: ChecklistRow[] = [];
-  const add = (rule: string, label: string, names: string[] = []) => {
-    rows.push({ rule, label, ok: !failed.has(rule), names: failed.get(rule)?.names ?? names });
+  const add = (rule: string, label: string, names: string[] = [], blocking?: boolean) => {
+    rows.push({
+      rule, label, ok: !failed.has(rule), names: failed.get(rule)?.names ?? names,
+      ...(blocking === false ? { blocking } : {}),
+    });
   };
 
   if (season.max_team_size != null) {
@@ -203,7 +206,7 @@ export function checkTeam(
     const hits = entries.filter((e) => banned.has(e.name.toLowerCase())).map((e) => e.name);
     rows.push({ rule: "banned", label: "Sin pokémon baneados", ok: !hits.length, names: hits });
   }
-  if (season.type_of_month) add("type_of_month", `Al menos 1 pokémon de tipo ${season.type_of_month}`);
+  if (season.type_of_month) add("type_of_month", `Al menos 1 pokémon de tipo ${season.type_of_month}`, [], false);
   if (rules.required_generation) {
     add("required_generation", `Al menos 1 pokémon de la generación ${rules.required_generation}`);
   }
@@ -254,18 +257,22 @@ function speciesAbilities(sp: Species): Set<string> {
 /**
  * Errores de un set individual: movimiento ilegal o repetido, EVs/IVs fuera de rango,
  * habilidad que la especie no tiene, más de 4 movimientos, objeto inexistente.
- * `learnset` son los ids de movimiento legales de la especie (lib/dex/learnsets.ts).
+ * `learnset` son los ids de movimiento legales de la especie (lib/dex/learnsets.ts);
+ * `null` = aún no cargado: se omite solo la comprobación "no aprende", para no dar
+ * errores falsos mientras llega.
  */
-export function checkSet(dex: DexEssentials, learnset: string[], mon: BuilderMon): string[] {
+export function checkSet(dex: DexEssentials, learnset: string[] | null, mon: BuilderMon): string[] {
   const errors: string[] = [];
   const sp = speciesById(dex, mon.species);
   if (!sp) return [`"${mon.species}" no existe en el dex.`];
 
-  const legalMoves = new Set(learnset.map(toId));
+  const legalMoves = learnset ? new Set(learnset.map(toId)) : null;
   const moveIds = mon.moves.map(toId).filter(Boolean);
-  for (const [i, id] of moveIds.entries()) {
-    const original = mon.moves[i];
-    if (!legalMoves.has(id)) errors.push(`${sp.name} no aprende ${original}.`);
+  if (legalMoves) {
+    for (const [i, id] of moveIds.entries()) {
+      const original = mon.moves[i];
+      if (!legalMoves.has(id)) errors.push(`${sp.name} no aprende ${original}.`);
+    }
   }
   const seen = new Set<string>();
   for (const id of moveIds) {

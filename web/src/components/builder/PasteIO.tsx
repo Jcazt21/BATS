@@ -7,11 +7,13 @@ import type { BuilderMon } from "@/lib/dex/validate";
 import { parsePaste, toPaste } from "@/lib/showdown";
 import { useToast } from "@/lib/toast";
 
+export type ImportMode = "replace" | "append";
+
 interface Props {
   dex: DexEssentials;
   team: BuilderMon[];
   maxSize: number;
-  onImport: (mons: BuilderMon[]) => void;
+  onImport: (mons: BuilderMon[], mode: ImportMode) => void;
   placeholder?: string;
 }
 
@@ -23,6 +25,9 @@ interface Props {
 export function PasteIO({ dex, team, maxSize, onImport, placeholder }: Props) {
   const [paste, setPaste] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Paste ya validado que espera confirmación porque el equipo actual no está vacío.
+  const [pending, setPending] = useState<BuilderMon[] | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const { toast } = useToast();
 
   function importPaste() {
@@ -41,7 +46,7 @@ export function PasteIO({ dex, team, maxSize, onImport, placeholder }: Props) {
       setError(`Son ${blocks.length} pokémon y el máximo es ${maxSize}. Quita alguno del paste.`);
       return;
     }
-    onImport(blocks.map((b): BuilderMon => ({
+    const mons = blocks.map((b): BuilderMon => ({
       species: speciesById(dex, b.species)!.name,
       held_item: b.held_item ?? null,
       ability: b.ability ?? null,
@@ -50,7 +55,30 @@ export function PasteIO({ dex, team, maxSize, onImport, placeholder }: Props) {
       moves: b.moves,
       evs: b.evs,
       ivs: b.ivs,
-    })));
+    }));
+    setNotice(null);
+    if (team.length === 0) {
+      onImport(mons, "replace");
+      setPaste("");
+      return;
+    }
+    setPending(mons);
+  }
+
+  const present = new Set(team.map((m) => m.species.toLowerCase()));
+  const fresh = pending ? pending.filter((m) => !present.has(m.species.toLowerCase())) : [];
+  const skipped = pending ? pending.filter((m) => present.has(m.species.toLowerCase())).map((m) => m.species) : [];
+  const canAppend = fresh.length > 0 && team.length + fresh.length <= maxSize;
+
+  function confirm(mode: ImportMode) {
+    if (!pending) return;
+    if (mode === "replace") {
+      onImport(pending, "replace");
+    } else {
+      onImport(fresh, "append");
+      if (skipped.length) setNotice(`Omitimos ${skipped.join(", ")} porque ya está en tu equipo.`);
+    }
+    setPending(null);
     setPaste("");
   }
 
@@ -88,6 +116,18 @@ export function PasteIO({ dex, team, maxSize, onImport, placeholder }: Props) {
           <ClipboardCopy /> Copiar equipo
         </Button>
       </div>
+      {pending && (
+        <div role="group" aria-label="Confirmar importación" className="flex flex-col gap-2 rounded-2xl bg-muted p-3.5 text-footnote">
+          <p>Esto reemplaza tus {team.length} pokémon.</p>
+          {skipped.length > 0 && <p className="text-muted-foreground">Si agregas, omitimos {skipped.join(", ")} porque ya está en tu equipo.</p>}
+          <div className="flex flex-wrap gap-2">
+            <Button variant="destructive" size="sm" onClick={() => confirm("replace")}>Reemplazar</Button>
+            {canAppend && <Button variant="secondary" size="sm" onClick={() => confirm("append")}>Agregar al final</Button>}
+            <Button variant="ghost" size="sm" onClick={() => setPending(null)}>Cancelar</Button>
+          </div>
+        </div>
+      )}
+      {notice && <p role="status" className="text-footnote text-muted-foreground">{notice}</p>}
       {error && <p role="alert" className="text-footnote text-destructive">{error}</p>}
     </div>
   );

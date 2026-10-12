@@ -1,4 +1,4 @@
-# Teambuilder BATS + equipos regulados — Plan de implementación
+ok# Teambuilder BATS + equipos regulados — Plan de implementación
 
 > **Para quien ejecute esto:** las tareas van en orden; cada una termina con test verde y commit.
 > Todo el código, los comentarios y los textos de UI van **en español**.
@@ -39,7 +39,7 @@ coinciden con los de Showdown y sin learnsets, tags ni BST. Por eso:
    de la temporada.
 3. Se guardan sets completos (`roster_pokemon` tiene item/ability/nature/tera/moves/evs/ivs desde
    `v4.sql`) pero **nadie los hace cumplir**: en batalla se puede llevar cualquier cosa y el ETL solo
-   deja un registro en `tournament.team_violations` *después*.
+   deja un registro en `tournament.team_violations` _después_.
 4. Construir el equipo es "pega el paste y reza": sin buscador, sin sprites al elegir, sin saber qué
    movimientos son legales, sin ver qué regla te falta hasta que envías.
 
@@ -109,17 +109,19 @@ canonical) · `components/ui/combobox.tsx` · `components/builder/TeamBuilder.ts
 ### Task 1: Exportador del dex
 
 **Files:**
+
 - Create: `bats/tools/export_dex.js`, `bats/tools/check_dex_export.js`
 - Genera: `bats/web/public/dex/{meta,species,moves,items,abilities,natures}.json` y
   `bats/web/public/dex/learnsets/<letra>.json`
 
 **Interfaces:**
+
 - Produce: `meta.json = { generated_at, ps_commit, counts, formats: { league, sparring } }`
 - Produce: `species.json = { [id]: { id, name, num, types, bst, baseStats, color, eggGroups, gen,
-  tags, abilities, spriteid, baseSpecies, forme, prevo, isNonstandard, restricted, paradox, pseudo,
-  ultraBeast, leagueLegal } }`
+tags, abilities, spriteid, baseSpecies, forme, prevo, isNonstandard, restricted, paradox, pseudo,
+ultraBeast, leagueLegal } }`
 - Produce: `moves.json = { [id]: { id, name, type, category, basePower, accuracy, pp, priority,
-  shortDesc } }`, `items.json`/`abilities.json` = `{ [id]: { id, name, desc } }`,
+shortDesc } }`, `items.json`/`abilities.json` = `{ [id]: { id, name, desc } }`,
   `natures.json = { [id]: { name, plus, minus } }`
 - Produce: `learnsets/<c>.json = { [speciesId]: string[] }` — ids de movimiento legales en NatDex.
 
@@ -129,34 +131,54 @@ canonical) · `components/ui/combobox.tsx` · `components/builder/TeamBuilder.ts
 no cuadra:
 
 ```js
-'use strict';
-const fs = require('fs');
-const path = require('path');
+"use strict";
+const fs = require("fs");
+const path = require("path");
 
-const DEX = path.resolve(__dirname, '..', 'web', 'public', 'dex');
-const read = f => JSON.parse(fs.readFileSync(path.join(DEX, f), 'utf8'));
+const DEX = path.resolve(__dirname, "..", "web", "public", "dex");
+const read = (f) => JSON.parse(fs.readFileSync(path.join(DEX, f), "utf8"));
 let fails = 0;
-const check = (ok, msg) => { if (!ok) { console.error(`✗ ${msg}`); fails++; } else console.log(`✓ ${msg}`); };
+const check = (ok, msg) => {
+  if (!ok) {
+    console.error(`✗ ${msg}`);
+    fails++;
+  } else console.log(`✓ ${msg}`);
+};
 
-const species = read('species.json');
-const moves = read('moves.json');
-const meta = read('meta.json');
+const species = read("species.json");
+const moves = read("moves.json");
+const meta = read("meta.json");
 
-check(Object.keys(species).length > 1000, 'más de 1000 especies exportadas');
-check(species.garchomp.bst === 600 && species.garchomp.pseudo === true, 'Garchomp es pseudo-legendario');
-check(species.garchomp.leagueLegal === true, 'Garchomp es legal en la liga');
-check(species.koraidon.paradox === true, 'Koraidon es Paradox');
-check(species.koraidon.restricted === true, 'Koraidon es restricted legendary');
-check(species.buzzwole.ultraBeast === true, 'Buzzwole es Ultra Beast');
-check(species.zaciancrowned.leagueLegal === false, 'Zacian-Crowned está prohibido');
-check(species.pikachu.color === 'Yellow' && species.pikachu.gen === 1, 'Pikachu: color y generación');
-check(species.dragonite.eggGroups.includes('Water 1'), 'Dragonite conserva sus egg groups');
-check(moves.earthquake.basePower === 100, 'Earthquake tiene 100 de poder');
+check(Object.keys(species).length > 1000, "más de 1000 especies exportadas");
+check(
+  species.garchomp.bst === 600 && species.garchomp.pseudo === true,
+  "Garchomp es pseudo-legendario",
+);
+check(species.garchomp.leagueLegal === true, "Garchomp es legal en la liga");
+check(species.koraidon.paradox === true, "Koraidon es Paradox");
+check(species.koraidon.restricted === true, "Koraidon es restricted legendary");
+check(species.buzzwole.ultraBeast === true, "Buzzwole es Ultra Beast");
+check(
+  species.zaciancrowned.leagueLegal === false,
+  "Zacian-Crowned está prohibido",
+);
+check(
+  species.pikachu.color === "Yellow" && species.pikachu.gen === 1,
+  "Pikachu: color y generación",
+);
+check(
+  species.dragonite.eggGroups.includes("Water 1"),
+  "Dragonite conserva sus egg groups",
+);
+check(moves.earthquake.basePower === 100, "Earthquake tiene 100 de poder");
 
-const bucket = read(path.join('learnsets', 'g.json'));
-check(bucket.garchomp.includes('earthquake'), 'Garchomp aprende Earthquake');
-check(!bucket.garchomp.includes('psychic'), 'Garchomp NO aprende Psychic');
-check(!!meta.generated_at && !!meta.ps_commit, 'meta tiene fecha y commit de PS');
+const bucket = read(path.join("learnsets", "g.json"));
+check(bucket.garchomp.includes("earthquake"), "Garchomp aprende Earthquake");
+check(!bucket.garchomp.includes("psychic"), "Garchomp NO aprende Psychic");
+check(
+  !!meta.generated_at && !!meta.ps_commit,
+  "meta tiene fecha y commit de PS",
+);
 
 process.exit(fails ? 1 : 0);
 ```
@@ -172,82 +194,136 @@ Expected: FAIL — `ENOENT ... web/public/dex/species.json`.
 Núcleo:
 
 ```js
-'use strict';
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+"use strict";
+const fs = require("fs");
+const path = require("path");
+const { execSync } = require("child_process");
 
-const PS_DIR = process.env.BATS_PS_DIR || path.resolve(__dirname, '..', '..', 'pokemon-showdown');
-const OUT = path.resolve(__dirname, '..', 'web', 'public', 'dex');
-const LEAGUE = 'gen9pinchesgueysleague';
-const LEGENDARY_TAGS = new Set(['Sub-Legendary', 'Restricted Legendary', 'Mythical', 'Ultra Beast', 'Paradox']);
+const PS_DIR =
+  process.env.BATS_PS_DIR ||
+  path.resolve(__dirname, "..", "..", "pokemon-showdown");
+const OUT = path.resolve(__dirname, "..", "web", "public", "dex");
+const LEAGUE = "gen9pinchesgueysleague";
+const LEGENDARY_TAGS = new Set([
+  "Sub-Legendary",
+  "Restricted Legendary",
+  "Mythical",
+  "Ultra Beast",
+  "Paradox",
+]);
 
-const { Dex } = require(path.join(PS_DIR, 'dist/sim/dex'));
+const { Dex } = require(path.join(PS_DIR, "dist/sim/dex"));
 Dex.formats.load();
 
 const dex = Dex.forFormat(LEAGUE);
-const ruleTable = Dex.formats.get(LEAGUE).ruleTable || dex.formats.get(LEAGUE).ruleTable;
+const ruleTable =
+  Dex.formats.get(LEAGUE).ruleTable || dex.formats.get(LEAGUE).ruleTable;
 
 const write = (file, data) => {
-	fs.mkdirSync(path.dirname(path.join(OUT, file)), { recursive: true });
-	fs.writeFileSync(path.join(OUT, file), JSON.stringify(data));
+  fs.mkdirSync(path.dirname(path.join(OUT, file)), { recursive: true });
+  fs.writeFileSync(path.join(OUT, file), JSON.stringify(data));
 };
 
 const species = {};
-const learnsets = {};      // bucket -> { speciesId: [moveId] }
+const learnsets = {}; // bucket -> { speciesId: [moveId] }
 for (const sp of dex.species.all()) {
-	if (sp.isNonstandard && sp.isNonstandard !== 'Past' && sp.isNonstandard !== 'Unobtainable') continue;
-	const tags = sp.tags || [];
-	const bst = Object.values(sp.baseStats).reduce((a, b) => a + b, 0);
-	species[sp.id] = {
-		id: sp.id, name: sp.name, num: sp.num, types: sp.types, bst, baseStats: sp.baseStats,
-		color: sp.color, eggGroups: sp.eggGroups, gen: dex.species.get(sp.baseSpecies || sp.name).gen,
-		tags, abilities: Object.values(sp.abilities), spriteid: sp.spriteid,
-		baseSpecies: sp.baseSpecies, forme: sp.forme || null, prevo: sp.prevo || null,
-		isNonstandard: sp.isNonstandard || null,
-		restricted: tags.some(t => ['Sub-Legendary', 'Restricted Legendary', 'Mythical'].includes(t)),
-		paradox: tags.includes('Paradox'),
-		ultraBeast: tags.includes('Ultra Beast'),
-		pseudo: bst === 600 && !tags.some(t => LEGENDARY_TAGS.has(t)),
-		leagueLegal: !ruleTable.isBannedSpecies(sp) && !tags.includes('Ultra Beast'),
-	};
-	const bucket = /^[a-z]/.test(sp.id) ? sp.id[0] : '0';
-	(learnsets[bucket] ||= {})[sp.id] = [...dex.species.getMovePool(sp.id, true)];
+  if (
+    sp.isNonstandard &&
+    sp.isNonstandard !== "Past" &&
+    sp.isNonstandard !== "Unobtainable"
+  )
+    continue;
+  const tags = sp.tags || [];
+  const bst = Object.values(sp.baseStats).reduce((a, b) => a + b, 0);
+  species[sp.id] = {
+    id: sp.id,
+    name: sp.name,
+    num: sp.num,
+    types: sp.types,
+    bst,
+    baseStats: sp.baseStats,
+    color: sp.color,
+    eggGroups: sp.eggGroups,
+    gen: dex.species.get(sp.baseSpecies || sp.name).gen,
+    tags,
+    abilities: Object.values(sp.abilities),
+    spriteid: sp.spriteid,
+    baseSpecies: sp.baseSpecies,
+    forme: sp.forme || null,
+    prevo: sp.prevo || null,
+    isNonstandard: sp.isNonstandard || null,
+    restricted: tags.some((t) =>
+      ["Sub-Legendary", "Restricted Legendary", "Mythical"].includes(t),
+    ),
+    paradox: tags.includes("Paradox"),
+    ultraBeast: tags.includes("Ultra Beast"),
+    pseudo: bst === 600 && !tags.some((t) => LEGENDARY_TAGS.has(t)),
+    leagueLegal:
+      !ruleTable.isBannedSpecies(sp) && !tags.includes("Ultra Beast"),
+  };
+  const bucket = /^[a-z]/.test(sp.id) ? sp.id[0] : "0";
+  (learnsets[bucket] ||= {})[sp.id] = [...dex.species.getMovePool(sp.id, true)];
 }
 
 const moves = {};
 for (const mv of dex.moves.all()) {
-	if (mv.isNonstandard && mv.isNonstandard !== 'Past') continue;
-	moves[mv.id] = {
-		id: mv.id, name: mv.name, type: mv.type, category: mv.category, basePower: mv.basePower,
-		accuracy: mv.accuracy, pp: mv.pp, priority: mv.priority, shortDesc: mv.shortDesc || mv.desc || '',
-	};
+  if (mv.isNonstandard && mv.isNonstandard !== "Past") continue;
+  moves[mv.id] = {
+    id: mv.id,
+    name: mv.name,
+    type: mv.type,
+    category: mv.category,
+    basePower: mv.basePower,
+    accuracy: mv.accuracy,
+    pp: mv.pp,
+    priority: mv.priority,
+    shortDesc: mv.shortDesc || mv.desc || "",
+  };
 }
 
 const items = {};
 for (const it of dex.items.all()) {
-	if (it.isNonstandard && it.isNonstandard !== 'Past') continue;
-	items[it.id] = { id: it.id, name: it.name, desc: it.shortDesc || it.desc || '' };
+  if (it.isNonstandard && it.isNonstandard !== "Past") continue;
+  items[it.id] = {
+    id: it.id,
+    name: it.name,
+    desc: it.shortDesc || it.desc || "",
+  };
 }
 const abilities = {};
 for (const ab of dex.abilities.all()) {
-	if (ab.isNonstandard && ab.isNonstandard !== 'Past') continue;
-	abilities[ab.id] = { id: ab.id, name: ab.name, desc: ab.shortDesc || ab.desc || '' };
+  if (ab.isNonstandard && ab.isNonstandard !== "Past") continue;
+  abilities[ab.id] = {
+    id: ab.id,
+    name: ab.name,
+    desc: ab.shortDesc || ab.desc || "",
+  };
 }
 const natures = {};
-for (const na of dex.natures.all()) natures[na.id] = { name: na.name, plus: na.plus || null, minus: na.minus || null };
+for (const na of dex.natures.all())
+  natures[na.id] = {
+    name: na.name,
+    plus: na.plus || null,
+    minus: na.minus || null,
+  };
 
-write('species.json', species);
-write('moves.json', moves);
-write('items.json', items);
-write('abilities.json', abilities);
-write('natures.json', natures);
-for (const [bucket, data] of Object.entries(learnsets)) write(path.join('learnsets', `${bucket}.json`), data);
-write('meta.json', {
-	generated_at: new Date().toISOString(),
-	ps_commit: execSync('git rev-parse --short HEAD', { cwd: PS_DIR }).toString().trim(),
-	counts: { species: Object.keys(species).length, moves: Object.keys(moves).length },
-	formats: { league: LEAGUE, sparring: 'gen9pglsparring' },
+write("species.json", species);
+write("moves.json", moves);
+write("items.json", items);
+write("abilities.json", abilities);
+write("natures.json", natures);
+for (const [bucket, data] of Object.entries(learnsets))
+  write(path.join("learnsets", `${bucket}.json`), data);
+write("meta.json", {
+  generated_at: new Date().toISOString(),
+  ps_commit: execSync("git rev-parse --short HEAD", { cwd: PS_DIR })
+    .toString()
+    .trim(),
+  counts: {
+    species: Object.keys(species).length,
+    moves: Object.keys(moves).length,
+  },
+  formats: { league: LEAGUE, sparring: "gen9pglsparring" },
 });
 console.log(`Dex exportado a ${OUT}`);
 ```
@@ -265,6 +341,7 @@ cd /Users/jazar/Documents/GitHub/pokemon-showdown && node build
 cd /Users/jazar/Documents/GitHub/bats && node tools/export_dex.js && node tools/check_dex_export.js
 du -sh web/public/dex          # referencia: debe quedar por debajo de 6 MB
 ```
+
 Expected: todas las líneas con `✓`, salida 0.
 
 - [x] **Paso 5: commit**
@@ -282,12 +359,14 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ### Task 2: Espejo del dex en Postgres
 
 **Files:**
+
 - Create: `bats/bats_core/db/migrations/v11.sql`, `bats/bats_core/dex.py`
 - Modify: `bats/bats_core/cli.py` (subcomando `dex`), `bats/bats_core/db/schema.sql` (no tocar: v11
   es aditiva y `--apply-schema` la aplica sola)
 - Test: `bats/tests/test_dex.py`
 
 **Interfaces:**
+
 - Consume: `web/public/dex/species.json` y `meta.json` (Task 1).
 - Produce: `bats_core.dex.import_snapshot(db, dex_dir) -> dict` (contadores),
   `bats_core.dex.species_meta(db, names: list[str]) -> dict[str, dict]` — clave = nombre tal cual lo
@@ -515,6 +594,7 @@ y en el despacho del subcomando:
 cd /Users/jazar/Documents/GitHub/bats
 BATS_TEST_DSN=postgresql://localhost/bats_dex_test pytest tests/test_dex.py -v
 ```
+
 Expected: 3 passed.
 
 - [x] **Paso 7: commit**
@@ -531,10 +611,12 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ### Task 3: Las reglas se verifican en el servidor con el dex
 
 **Files:**
+
 - Modify: `bats/bats_core/rules.py`, `bats/bats_core/api/routes/teams.py`
 - Test: `bats/tests/test_rules.py`
 
 **Interfaces:**
+
 - Consume: `bats_core.dex.species_meta` (Task 2).
 - Produce: `rules.check_team(entries, restrictions, type_of_month=None)` sigue con la misma firma,
   pero `entries` ahora trae `is_paradox`, `is_pseudo`, `is_ultra_beast`, `is_restricted`,
@@ -708,10 +790,12 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ### Task 4: Forma canónica de un set
 
 **Files:**
+
 - Create: `bats/bats_core/teamset.py`, `bats/tests/test_teamset.py`,
   `bats/tests/fixtures/sets_canonicos.json`
 
 **Interfaces:**
+
 - Produce: `teamset.canonical_set(entry: dict, primary_type: str | None = None) -> str`.
 - Produce: `tests/fixtures/sets_canonicos.json` = `[{ "set": {...}, "canonical": "..." }]`, el
   contrato que `config/formats.ts` tendrá que reproducir (Task 8).
@@ -721,6 +805,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
 <speciesid>|<itemid>|<abilityid>|<natureid>|<teraid>|<moveids ordenados, coma>|<evs>|<ivs>
 ```
+
 con `toID` = minúsculas sin caracteres no alfanuméricos; EVs/IVs siempre como seis números
 `hp,atk,def,spa,spd,spe` (EV ausente = 0, IV ausente = 31); tera vacío = tipo primario de la especie.
 Se ignoran apodo, nivel, género, shiny y felicidad.
@@ -769,10 +854,16 @@ parciales, con tera explícito, con nombre de forma `Urshifu-Rapid-Strike`). Eje
 ```json
 [
   {
-    "set": {"name": "Garchomp", "held_item": "Rocky Helmet", "ability": "Rough Skin",
-            "nature": "Impish", "tera_type": "Steel",
-            "moves": ["Earthquake", "Dragon Tail", "Stealth Rock", "Spikes"],
-            "evs": {"HP": 252, "Atk": 4, "SpD": 252}, "ivs": {}},
+    "set": {
+      "name": "Garchomp",
+      "held_item": "Rocky Helmet",
+      "ability": "Rough Skin",
+      "nature": "Impish",
+      "tera_type": "Steel",
+      "moves": ["Earthquake", "Dragon Tail", "Stealth Rock", "Spikes"],
+      "evs": { "HP": 252, "Atk": 4, "SpD": 252 },
+      "ivs": {}
+    },
     "canonical": "garchomp|rockyhelmet|roughskin|impish|steel|dragontail,earthquake,spikes,stealthrock|252,4,0,0,252,0|31,31,31,31,31,31"
   }
 ]
@@ -838,18 +929,20 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ### Task 5: Editar un set registrado y publicar los rosters
 
 **Files:**
+
 - Modify: `bats/bats_core/api/routes/teams.py`, `bats/bats_core/api/schemas.py`,
   `bats/bats_core/api/main.py`
 - Create: `bats/bats_core/api/routes/dex.py`
 - Test: `bats/tests/test_features.py` (clase nueva `TestEdicionDeSets`)
 
 **Interfaces:**
+
 - Produce: `PATCH /api/teams/me/pokemon/{pokemon_id}` — cuerpo `PokemonEntry`; cambia item, ability,
   nature, tera, moves, EVs e IVs **sin** consumir cambios. Rechaza si cambia la especie (ahí va
   `/me/swap`) y si el registro está cerrado o el roster bloqueado.
 - Produce: `GET /api/teams/rosters` (Bearer `BATS_INGEST_TOKEN`) →
   `{ "season_id": int, "enforcement": bool, "rosters": { "<username>": { "sets": ["<canonical>"],
-  "paste": "<paste de Showdown>" } } }`. `paste` es lo que el plugin le pasa al TeamValidator.
+"paste": "<paste de Showdown>" } } }`. `paste` es lo que el plugin le pasa al TeamValidator.
 - Produce: `GET /api/dex/meta` (público) → fila de `tournament.dex_meta`, para que el frontend avise
   si el snapshot estático y la base no coinciden.
 
@@ -1004,6 +1097,7 @@ def rosters_for_showdown():
 ```
 
 Hace falta además:
+
 - `require_ingest_token` en `teams.py` — importarlo de `..auth` (`service_token("BATS_INGEST_TOKEN")`,
   el mismo que usa `routes/ingest.py`).
 - `_pool_entries(db, roster_id, replace=None)` — helper nuevo que devuelve el pool actual como dicts,
@@ -1035,11 +1129,13 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ### Task 6: Veredicto del validador real de Showdown
 
 **Files:**
+
 - Modify: `bats/bats_core/api/routes/ingest.py`, `bats/bats_core/api/schemas.py`,
   `bats/bats_core/api/routes/teams.py` (`_load_roster` expone el veredicto)
 - Test: `bats/tests/test_ingest.py`
 
 **Interfaces:**
+
 - Produce: `POST /api/ingest/roster-validation` (Bearer `BATS_INGEST_TOKEN`), cuerpo
   `{ "ps_commit": str | None, "results": { "<username>": ["<error>", ...] } }` → guarda en
   `tournament.roster.validation_errors / validated_at / validated_commit`. Lista vacía = equipo OK.
@@ -1083,7 +1179,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 - [x] **Paso 3: implementar** el endpoint (una sola transacción, `UPDATE ... WHERE season_id = %s AND
 LOWER(username) = %s`, devolviendo `{"ok": True, "updated": n}`) y el bloque `validation` en
-`_load_roster`.
+      `_load_roster`.
 
 - [x] **Paso 4: tests en verde** — `pytest tests/test_ingest.py -v`.
 
@@ -1096,36 +1192,54 @@ LOWER(username) = %s`, devolviendo `{"ok": True, "updated": n}`) y el bloque `va
 ### Task 7: Exponer al validador quién está validando
 
 **Files:**
+
 - Modify: `pokemon-showdown/sim/team-validator.ts`, `pokemon-showdown/sim/dex-formats.ts`
 - Test: `pokemon-showdown/test/sim/team-validator.js` (o el archivo de tests de formatos existente)
 
 **Por qué:** `onValidateTeam(team, format, teamHas)` no recibe la identidad del jugador
 (`sim/team-validator.ts:474-480`), pero `options.user` sí llega a `validateTeam` en tiempo de
 ejecución desde `server/team-validator-async.ts:25` (lo pone `server/ladders.ts:110,124`). Sin
-el usuario no se puede comparar el equipo contra *su* roster.
+el usuario no se puede comparar el equipo contra _su_ roster.
 
 **Interfaces:**
+
 - Produce: `TeamValidator.validatingUser: ID | null`, asignado al principio de `baseValidateTeam` y
   legible desde `onValidateTeam` (que se invoca con `.call(this, …)`).
 
 - [x] **Paso 1: test**
 
 ```js
-describe('TeamValidator (parche BATS)', () => {
-	it('expone el usuario que valida a onValidateTeam', () => {
-		const validator = TeamValidator.get('gen9customgame@@@-nonexistent');
-		let visto = null;
-		const format = validator.format;
-		Object.defineProperty(format, 'onValidateTeam', {
-			configurable: true,
-			value(team) { visto = this.validatingUser; },
-		});
-		validator.validateTeam([{species: 'Pikachu', ability: 'Static', moves: ['Thunderbolt'],
-			evs: {}, ivs: {}, level: 100, name: 'Pikachu'}], {user: 'pglpepe'});
-		assert.equal(visto, 'pglpepe');
-	});
+describe("TeamValidator (parche BATS)", () => {
+  it("expone el usuario que valida a onValidateTeam", () => {
+    const validator = TeamValidator.get("gen9customgame@@@-nonexistent");
+    let visto = null;
+    const format = validator.format;
+    Object.defineProperty(format, "onValidateTeam", {
+      configurable: true,
+      value(team) {
+        visto = this.validatingUser;
+      },
+    });
+    validator.validateTeam(
+      [
+        {
+          species: "Pikachu",
+          ability: "Static",
+          moves: ["Thunderbolt"],
+          evs: {},
+          ivs: {},
+          level: 100,
+          name: "Pikachu",
+        },
+      ],
+      { user: "pglpepe" },
+    );
+    assert.equal(visto, "pglpepe");
+  });
 
-	it('no arrastra el usuario de una validación a la siguiente', () => { /* valida sin `user` y comprueba null */ });
+  it("no arrastra el usuario de una validación a la siguiente", () => {
+    /* valida sin `user` y comprueba null */
+  });
 });
 ```
 
@@ -1152,7 +1266,7 @@ en `validateTeam` y `baseValidateTeam`, añadir `user?: ID` al tipo de `options`
 de `baseValidateTeam`:
 
 ```ts
-		this.validatingUser = options.user || null;
+this.validatingUser = options.user || null;
 ```
 
 - [x] **Paso 4: verificar**
@@ -1163,6 +1277,7 @@ npx tsc --noEmit            # debe seguir con el único error preexistente de ba
 npx eslint sim/team-validator.ts
 npx mocha test/sim/team-validator.js -g "parche BATS"
 ```
+
 Expected: test PASS, sin errores nuevos de tsc/eslint.
 
 - [x] **Paso 5: commit**
@@ -1180,11 +1295,13 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ### Task 8: El formato rechaza sets no registrados
 
 **Files:**
+
 - Modify: `pokemon-showdown/config/formats.ts`
 - Create: `bats/tools/roster_parity.js`
 - Test: `pokemon-showdown/test/sim/...` (equipo válido/ inválido) + `tools/roster_parity.js`
 
 **Interfaces:**
+
 - Consume: `active_rosters.json` en la raíz de PS (lo escribe el plugin, Task 9):
   `{ season_id, enforcement, rosters: { "<userid>": { "sets": ["<canonical>"] } } }`.
 - Produce: `canonicalSet(dex, set): string` en `config/formats.ts` — espejo exacto de
@@ -1196,24 +1313,38 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 TypeScript compilada (`dist/config/formats.js` exporta `canonicalSet` para pruebas):
 
 ```js
-'use strict';
-const path = require('path');
-const fs = require('fs');
-const PS_DIR = process.env.BATS_PS_DIR || path.resolve(__dirname, '..', '..', 'pokemon-showdown');
-const { Dex } = require(path.join(PS_DIR, 'dist/sim/dex'));
-const { canonicalSet } = require(path.join(PS_DIR, 'dist/config/formats'));
+"use strict";
+const path = require("path");
+const fs = require("fs");
+const PS_DIR =
+  process.env.BATS_PS_DIR ||
+  path.resolve(__dirname, "..", "..", "pokemon-showdown");
+const { Dex } = require(path.join(PS_DIR, "dist/sim/dex"));
+const { canonicalSet } = require(path.join(PS_DIR, "dist/config/formats"));
 
-const cases = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', 'tests', 'fixtures', 'sets_canonicos.json'), 'utf8'));
+const cases = JSON.parse(
+  fs.readFileSync(
+    path.resolve(__dirname, "..", "tests", "fixtures", "sets_canonicos.json"),
+    "utf8",
+  ),
+);
 let fails = 0;
 for (const c of cases) {
-	const set = {
-		species: c.set.name, item: c.set.held_item || '', ability: c.set.ability || '',
-		nature: c.set.nature || '', teraType: c.set.tera_type || '', moves: c.set.moves || [],
-		evs: c.set.evs || {}, ivs: c.set.ivs || {},
-	};
-	const got = canonicalSet(Dex.forFormat('gen9pinchesgueysleague'), set);
-	if (got !== c.canonical) { console.error(`✗ ${c.set.name}\n  py: ${c.canonical}\n  ts: ${got}`); fails++; }
-	else console.log(`✓ ${c.set.name}`);
+  const set = {
+    species: c.set.name,
+    item: c.set.held_item || "",
+    ability: c.set.ability || "",
+    nature: c.set.nature || "",
+    teraType: c.set.tera_type || "",
+    moves: c.set.moves || [],
+    evs: c.set.evs || {},
+    ivs: c.set.ivs || {},
+  };
+  const got = canonicalSet(Dex.forFormat("gen9pinchesgueysleague"), set);
+  if (got !== c.canonical) {
+    console.error(`✗ ${c.set.name}\n  py: ${c.canonical}\n  ts: ${got}`);
+    fails++;
+  } else console.log(`✓ ${c.set.name}`);
 }
 process.exit(fails ? 1 : 0);
 ```
@@ -1233,61 +1364,71 @@ existe):
 
 ```ts
 interface ActiveRosters {
-	enforcement: boolean;
-	rosters: { [userid: string]: { sets: string[] } };
+  enforcement: boolean;
+  rosters: { [userid: string]: { sets: string[] } };
 }
 
 function loadActiveRosters(): ActiveRosters | null {
-	try {
-		const rostersPath = path.resolve(process.cwd(), 'active_rosters.json');
-		if (!fs.existsSync(rostersPath)) return null;
-		return JSON.parse(fs.readFileSync(rostersPath, 'utf8')) as ActiveRosters;
-	} catch {
-		return null;   // archivo corrupto: no bloquear a nadie
-	}
+  try {
+    const rostersPath = path.resolve(process.cwd(), "active_rosters.json");
+    if (!fs.existsSync(rostersPath)) return null;
+    return JSON.parse(fs.readFileSync(rostersPath, "utf8")) as ActiveRosters;
+  } catch {
+    return null; // archivo corrupto: no bloquear a nadie
+  }
 }
 
-const STAT_IDS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const;
+const STAT_IDS = ["hp", "atk", "def", "spa", "spd", "spe"] as const;
 
 /**
  * Forma canónica de un set. Espejo EXACTO de bats_core/teamset.py::canonical_set en BATS;
  * bats/tools/roster_parity.js comprueba que las dos coinciden. Si cambias una, cambia la otra.
  */
 export function canonicalSet(dex: ModdedDex, set: PokemonSet): string {
-	const species = dex.species.get(set.species);
-	const spread = (raw: Partial<StatsTable> | undefined, def: number) =>
-		STAT_IDS.map(s => String((raw as any)?.[s] ?? def)).join(',');
-	const moves = (set.moves || []).map(m => toID(m)).filter(Boolean).sort();
-	return [
-		toID(species.name), toID(set.item), toID(set.ability), toID(set.nature),
-		toID(set.teraType || species.types[0]), moves.join(','),
-		spread(set.evs, 0), spread(set.ivs, 31),
-	].join('|');
+  const species = dex.species.get(set.species);
+  const spread = (raw: Partial<StatsTable> | undefined, def: number) =>
+    STAT_IDS.map((s) => String((raw as any)?.[s] ?? def)).join(",");
+  const moves = (set.moves || [])
+    .map((m) => toID(m))
+    .filter(Boolean)
+    .sort();
+  return [
+    toID(species.name),
+    toID(set.item),
+    toID(set.ability),
+    toID(set.nature),
+    toID(set.teraType || species.types[0]),
+    moves.join(","),
+    spread(set.evs, 0),
+    spread(set.ivs, 31),
+  ].join("|");
 }
 ```
 
 y dentro de `validateLeagueTeam`, antes del `return`:
 
 ```ts
-	// Equipo registrado en BATS: en batalla solo valen los sets que el jugador registró.
-	const rosterData = loadActiveRosters();
-	const userid = (this as any).validatingUser as string | null;   // parche de sim/team-validator.ts
-	if (monthly && rosterData?.enforcement && userid) {
-		const roster = rosterData.rosters[userid];
-		if (!roster) {
-			errors.push(`No tienes un equipo registrado en BATS. Regístralo antes de batallar.`);
-		} else {
-			const registered = new Set(roster.sets);
-			for (const set of team) {
-				if (!registered.has(canonicalSet(dex, set))) {
-					errors.push(
-						`${dex.species.get(set.species).name} no coincide con ningún set registrado en BATS ` +
-						`(objeto, habilidad, naturaleza, tera, movimientos, EVs e IVs deben ser idénticos).`
-					);
-				}
-			}
-		}
-	}
+// Equipo registrado en BATS: en batalla solo valen los sets que el jugador registró.
+const rosterData = loadActiveRosters();
+const userid = (this as any).validatingUser as string | null; // parche de sim/team-validator.ts
+if (monthly && rosterData?.enforcement && userid) {
+  const roster = rosterData.rosters[userid];
+  if (!roster) {
+    errors.push(
+      `No tienes un equipo registrado en BATS. Regístralo antes de batallar.`,
+    );
+  } else {
+    const registered = new Set(roster.sets);
+    for (const set of team) {
+      if (!registered.has(canonicalSet(dex, set))) {
+        errors.push(
+          `${dex.species.get(set.species).name} no coincide con ningún set registrado en BATS ` +
+            `(objeto, habilidad, naturaleza, tera, movimientos, EVs e IVs deben ser idénticos).`,
+        );
+      }
+    }
+  }
+}
 ```
 
 Nota: `validateLeagueTeam` recibe `dex` como primer parámetro y se llama con `this.dex` desde
@@ -1302,6 +1443,7 @@ firma a `validateLeagueTeam(validator: TeamValidator, team, monthly)` y dentro
 cd /Users/jazar/Documents/GitHub/pokemon-showdown && node build && npx eslint config/formats.ts
 cd /Users/jazar/Documents/GitHub/bats && node tools/roster_parity.js
 ```
+
 Expected: paridad ✓ en todas las fixtures.
 
 Prueba manual en sandbox (**sin tocar el `active_rosters.json` real**): copiar el fork a un
@@ -1316,10 +1458,12 @@ cambiado). El segundo debe fallar con el mensaje nuevo.
 ### Task 9: El plugin sincroniza rosters y devuelve el veredicto
 
 **Files:**
+
 - Modify: `pokemon-showdown/server/chat-plugins/bats-ingest.ts`
 - Test: `pokemon-showdown/test/server/chat-plugins/bats-ingest.js`
 
 **Interfaces:**
+
 - Consume: `GET /api/teams/rosters` (Task 5), `POST /api/ingest/roster-validation` (Task 6).
 - Produce: `active_rosters.json` en la raíz de PS y el POST del veredicto tras cada sincronización.
 
@@ -1336,57 +1480,73 @@ POST con una entrada por jugador.
 
 ```ts
 async function syncRosters() {
-	const { url, token } = settings();
-	if (!url || !token) return;
-	try {
-		const res = await fetch(`${url}/api/teams/rosters`, {
-			headers: { Authorization: `Bearer ${token}` },
-			signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
-		});
-		if (!res.ok) {
-			Monitor.warn(`[bats-ingest] sync de rosters: HTTP ${res.status}`);
-			return;   // sin temporada activa o API caída: no tocar el archivo actual
-		}
-		const data = await res.json() as { rosters?: unknown, enforcement?: unknown };
-		if (typeof data.rosters !== 'object' || data.rosters === null || Array.isArray(data.rosters)) {
-			Monitor.warn(`[bats-ingest] sync de rosters: respuesta con formato inesperado`);
-			return;
-		}
-		const next = JSON.stringify(data, null, 2);
-		const file = FS('active_rosters.json');
-		if ((await file.readIfExists()).trim() === next) return;
-		await file.write(next + '\n');
-		Monitor.notice(`[bats-ingest] active_rosters.json actualizado (${Object.keys(data.rosters).length} equipos).`);
-		await validateRosters(data as any);
-	} catch (e: any) {
-		Monitor.warn(`[bats-ingest] sync de rosters: ${e?.message || e}`);
-	}
+  const { url, token } = settings();
+  if (!url || !token) return;
+  try {
+    const res = await fetch(`${url}/api/teams/rosters`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+    if (!res.ok) {
+      Monitor.warn(`[bats-ingest] sync de rosters: HTTP ${res.status}`);
+      return; // sin temporada activa o API caída: no tocar el archivo actual
+    }
+    const data = (await res.json()) as {
+      rosters?: unknown;
+      enforcement?: unknown;
+    };
+    if (
+      typeof data.rosters !== "object" ||
+      data.rosters === null ||
+      Array.isArray(data.rosters)
+    ) {
+      Monitor.warn(
+        `[bats-ingest] sync de rosters: respuesta con formato inesperado`,
+      );
+      return;
+    }
+    const next = JSON.stringify(data, null, 2);
+    const file = FS("active_rosters.json");
+    if ((await file.readIfExists()).trim() === next) return;
+    await file.write(next + "\n");
+    Monitor.notice(
+      `[bats-ingest] active_rosters.json actualizado (${Object.keys(data.rosters).length} equipos).`,
+    );
+    await validateRosters(data as any);
+  } catch (e: any) {
+    Monitor.warn(`[bats-ingest] sync de rosters: ${e?.message || e}`);
+  }
 }
 
 /** Doble comprobación: pasa cada equipo registrado por el TeamValidator real y devuelve los errores a BATS. */
-async function validateRosters(data: { rosters: { [u: string]: { paste: string } } }) {
-	const { url, token } = settings();
-	const results: { [userid: string]: string[] } = {};
-	for (const [userid, roster] of Object.entries(data.rosters)) {
-		try {
-			const sets = Teams.import(roster.paste);
-			results[userid] = sets?.length
-				? (TeamValidator.get('gen9pinchesgueysleague').validateTeam(sets) ?? [])
-				: ['No se pudo leer el equipo registrado.'];
-		} catch (e: any) {
-			results[userid] = [`Error del validador: ${e?.message || e}`];
-		}
-	}
-	try {
-		await fetch(`${url}/api/ingest/roster-validation`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-			body: JSON.stringify({ ps_commit: null, results }),
-			signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS * 3),
-		});
-	} catch (e: any) {
-		Monitor.warn(`[bats-ingest] veredicto de rosters: ${e?.message || e}`);
-	}
+async function validateRosters(data: {
+  rosters: { [u: string]: { paste: string } };
+}) {
+  const { url, token } = settings();
+  const results: { [userid: string]: string[] } = {};
+  for (const [userid, roster] of Object.entries(data.rosters)) {
+    try {
+      const sets = Teams.import(roster.paste);
+      results[userid] = sets?.length
+        ? (TeamValidator.get("gen9pinchesgueysleague").validateTeam(sets) ?? [])
+        : ["No se pudo leer el equipo registrado."];
+    } catch (e: any) {
+      results[userid] = [`Error del validador: ${e?.message || e}`];
+    }
+  }
+  try {
+    await fetch(`${url}/api/ingest/roster-validation`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ ps_commit: null, results }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS * 3),
+    });
+  } catch (e: any) {
+    Monitor.warn(`[bats-ingest] veredicto de rosters: ${e?.message || e}`);
+  }
 }
 ```
 
@@ -1398,7 +1558,7 @@ falso error de tamaño, así que `validateTeam` se llama sobre el paste completo
 dejarlo anotado en el código.
 
 - [x] **Paso 4: verificar** — `npx tsc --noEmit`, `npx eslint server/chat-plugins/bats-ingest.ts`,
-`npx mocha test/server/chat-plugins/bats-ingest.js`.
+      `npx mocha test/server/chat-plugins/bats-ingest.js`.
 
 - [x] **Paso 5: commit.**
 
@@ -1409,11 +1569,13 @@ dejarlo anotado en el código.
 ### Task 10: Capa de datos del snapshot en el cliente
 
 **Files:**
+
 - Create: `bats/web/src/lib/dex/snapshot.ts`, `bats/web/src/lib/dex/learnsets.ts`,
   `bats/web/src/lib/dex/snapshot.test.ts`
 - Modify: `bats/web/src/lib/showdown.ts` (paste con nivel, género, shiny y felicidad)
 
 **Interfaces:**
+
 - Produce: `loadDex(): Promise<Dex>` con
   `Dex = { meta, species: Record<string, Species>, moves, items, abilities, natures }`, memoizado a
   nivel de módulo y con la URL versionada (`/dex/species.json?v=<meta.generated_at>`).
@@ -1425,8 +1587,8 @@ dejarlo anotado en el código.
   "Urshifu-Rapid-Strike").
 
 - [x] **Paso 1: tests** (vitest, con `fetch` mockeado sobre un snapshot mínimo): resolución por
-  nombre/id/forma, búsqueda con filtros combinados, un solo `fetch` por archivo aunque se llame dos
-  veces, learnset cacheado por bucket, especie inexistente → `null`.
+      nombre/id/forma, búsqueda con filtros combinados, un solo `fetch` por archivo aunque se llame dos
+      veces, learnset cacheado por bucket, especie inexistente → `null`.
 - [x] **Paso 2: `cd web && npx vitest run src/lib/dex` → FAIL.**
 - [x] **Paso 3: implementar.**
 - [x] **Paso 4: `npx vitest run` → PASS (los 13 tests de `showdown.test.ts` siguen verdes).**
@@ -1437,12 +1599,14 @@ dejarlo anotado en el código.
 ### Task 11: Motor de reglas en el cliente
 
 **Files:**
+
 - Create: `bats/web/src/lib/dex/validate.ts`, `bats/web/src/lib/dex/validate.test.ts`
 
 **Interfaces:**
+
 - Consume: `loadDex`, `loadLearnset` (Task 10); `ActiveSeason` de `lib/api.ts`.
 - Produce: `checkTeam(dex, team: BuilderMon[], season, banned): { rows: ChecklistRow[], setErrors:
-  Record<string, string[]> }` — `rows` con la **misma forma** que devuelve `POST /api/teams/me/validate`
+Record<string, string[]> }` — `rows` con la **misma forma** que devuelve `POST /api/teams/me/validate`
   (`{ rule, label, ok, names }`), para poder pintar ambos con `ChecklistPanel`.
 - Produce: `checkSet(dex, learnset, mon): string[]` — movimiento ilegal, movimiento repetido,
   EVs > 510 o > 252 en una stat, IV fuera de 0-31, habilidad que la especie no tiene, más de 4
@@ -1461,10 +1625,12 @@ generación, egg group, item clause, paradox, pseudo, restricted, UB, tamaño, b
 ### Task 12: Combobox y selector de especies
 
 **Files:**
+
 - Create: `bats/web/src/components/ui/combobox.tsx`,
   `bats/web/src/components/builder/SpeciesPicker.tsx`
 
 **Interfaces:**
+
 - Produce: `<Combobox items={{id,label,sublabel,icon}[]} value onChange placeholder emptyText />` —
   accesible con teclado (flechas, Enter, Esc), `role="combobox"`/`aria-expanded`, virtualizado por
   simple `slice(0, 50)`.
@@ -1479,18 +1645,20 @@ Reutilizar sin reescribir: `components/app/PokemonSprite.tsx`, `components/app/T
 `components/ui/input.tsx`, `components/ui/badge.tsx`, `lib/motion.ts`.
 
 - [x] **Pasos:** test de `Combobox` con vitest + Testing Library (filtra, selecciona con teclado,
-  anuncia resultados) → FAIL → implementar → PASS → commit. `SpeciesPicker` se verifica en la
-  Task 16 (revisión visual).
+      anuncia resultados) → FAIL → implementar → PASS → commit. `SpeciesPicker` se verifica en la
+      Task 16 (revisión visual).
 
 ---
 
 ### Task 13: Editor de sets
 
 **Files:**
+
 - Create: `bats/web/src/components/builder/SetEditor.tsx`,
   `bats/web/src/components/builder/EVEditor.tsx`
 
 **Interfaces:**
+
 - Consume: `Combobox` (Task 12), `loadLearnset`/`checkSet` (Tasks 10-11).
 - Produce: `<SetEditor mon={BuilderMon} dex onChange={(mon) => void} errors={string[]} />` con:
   objeto, habilidad (solo las de la especie), naturaleza (mostrando +stat/−stat), tipo Tera, cuatro
@@ -1502,13 +1670,14 @@ Reutilizar sin reescribir: `components/app/PokemonSprite.tsx`, `components/app/T
 Los errores se muestran junto al campo que los causa, no en un bloque al final.
 
 - [x] **Pasos:** tests (no deja elegir un movimiento fuera del learnset; pasar de 510 EVs marca
-  error; cambiar la naturaleza actualiza el resumen de stats) → FAIL → implementar → PASS → commit.
+      error; cambiar la naturaleza actualiza el resumen de stats) → FAIL → implementar → PASS → commit.
 
 ---
 
 ### Task 14: TeamBuilder y reescritura de TeamPage
 
 **Files:**
+
 - Create: `bats/web/src/components/builder/TeamBuilder.tsx`,
   `bats/web/src/components/builder/PasteIO.tsx`
 - Modify: `bats/web/src/pages/TeamPage.tsx`, `bats/web/src/lib/api.ts`,
@@ -1517,6 +1686,7 @@ Los errores se muestran junto al campo que los causa, no en un bloque al final.
   `bats/web/src/components/team/PasteBuilder.tsx`
 
 **Interfaces:**
+
 - Consume: todo lo anterior.
 - Produce: `<TeamBuilder initial={BuilderMon[]} season banned onSave />` — columna izquierda con los
   hasta 8 pokémon (sprite, tipos, objeto; arrastrables para reordenar no es necesario), columna
@@ -1535,18 +1705,20 @@ pokémon guardados no traen color/gen/egg group y había que ir a PokéAPI. Con 
 resuelven en memoria: **borrar ese hook**.
 
 - [x] **Pasos:** test de `PasteIO` (pegar el equipo de ejemplo de `showdown.test.ts` produce 1 mon
-  resuelto con tipos correctos; una especie inventada se marca) → FAIL → implementar → `npx tsc -b`,
-  `npm run lint` (0 errores), `npx vitest run` → PASS → commit.
+      resuelto con tipos correctos; una especie inventada se marca) → FAIL → implementar → `npx tsc -b`,
+      `npm run lint` (0 errores), `npx vitest run` → PASS → commit.
 
 ---
 
 ### Task 15: Admin y visibilidad
 
 **Files:**
+
 - Modify: `bats/web/src/pages/admin/` (página de reglas y una vista de rosters),
   `bats/bats_core/api/routes/admin.py`
 
 **Interfaces:**
+
 - `roster_enforcement` y `max_restricted` aparecen solos en la página de reglas: `RestrictionField`
   ya se genera desde `RESTRICTION_SPEC` vía `GET /api/rules/...`. **Verificarlo**, no reimplementarlo.
 - Produce: `GET /api/admin/rosters` → por jugador: nº de pokémon, estado de validación de Showdown,
@@ -1562,15 +1734,16 @@ resuelven en memoria: **borrar ese hook**.
 ### Task 16: Documentación y verificación de punta a punta
 
 **Files:**
+
 - Modify: `/Users/jazar/Documents/GitHub/CLAUDE.md`, `bats/BATS_DOCS.md`,
   `bats/MIGRACION_VERCEL_SUPABASE.md`, `bats/BATS_API.postman_collection.json`,
   `bats/bats_core/paths.py` (`BATS_ACTIVE_ROSTERS_FILE`)
 
 - [x] **Paso 1:** en `CLAUDE.md`, actualizar: el diagrama de arquitectura (tercer archivo
-  sincronizado, `active_rosters.json`), la lista de puntos de contacto por filesystem, el apartado de
-  parches a PS (ahora son **tres**: `sockets.ts`, `onBattleLogged` y `validatingUser`), los comandos
-  (`node tools/export_dex.js`, `python -m bats_core dex --import`) y la sección de reglas del dominio
-  (el dex es la fuente de verdad; PokéAPI ya no se usa en el teambuilder).
+      sincronizado, `active_rosters.json`), la lista de puntos de contacto por filesystem, el apartado de
+      parches a PS (ahora son **tres**: `sockets.ts`, `onBattleLogged` y `validatingUser`), los comandos
+      (`node tools/export_dex.js`, `python -m bats_core dex --import`) y la sección de reglas del dominio
+      (el dex es la fuente de verdad; PokéAPI ya no se usa en el teambuilder).
 - [x] **Paso 2:** endpoints nuevos en la colección de Postman.
 - [x] **Paso 3:** verificación completa (abajo).
 - [x] **Paso 4:** commit.
@@ -1580,6 +1753,7 @@ resuelven en memoria: **borrar ese hook**.
 ## Verificación
 
 **Backend + reglas**
+
 ```bash
 createdb bats_teambuilder_test
 cd /Users/jazar/Documents/GitHub/bats && source venv/bin/activate
@@ -1589,6 +1763,7 @@ python -m bats_core dex --import --dsn postgresql://localhost/bats_teambuilder_t
 ```
 
 **Showdown**
+
 ```bash
 cd /Users/jazar/Documents/GitHub/pokemon-showdown
 npx tsc --noEmit                 # solo el error preexistente de battle-teams.ts
@@ -1599,12 +1774,14 @@ cd ../bats && node tools/check_dex_export.js && node tools/roster_parity.js
 ```
 
 **Frontend**
+
 ```bash
 cd /Users/jazar/Documents/GitHub/bats/web
 npx tsc -b && npm run lint && npx vitest run && npm run build
 ```
 
 **End to end, en local y con datos desechables:**
+
 1. `python -m bats_core api` contra `bats_teambuilder_test`, `npm run dev` en `web/`.
 2. Crear temporada con tipo del mes "Ice", `required_color: yellow`, `item_clause: true`,
    `roster_enforcement: true`; dar de alta una cuenta y meterla en el whitelist.
@@ -1621,9 +1798,7 @@ npx tsc -b && npm run lint && npx vitest run && npm run build
 6. Comprobar que `GET /api/teams/me` muestra `validation.state = "ok"` tras la sincronización.
 7. `dropdb bats_teambuilder_test` y borrar el sandbox de PS.
 
-**Despliegue (orden obligatorio):** 1) `node tools/export_dex.js` y commitear el snapshot;
-2) desplegar el código; 3) `python -m bats_core db --apply-schema --dsn <Supabase session>`;
-4) `python -m bats_core dex --import --dsn <Supabase session>`; 5) activar `roster_enforcement`
+**Despliegue (orden obligatorio):** 1) `node tools/export_dex.js` y commitear el snapshot; 2) desplegar el código; 3) `python -m bats_core db --apply-schema --dsn <Supabase session>`; 4) `python -m bats_core dex --import --dsn <Supabase session>`; 5) activar `roster_enforcement`
 en la temporada **solo cuando todos los equipos registrados aparezcan con `validation.state = "ok"`**
 (si no, nadie podrá batallar).
 

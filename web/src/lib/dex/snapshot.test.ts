@@ -132,6 +132,15 @@ describe("searchSpecies", () => {
     expect(ids("bst")).toEqual(["garchomp", "urshifurapidstrike", "abra"]);
     expect(ids("spe")).toEqual(["abra", "garchomp", "urshifurapidstrike"]);
   });
+
+  it("acepta los valores de la temporada aunque el dex los escriba distinto", async () => {
+    installFetchMock();
+    const base = await loadDexEssentials();
+    const psyduck = { ...SPECIES.garchomp, id: "psyduck", name: "Psyduck", color: "Yellow", eggGroups: ["Water 1", "Field"], types: ["Water"] };
+    const dex = { ...base, species: { ...base.species, psyduck } };
+    expect(searchSpecies(dex, "", { eggGroup: "water1" }).map((s) => s.id)).toEqual(["psyduck"]);
+    expect(searchSpecies(dex, "", { color: "yellow", type: "water" }).map((s) => s.id)).toEqual(["psyduck"]);
+  });
 });
 
 describe("toId", () => {

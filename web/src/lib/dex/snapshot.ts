@@ -171,12 +171,11 @@ export function searchSpecies(dex: DexEssentials, query: string, filters: Specie
   const qId = toId(query);
   const found = Object.values(dex.species).filter((sp) => {
     if (q && !sp.name.toLowerCase().includes(q) && !sp.id.includes(qId)) return false;
-    if (filters.type && !sp.types.some((t) => t.toLowerCase() === filters.type!.toLowerCase())) return false;
+    // Comparación por id: la temporada guarda "water1"/"human-like" y el dex "Water 1"/"Human-Like".
+    if (filters.type && !sp.types.some((t) => toId(t) === toId(filters.type))) return false;
     if (filters.gen && sp.gen !== filters.gen) return false;
-    if (filters.color && sp.color.toLowerCase() !== filters.color.toLowerCase()) return false;
-    if (filters.eggGroup && !sp.eggGroups.some((g) => g.toLowerCase() === filters.eggGroup!.toLowerCase())) {
-      return false;
-    }
+    if (filters.color && toId(sp.color) !== toId(filters.color)) return false;
+    if (filters.eggGroup && !sp.eggGroups.some((g) => toId(g) === toId(filters.eggGroup))) return false;
     if (filters.onlyLegal && !sp.leagueLegal) return false;
     return true;
   });

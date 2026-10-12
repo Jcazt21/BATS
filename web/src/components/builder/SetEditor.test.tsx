@@ -160,4 +160,21 @@ describe("SetEditor", () => {
     expect(within(summary).getByLabelText(/^SpA .*baja por la naturaleza/)).toHaveTextContent("↓");
     expect(within(summary).getByLabelText(/^Atk \d+$/)).not.toHaveTextContent(/[↑↓]/);
   });
+
+  it("muestra y deja quitar un movimiento que la especie no aprende", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    renderWithClient(<SetEditor mon={baseMon({ moves: ["Psychic"] })} dex={DEX} onChange={onChange} />);
+    expect(await screen.findByPlaceholderText("Psychic")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Quitar movimiento 1" }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ moves: [] }));
+  });
+
+  it("deja quitar una habilidad que la especie no tiene", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    renderWithClient(<SetEditor mon={baseMon({ ability: "Levitate" })} dex={DEX} onChange={onChange} />);
+    await user.click(await screen.findByRole("button", { name: "Quitar habilidad" }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ability: null }));
+  });
 });

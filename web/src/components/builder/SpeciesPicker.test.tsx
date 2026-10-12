@@ -95,4 +95,16 @@ describe("SpeciesPicker", () => {
     expect(screen.getByText("Jolteon")).toBeInTheDocument();
     expect(screen.queryByText("Garchomp")).not.toBeInTheDocument();
   });
+
+  it("un atajo con el valor de la temporada se ve en el select correspondiente", async () => {
+    const user = userEvent.setup();
+    render(
+      <SpeciesPicker
+        dex={SMALL} open onOpenChange={vi.fn()} onPick={vi.fn()}
+        hints={[{ label: "Te falta un pokémon de color yellow", filters: { color: "yellow" } }]}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /color yellow/ }));
+    expect(screen.getByLabelText("Color")).toHaveValue("Yellow");
+  });
 });

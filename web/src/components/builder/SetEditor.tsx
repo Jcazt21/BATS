@@ -157,7 +157,7 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
           onChange={(id) => patch({ held_item: dex.items[id]?.name ?? null })}
           onClear={() => patch({ held_item: null })}
           clearLabel="Quitar objeto"
-          placeholder="Sin objeto"
+          placeholder={mon.held_item ?? "Sin objeto"}
         />
         <ErrorList items={itemErrors} />
       </Field>
@@ -169,7 +169,7 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
           onChange={(id) => patch({ ability: abilityItems.find((a) => a.id === id)?.label ?? null })}
           onClear={() => patch({ ability: null })}
           clearLabel="Quitar habilidad"
-          placeholder="Elegir habilidad"
+          placeholder={mon.ability ?? "Elegir habilidad"}
         />
         <ErrorList items={abilityErrors} />
       </Field>
@@ -181,7 +181,7 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
           onChange={(id) => patch({ nature: natureItems.find((n) => n.id === id)?.label ?? null })}
           onClear={() => patch({ nature: null })}
           clearLabel="Quitar naturaleza"
-          placeholder="Elegir naturaleza"
+          placeholder={mon.nature ?? "Elegir naturaleza"}
         />
       </Field>
 
@@ -215,7 +215,8 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
                   onChange={(id) => setMove(i, id)}
                   onClear={() => clearMove(i)}
                   clearLabel={`Quitar movimiento ${i + 1}`}
-                  placeholder={`Movimiento ${i + 1}`}
+                  // Si el valor no está en la lista (ilegal, o aún cargando), se ve tal cual.
+                  placeholder={mon.moves[i] ?? `Movimiento ${i + 1}`}
                   emptyText="Sin movimientos legales que coincidan"
                 />
                 {desc && <p className="px-1 text-caption text-muted-foreground">{desc}</p>}

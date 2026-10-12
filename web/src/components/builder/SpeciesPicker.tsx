@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import type { BuilderMon } from "@/lib/dex/validate";
 import type { DexEssentials, Species, SpeciesFilters, SpeciesSort } from "@/lib/dex/snapshot";
 import type { SpeciesHint } from "@/lib/dex/hints";
-import { searchSpecies, speciesById } from "@/lib/dex/snapshot";
+import { searchSpecies, speciesById, toId } from "@/lib/dex/snapshot";
 import { POKEMON_TYPES, typeLabel } from "@/lib/pokemon-types";
 import { cn } from "@/lib/utils";
 
@@ -67,8 +67,12 @@ export function SpeciesPicker({ dex, open, onOpenChange, onPick, team = [], bann
   const results = matches.slice(0, MAX_RESULTS);
   const activeCount = [filters.type, filters.gen, filters.color, filters.eggGroup].filter((v) => v != null).length;
 
+  // Los atajos traen la grafía de la temporada ("yellow", "water1", "Ice"): se busca la opción
+  // equivalente del dex para que el control muestre el filtro que de verdad está activo.
+  const shown = (values: string[], current?: string) => (current ? values.find((v) => toId(v) === toId(current)) ?? "" : "");
+
   function toggleType(t: string) {
-    setFilters((f) => ({ ...f, type: f.type === t ? undefined : t }));
+    setFilters((f) => ({ ...f, type: toId(f.type) === t ? undefined : t }));
   }
 
   function setFilter<K extends "gen" | "color" | "eggGroup">(key: K, value: SpeciesFilters[K] | undefined) {
@@ -106,9 +110,9 @@ export function SpeciesPicker({ dex, open, onOpenChange, onPick, team = [], bann
             <button
               key={t}
               type="button"
-              aria-pressed={filters.type === t}
+              aria-pressed={toId(filters.type) === t}
               onClick={() => toggleType(t)}
-              className={cn(`type-${t} rounded-full px-2 py-0.5 text-caption transition-opacity`, filters.type !== t && "opacity-40")}
+              className={cn(`type-${t} rounded-full px-2 py-0.5 text-caption transition-opacity`, toId(filters.type) !== t && "opacity-40")}
             >
               {typeLabel(t)}
             </button>
@@ -126,7 +130,7 @@ export function SpeciesPicker({ dex, open, onOpenChange, onPick, team = [], bann
           </select>
           <select
             aria-label="Color" className={selectClass}
-            value={filters.color ?? ""}
+            value={shown(options.colors, filters.color)}
             onChange={(e) => setFilter("color", e.target.value || undefined)}
           >
             <option value="">Cualquier color</option>
@@ -134,7 +138,7 @@ export function SpeciesPicker({ dex, open, onOpenChange, onPick, team = [], bann
           </select>
           <select
             aria-label="Egg group" className={selectClass}
-            value={filters.eggGroup ?? ""}
+            value={shown(options.eggGroups, filters.eggGroup)}
             onChange={(e) => setFilter("eggGroup", e.target.value || undefined)}
           >
             <option value="">Cualquier egg group</option>

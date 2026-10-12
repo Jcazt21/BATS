@@ -129,7 +129,9 @@ export function Combobox({ items, value, onChange, placeholder, emptyText = "Sin
   }
 
   const activeItem = filtered[activeIndex];
-  const clearable = !!onClear && !!selected && !disabled;
+  // Por `value`, no por `selected`: un valor que ya no está en la lista (un movimiento ilegal
+  // importado de un paste) es justo el que más hace falta poder quitar.
+  const clearable = !!onClear && value != null && !disabled;
 
   return (
     <div ref={rootRef} className={cn("relative", className)}>

@@ -8,7 +8,7 @@ import { useDexDetails } from "@/lib/queries";
 import type { DexEssentials } from "@/lib/dex/snapshot";
 import { speciesById, toId } from "@/lib/dex/snapshot";
 import type { BuilderMon } from "@/lib/dex/validate";
-import { POKEMON_TYPES, typeLabel } from "@/lib/pokemon-types";
+import { POKEMON_TYPES, typeLabel, type PokemonType } from "@/lib/pokemon-types";
 
 interface Props {
   mon: BuilderMon;
@@ -36,6 +36,17 @@ function computeStat(base: number, ev: number, iv: number, isHp: boolean, nature
   return Math.floor((core + 5) * natureMult);
 }
 
+const CATEGORY_LABELS: Record<string, string> = { Physical: "Físico", Special: "Especial", Status: "Estado" };
+
+/** "Físico · 100 · 100% · STAB": lo que hace falta para elegir sin abrir la Pokédex. */
+function moveSublabel(mv: { category: string; basePower: number; accuracy: number | boolean }, stab: boolean): string {
+  const parts = [CATEGORY_LABELS[mv.category] ?? mv.category];
+  if (mv.category !== "Status") parts.push(String(mv.basePower));
+  parts.push(mv.accuracy === true ? "—" : `${mv.accuracy}%`);
+  if (stab) parts.push("STAB");
+  return parts.join(" · ");
+}
+
 /** "fire" -> "Fire": el dato real (tera_type, tipos) va siempre en inglés; typeLabel es solo UI. */
 function typeName(id: string): string {
   return id.charAt(0).toUpperCase() + id.slice(1);
@@ -61,16 +72,23 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
     })),
     [details.data],
   );
-  const moveItems: ComboboxItem[] = useMemo(
-    () => learnset
+  const moveItems: ComboboxItem[] = useMemo(() => {
+    const speciesTypes = new Set((species?.types ?? []).map(toId));
+    return learnset
       .map((id) => details.data?.moves[id])
       .filter((mv): mv is NonNullable<typeof mv> => !!mv)
-      .map((mv) => ({
-        id: mv.id, label: mv.name,
-        sublabel: `${mv.type} · ${mv.category}${mv.category === "Status" ? "" : ` · ${mv.basePower}`}`,
-      })),
-    [learnset, details.data],
-  );
+      .map((mv) => {
+        const type = toId(mv.type) as PokemonType;
+        const stab = mv.category !== "Status" && speciesTypes.has(type);
+        return {
+          id: mv.id, label: mv.name,
+          sublabel: moveSublabel(mv, stab),
+          // Buscar "fuego", "fire", "estado" o "flinch" también filtra.
+          keywords: `${mv.type} ${typeLabel(type)} ${CATEGORY_LABELS[mv.category] ?? ""} ${mv.shortDesc}`,
+          icon: <span className={`type-${type} shrink-0 rounded-full px-1.5 py-0.5 text-caption`}>{typeLabel(type)}</span>,
+        };
+      });
+  }, [learnset, details.data, species]);
   const abilityItems: ComboboxItem[] = useMemo(
     () => (species?.abilities ?? []).map((a) => ({ id: toId(a), label: a })),
     [species],
@@ -95,9 +113,17 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
     const move = dexDetails.moves[moveId];
     if (!move) return;
     const moves = [...mon.moves];
-    moves[index] = move.name;
+    // Elegir en un slot más allá de los ocupados lo agrega al final: sin huecos en el array.
+    if (index < moves.length) moves[index] = move.name;
+    else moves.push(move.name);
     onChange({ ...mon, moves });
   }
+
+  function clearMove(index: number) {
+    onChange({ ...mon, moves: mon.moves.filter((_, i) => i !== index) });
+  }
+
+  const chosenMoveIds = mon.moves.map(toId);
 
   const nature = mon.nature ? dexDetails.natures[toId(mon.nature)] : null;
   const evs = normalizeSpread(mon.evs);
@@ -125,6 +151,8 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
           items={itemItems}
           value={mon.held_item ? toId(mon.held_item) : null}
           onChange={(id) => patch({ held_item: dex.items[id]?.name ?? null })}
+          onClear={() => patch({ held_item: null })}
+          clearLabel="Quitar objeto"
           placeholder="Sin objeto"
         />
         <ErrorList items={itemErrors} />
@@ -135,6 +163,8 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
           items={abilityItems}
           value={mon.ability ? toId(mon.ability) : null}
           onChange={(id) => patch({ ability: abilityItems.find((a) => a.id === id)?.label ?? null })}
+          onClear={() => patch({ ability: null })}
+          clearLabel="Quitar habilidad"
           placeholder="Elegir habilidad"
         />
         <ErrorList items={abilityErrors} />
@@ -145,6 +175,8 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
           items={natureItems}
           value={mon.nature ? toId(mon.nature) : null}
           onChange={(id) => patch({ nature: natureItems.find((n) => n.id === id)?.label ?? null })}
+          onClear={() => patch({ nature: null })}
+          clearLabel="Quitar naturaleza"
           placeholder="Elegir naturaleza"
         />
       </Field>
@@ -166,16 +198,26 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
 
       <Field label="Movimientos">
         <div className="flex flex-col gap-2">
-          {MOVE_SLOTS.map((i) => (
-            <Combobox
-              key={i}
-              items={moveItems}
-              value={mon.moves[i] ? toId(mon.moves[i]) : null}
-              onChange={(id) => setMove(i, id)}
-              placeholder={`Movimiento ${i + 1}`}
-              emptyText="Sin movimientos legales que coincidan"
-            />
-          ))}
+          {MOVE_SLOTS.map((i) => {
+            const current = mon.moves[i] ? toId(mon.moves[i]) : null;
+            const desc = current ? dexDetails.moves[current]?.shortDesc : null;
+            // Un movimiento ya elegido en otro slot no se ofrece aquí.
+            const items = moveItems.filter((it) => it.id === current || !chosenMoveIds.includes(it.id));
+            return (
+              <div key={i} className="flex flex-col gap-0.5">
+                <Combobox
+                  items={items}
+                  value={current}
+                  onChange={(id) => setMove(i, id)}
+                  onClear={() => clearMove(i)}
+                  clearLabel={`Quitar movimiento ${i + 1}`}
+                  placeholder={`Movimiento ${i + 1}`}
+                  emptyText="Sin movimientos legales que coincidan"
+                />
+                {desc && <p className="px-1 text-caption text-muted-foreground">{desc}</p>}
+              </div>
+            );
+          })}
         </div>
         <ErrorList items={moveErrors} />
       </Field>

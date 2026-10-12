@@ -32,6 +32,7 @@ const baseMon = (over: Partial<BuilderMon> = {}): BuilderMon => ({
 const MOVES = {
   earthquake: { id: "earthquake", name: "Earthquake", type: "Ground", category: "Physical", basePower: 100, accuracy: 100, pp: 10, priority: 0, shortDesc: "" },
   dragontail: { id: "dragontail", name: "Dragon Tail", type: "Dragon", category: "Physical", basePower: 60, accuracy: 90, pp: 10, priority: -6, shortDesc: "" },
+  firefang: { id: "firefang", name: "Fire Fang", type: "Fire", category: "Physical", basePower: 65, accuracy: 95, pp: 15, priority: 0, shortDesc: "10% chance to burn. 10% chance to flinch." },
 };
 const NATURES = {
   impish: { name: "Impish", plus: "def", minus: "spa" },
@@ -46,7 +47,7 @@ function renderWithClient(ui: React.ReactElement) {
 function installLearnsetFetch() {
   vi.stubGlobal("fetch", vi.fn((url: string) => {
     if (url === "/dex/learnsets/g.json") {
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({ garchomp: ["earthquake", "dragontail"] }) } as Response);
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ garchomp: ["earthquake", "dragontail", "firefang"] }) } as Response);
     }
     if (url === "/dex/meta.json") return Promise.resolve({ ok: true, json: () => Promise.resolve(DEX.meta) } as Response);
     if (url.startsWith("/dex/moves.json")) return Promise.resolve({ ok: true, json: () => Promise.resolve(MOVES) } as Response);
@@ -101,5 +102,54 @@ describe("SetEditor", () => {
     await user.click(await screen.findByRole("option", { name: /Impish/ }));
 
     expect(screen.getByLabelText("Resumen de stats").textContent).not.toBe(before);
+  });
+
+  it("vaciar un movimiento lo quita sin dejar huecos", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    renderWithClient(<SetEditor mon={baseMon({ moves: ["Earthquake", "Dragon Tail"] })} dex={DEX} onChange={onChange} />);
+    await user.click(await screen.findByRole("button", { name: "Quitar movimiento 1" }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ moves: ["Dragon Tail"] }));
+  });
+
+  it("vaciar el objeto lo deja en null", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    renderWithClient(<SetEditor mon={baseMon({ held_item: "Leftovers" })} dex={DEX} onChange={onChange} />);
+    await user.click(await screen.findByRole("button", { name: "Quitar objeto" }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ held_item: null }));
+  });
+
+  it("no ofrece en otro slot un movimiento ya elegido", async () => {
+    const user = userEvent.setup();
+    renderWithClient(<SetEditor mon={baseMon({ moves: ["Earthquake"] })} dex={DEX} onChange={vi.fn()} />);
+    const secondSlot = await screen.findByPlaceholderText("Movimiento 2");
+    await user.type(secondSlot, "Earth");
+    expect(await screen.findByText("Sin movimientos legales que coincidan")).toBeInTheDocument();
+  });
+
+  it("marca STAB solo en los movimientos del tipo de la especie", async () => {
+    const user = userEvent.setup();
+    renderWithClient(<SetEditor mon={baseMon()} dex={DEX} onChange={vi.fn()} />);
+    await user.click(await screen.findByPlaceholderText("Movimiento 1"));
+    expect(await screen.findByRole("option", { name: /Earthquake.*STAB/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Fire Fang/ }).textContent).not.toMatch(/STAB/);
+  });
+
+  it("busca movimientos por tipo y muestra la descripción del elegido", async () => {
+    const user = userEvent.setup();
+    renderWithClient(<SetEditor mon={baseMon({ moves: ["Fire Fang"] })} dex={DEX} onChange={vi.fn()} />);
+    expect(await screen.findByText(/10% chance to burn/)).toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText("Movimiento 2"), "ground");
+    expect(await screen.findByRole("option", { name: /Earthquake/ })).toBeInTheDocument();
+  });
+
+  it("elegir en un slot vacío lejano agrega el movimiento sin huecos", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    renderWithClient(<SetEditor mon={baseMon({ moves: ["Earthquake"] })} dex={DEX} onChange={onChange} />);
+    await user.click(await screen.findByPlaceholderText("Movimiento 4"));
+    await user.click(await screen.findByRole("option", { name: /Fire Fang/ }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ moves: ["Earthquake", "Fire Fang"] }));
   });
 });

@@ -5,7 +5,8 @@ import { ChecklistPanel } from "@/components/team/ChecklistPanel";
 import { TypeCoveragePanel } from "@/components/team/TypeCoveragePanel";
 import { PasteIO } from "@/components/builder/PasteIO";
 import { SetEditor } from "@/components/builder/SetEditor";
-import { SpeciesPicker, type SpeciesHint } from "@/components/builder/SpeciesPicker";
+import { SpeciesPicker } from "@/components/builder/SpeciesPicker";
+import { buildHints } from "@/lib/dex/hints";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import type { DexEssentials } from "@/lib/dex/snapshot";
@@ -32,23 +33,6 @@ interface Props {
   saveLabel?: string;
 }
 
-function buildHint(rows: ReturnType<typeof checkTeam>["rows"], season: RuleSeason): SpeciesHint | null {
-  const failed = (rule: string) => rows.some((r) => r.rule === rule && !r.ok);
-  if (failed("type_of_month") && season.type_of_month) {
-    return { label: `Te falta un pokémon de tipo ${season.type_of_month}. Toca aquí para filtrar.`, filters: { type: season.type_of_month } };
-  }
-  if (failed("required_color") && season.restrictions.required_color) {
-    return { label: `Te falta un pokémon de color ${season.restrictions.required_color}. Toca aquí para filtrar.`, filters: { color: season.restrictions.required_color } };
-  }
-  if (failed("required_generation") && season.restrictions.required_generation) {
-    return { label: `Te falta un pokémon de la generación ${season.restrictions.required_generation}. Toca aquí para filtrar.`, filters: { gen: season.restrictions.required_generation } };
-  }
-  if (failed("required_egg_group") && season.restrictions.required_egg_group) {
-    return { label: `Te falta un pokémon del Egg Group ${season.restrictions.required_egg_group}. Toca aquí para filtrar.`, filters: { eggGroup: season.restrictions.required_egg_group } };
-  }
-  return null;
-}
-
 /**
  * Teambuilder completo: hasta `maxSize` pokémon (izquierda), el set del seleccionado
  * (derecha, SetEditor), reglas de la temporada en vivo (ChecklistPanel) y paste
@@ -66,7 +50,7 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
   const combined = [...context, ...team];
   const { rows } = checkTeam(dex, combined, season, banned, false);
   const coverage = useMemo(() => computeTypeCoverage(dex, team), [dex, team]);
-  const hint = buildHint(rows, season);
+  const hints = buildHints(rows, season);
 
   const speciesIds = team.map((m) => speciesById(dex, m.species)?.id).filter((id): id is string => !!id);
   const learnsets = useLearnsets(speciesIds);
@@ -192,7 +176,7 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
         onOpenChange={setPickerOpen}
         team={combined}
         banned={banned}
-        hint={hint}
+        hints={hints}
         onPick={(sp) => {
           setTeam((cur) => [...cur, { species: sp.name, held_item: null, ability: null, nature: null, tera_type: null, moves: [], evs: {}, ivs: {} }]);
           setSelected(team.length);

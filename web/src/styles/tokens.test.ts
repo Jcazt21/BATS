@@ -16,7 +16,7 @@ describe("tokens de motion", () => {
 });
 
 // ── Paleta: contraste y neutros cálidos (F1) ──────────────────────────────────
-import { contraste, parseOklch, variables, type Oklch } from "./color";
+import { contraste, distancia, parseOklch, sobre, variables, type Oklch } from "./color";
 import { leerRaiz } from "./source";
 
 type Tema = "claro" | "oscuro";
@@ -84,4 +84,50 @@ describe("theme-color del navegador", () => {
     expect(html).toMatch(/theme-color" content="#[0-9a-f]{6}" media="\(prefers-color-scheme: light\)"/i);
     expect(html).toMatch(/theme-color" content="#[0-9a-f]{6}" media="\(prefers-color-scheme: dark\)"/i);
   });
+});
+
+// ── Paleta: semánticos y gráficos (F2) ────────────────────────────────────────
+describe("estados (success, warning, destructive, info)", () => {
+  for (const [tema] of TEMAS) {
+    for (const n of ["success", "warning", "destructive", "info"]) {
+      it(`${tema}: ${n} se lee sobre su fondo suave (4.5:1)`, () => {
+        expect(contraste(color(tema, `--${n}`), color(tema, `--${n}-soft`))).toBeGreaterThanOrEqual(4.5);
+      });
+      it(`${tema}: ${n} se ve sobre card como elemento de UI (3:1)`, () => {
+        expect(contraste(color(tema, `--${n}`), color(tema, "--card"))).toBeGreaterThanOrEqual(3);
+      });
+    }
+  }
+  it("info es un azul apagado (c ≤ 0.09, hue 220–250) para no chocar con un mes de Agua", () => {
+    for (const [tema] of TEMAS) {
+      const c = color(tema, "--info");
+      expect(c.c).toBeLessThanOrEqual(0.09);
+      expect(c.h).toBeGreaterThanOrEqual(220);
+      expect(c.h).toBeLessThanOrEqual(250);
+    }
+  });
+});
+
+describe("series de gráficos", () => {
+  const SERIES = ["--chart-2", "--chart-3", "--chart-4", "--chart-5", "--chart-6"];
+  it("chart-1 sigue al acento del mes", () => {
+    expect(variables(tokens, ":root")["--chart-1"]).toBe("var(--primary)");
+    expect(variables(tokens, ".dark")["--chart-1"]).toBe("var(--primary)");
+  });
+  for (const [tema] of TEMAS) {
+    it.each(SERIES)(`${tema}: %s ≥ 3:1 sobre card`, (n) => {
+      expect(contraste(color(tema, n), color(tema, "--card"))).toBeGreaterThanOrEqual(3);
+    });
+    it(`${tema}: las series 2–6 son distinguibles entre sí (OKLab ≥ 0.07)`, () => {
+      for (let i = 0; i < SERIES.length; i++)
+        for (let j = i + 1; j < SERIES.length; j++)
+          expect(distancia(color(tema, SERIES[i]), color(tema, SERIES[j])), `${SERIES[i]} vs ${SERIES[j]}`).toBeGreaterThanOrEqual(0.07);
+    });
+    // PlayerAvatar: texto `chart-n` sobre `chart-n/15` (sobre card).
+    it.each(SERIES)(`${tema}: avatar con %s ≥ 4.5:1`, (n) => {
+      const c = color(tema, n);
+      const tinte = sobre({ ...c, a: 0.15 }, color(tema, "--card"));
+      expect(contraste(c, tinte)).toBeGreaterThanOrEqual(4.5);
+    });
+  }
 });

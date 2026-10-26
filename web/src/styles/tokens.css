@@ -32,14 +32,14 @@
   --accent-foreground:    oklch(0.22 0.03 45);
 
   /* Estados */
-  --success:              oklch(0.5 0.14 150);
-  --success-soft:         oklch(0.94 0.05 150);
-  --warning:              oklch(0.52 0.13 65);
-  --warning-soft:         oklch(0.95 0.06 85);
-  --destructive:          oklch(0.53 0.21 27);
-  --destructive-soft:     oklch(0.95 0.03 25);
-  --info:                 oklch(0.55 0.2 258);
-  --info-soft:            oklch(0.955 0.02 258);
+  --success:              oklch(0.5 0.14 145);
+  --success-soft:         oklch(0.94 0.05 145);
+  --warning:              oklch(0.5 0.12 80);
+  --warning-soft:         oklch(0.94 0.06 85);
+  --destructive:          oklch(0.52 0.2 28);
+  --destructive-soft:     oklch(0.945 0.03 28);
+  --info:                 oklch(0.5 0.08 235);
+  --info-soft:            oklch(0.945 0.02 235);
 
   /* Líneas y foco */
   --border:               oklch(0.22 0.03 45 / 0.12);
@@ -47,13 +47,14 @@
   --separator:            oklch(0.22 0.03 45 / 0.09);
   --ring:                 oklch(0.55 0.2 258 / 0.55);
 
-  /* Series de gráficos: categóricas, distinguibles y legibles sobre `card` */
-  --chart-1: oklch(0.55 0.2 258);
-  --chart-2: oklch(0.6 0.13 190);
-  --chart-3: oklch(0.65 0.17 55);
-  --chart-4: oklch(0.58 0.2 340);
-  --chart-5: oklch(0.55 0.18 295);
-  --chart-6: oklch(0.6 0.15 145);
+  /* Series de gráficos. chart-1 sigue al acento del mes; 2–6 son fijas (oro, brasa, glaciar,
+     uva, verde LCD). El tinte `/15` del avatar exige ≥ 4.5:1 → L ≈ .5 en claro, ≈ .78 en oscuro. */
+  --chart-1: var(--primary);
+  --chart-2: oklch(0.5 0.11 82);
+  --chart-3: oklch(0.5 0.15 45);
+  --chart-4: oklch(0.5 0.09 225);
+  --chart-5: oklch(0.46 0.15 305);
+  --chart-6: oklch(0.47 0.13 148);
 
   /* Barra lateral (admin) */
   --sidebar:                    oklch(0.975 0.009 85);
@@ -101,26 +102,26 @@
   --accent:               oklch(0.31 0.018 50);
   --accent-foreground:    oklch(0.95 0.012 85);
 
-  --success:              oklch(0.75 0.17 150);
-  --success-soft:         oklch(0.27 0.06 150);
-  --warning:              oklch(0.8 0.15 80);
-  --warning-soft:         oklch(0.29 0.06 80);
-  --destructive:          oklch(0.7 0.19 25);
-  --destructive-soft:     oklch(0.28 0.07 25);
-  --info:                 oklch(0.7 0.16 255);
-  --info-soft:            oklch(0.27 0.06 255);
+  --success:              oklch(0.78 0.16 145);
+  --success-soft:         oklch(0.27 0.06 145);
+  --warning:              oklch(0.82 0.13 85);
+  --warning-soft:         oklch(0.29 0.06 85);
+  --destructive:          oklch(0.72 0.17 28);
+  --destructive-soft:     oklch(0.28 0.07 28);
+  --info:                 oklch(0.74 0.08 235);
+  --info-soft:            oklch(0.27 0.04 235);
 
   --border:               oklch(1 0 0 / 0.1);
   --input:                oklch(1 0 0 / 0.16);
   --separator:            oklch(1 0 0 / 0.08);
   --ring:                 oklch(0.7 0.16 255 / 0.6);
 
-  --chart-1: oklch(0.7 0.16 255);
-  --chart-2: oklch(0.75 0.12 190);
-  --chart-3: oklch(0.78 0.15 60);
-  --chart-4: oklch(0.72 0.18 340);
-  --chart-5: oklch(0.72 0.16 295);
-  --chart-6: oklch(0.75 0.16 150);
+  --chart-1: var(--primary);
+  --chart-2: oklch(0.82 0.13 85);
+  --chart-3: oklch(0.76 0.15 50);
+  --chart-4: oklch(0.78 0.09 225);
+  --chart-5: oklch(0.76 0.14 305);
+  --chart-6: oklch(0.78 0.16 148);
 
   --sidebar:                    oklch(0.185 0.013 50);
   --sidebar-foreground:         oklch(0.95 0.012 85);

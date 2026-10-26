@@ -99,14 +99,14 @@ Skills al implementar: `impeccable` (leer craft-floor antes de cualquier edició
 ## P4 — Mi equipo A: carga y acciones por Pokémon
 **Objetivo:** `/equipo` nunca queda en blanco y cada Pokémon se gestiona con una acción principal clara y targets de 44px.
 
-- [ ] 🔴 Test `pages/TeamPage.test.tsx`: mientras carga sesión/dex/equipo se ve `LoadingState` (no `body = null`, `TeamPage.tsx` ~370).
-- [ ] 🟢 Reemplazar `null` por skeleton con `Reveal` al resolver.
-- [ ] 🔴 Test `components/team/MonCard.test.tsx`: tarjeta expone botón principal "Editar" (≥44px) y menú "Más" con Copiar / Cambiar / Quitar; "Quitar" pide confirmación.
-- [ ] 🟢 Reestructurar `MonCard.tsx` (acciones xs → principal + `DropdownMenu`).
-- [ ] 🔴 Test: menú "Más" operable por teclado (Enter/flechas/Escape devuelve foco).
-- [ ] 🟢 Ajustes de foco.
-- [ ] 🔴 Test: confirmación de descarte solo aparece si hay cambios sin guardar.
-- [ ] 🟢 Condicionar el `AlertDialog` de descarte.
+- [x] 🔴 Test `pages/TeamPage.test.tsx`: mientras carga sesión/dex/equipo se ve `LoadingState` (no `body = null`, `TeamPage.tsx` ~370).
+- [x] 🟢 Reemplazar `null` por skeleton con `Reveal` al resolver.
+- [x] 🔴 Test `components/team/MonCard.test.tsx`: tarjeta expone botón principal "Editar" (≥44px) y menú "Más" con Copiar / Cambiar / Quitar; "Quitar" pide confirmación.
+- [x] 🟢 Nuevo `components/team/MonActions.tsx` (principal "Editar" + menú "Más"); `MonCard` sigue genérico y recibe las acciones como `actions`.
+- [x] 🔴 Test: menú "Más" operable por teclado (Enter/flechas/Escape devuelve foco).
+- [x] 🟢 Ajustes de foco.
+- [x] 🔴 Test: confirmación de descarte solo aparece si hay cambios sin guardar.
+- [x] 🟢 Condicionar el `AlertDialog` de descarte.
 
 **Archivos:** `pages/TeamPage.tsx`, `components/team/MonCard.tsx` (+tests), `components/app/States.tsx`.
 **Aceptación:** tests verdes; sin estado en blanco; 1 acción visible + menú por tarjeta.

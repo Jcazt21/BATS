@@ -34,3 +34,10 @@ export function restoreMatchMedia() {
   if (original) window.matchMedia = original;
   else delete (window as { matchMedia?: unknown }).matchMedia;
 }
+
+/** Abre un menú de Base UI con el teclado: en jsdom el clic no lo abre (no hay pointerType real). */
+export async function abrirMenu(trigger: HTMLElement) {
+  const { default: userEvent } = await import("@testing-library/user-event");
+  trigger.focus();
+  await userEvent.keyboard("{Enter}");
+}

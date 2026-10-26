@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeftRight, ClipboardCopy, Loader2, Lock, Pencil, Plus, Trash2 } from "lucide-react";
+import { ClipboardCopy, Loader2, Lock, Plus } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Group, GroupRow } from "@/components/app/Group";
 import { Meter } from "@/components/app/Meter";
 import { ResponsiveSheet } from "@/components/app/ResponsiveSheet";
+import { Reveal } from "@/components/app/Reveal";
 import { EmptyState, ErrorState } from "@/components/app/States";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { SignInCard } from "@/components/SignInCard";
+import { MonActions } from "@/components/team/MonActions";
 import { MonCard } from "@/components/team/MonCard";
 import { SetEditor } from "@/components/builder/SetEditor";
 import { TeamBuilder } from "@/components/builder/TeamBuilder";
@@ -60,13 +62,13 @@ export function TeamPage() {
   const closed = !!season.data?.restrictions?.registration_closed;
 
   let body;
-  if (loading || dex.isPending) body = null;
+  // Nunca en blanco: mientras se resuelve sesión, dex o equipo hay un esqueleto del tamaño de la lista.
+  const cargando = loading || (!!session && (dex.isPending || (!dex.isError && roster.isPending)));
+  if (cargando) body = <Group loading loadingRows={4} />;
   else if (!session) {
     body = <div className="flex justify-center"><SignInCard title="Tu equipo" description="Inicia sesión con el correo con el que te registró el admin." /></div>;
   } else if (dex.isError) {
     body = <ErrorState error={dex.error} onRetry={() => dex.refetch()} />;
-  } else if (roster.isPending) {
-    body = <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-36 rounded-2xl" />)}</div>;
   } else if (roster.isError) {
     const status = roster.error instanceof ApiError ? roster.error.status : 0;
     body =
@@ -86,7 +88,7 @@ export function TeamPage() {
         title="Mi equipo"
         subtitle="Registra tu pool, comprueba las reglas en vivo y consulta tus rotaciones."
       />
-      {body}
+      {cargando ? body : <Reveal>{body}</Reveal>}
     </div>
   );
 }
@@ -175,9 +177,10 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
   };
   const contextWithout = (id?: number): BuilderMon[] => r.pool.filter((p) => p.pokemon_id !== id).map(toBuilderMon);
 
-  async function copy() {
-    const paste = r.pool.map((p) => toPaste(p)).join("\n\n");
-    try { await navigator.clipboard.writeText(paste); toast({ title: "Copiado", description: "Tu equipo está en el portapapeles en formato Showdown.", tone: "success" }); }
+  async function copy(mons: RosterPokemon[] = r.pool) {
+    const paste = mons.map((p) => toPaste(p)).join("\n\n");
+    const que = mons.length === 1 ? mons[0].name : "Tu equipo";
+    try { await navigator.clipboard.writeText(paste); toast({ title: "Copiado", description: `${que} está en el portapapeles en formato Showdown.`, tone: "success" }); }
     catch { toast({ title: "No se pudo copiar", tone: "error" }); }
   }
 
@@ -190,7 +193,7 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
           <ValidationBadge validation={r.validation} />
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" size="sm" onClick={() => void copy()}><ClipboardCopy /> Copiar paste</Button>
+          <Button variant="secondary" size="sm" onClick={() => void copy()}><ClipboardCopy /> Copiar equipo</Button>
           {!closed && room > 0 && <Button size="sm" onClick={() => setAdding(true)}><Plus /> Agregar</Button>}
         </div>
       </div>
@@ -207,11 +210,8 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
           <MonCard key={p.pokemon_id} mon={p} banned={banned.has(p.name.toLowerCase())}
             badge={p.in_lineup ? <Badge variant="info">En el lineup</Badge> : undefined}
             actions={!closed && (
-              <>
-                <Button variant="secondary" size="xs" onClick={() => setEditing(p)}><Pencil /> Editar set</Button>
-                <Button variant="secondary" size="xs" onClick={() => setSwapping(p)}><ArrowLeftRight /> Reemplazar</Button>
-                <Button variant="ghost" size="xs" onClick={() => setRemoving(p)}><Trash2 /> Quitar</Button>
-              </>
+              <MonActions name={p.name} onEdit={() => setEditing(p)} onCopy={() => void copy([p])}
+                onSwap={() => setSwapping(p)} onRemove={() => setRemoving(p)} />
             )} />
         ))}
       </ul>

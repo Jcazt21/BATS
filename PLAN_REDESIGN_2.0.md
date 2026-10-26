@@ -148,16 +148,16 @@ Skills al implementar: `impeccable` (leer craft-floor antes de cualquier edició
 ## P7 — Pokédex y ficha de especie
 **Objetivo:** encontrar una especie rápido (filtros, links reales) y entender sus datos sin ruido.
 
-- [ ] 🔴 Test `pages/PokedexPage.test.tsx`: filtro por tipo reduce filas; filtro persiste en query string; selector de temporada.
-- [ ] 🟢 Implementar filtros con `SegmentedControl`/chips.
-- [ ] 🔴 Test `components/app/DataList.test.tsx`: fila renderiza `<a href>` en la celda de nombre (click medio/Ctrl abre pestaña); Enter y Space activan en tabla y cards (`DataList.tsx` ~151).
-- [ ] 🟢 Implementar links reales y teclado.
-- [ ] 🔴 Test: cards móviles muestran `Meter`; definición pick/bring accesible (tooltip/disclosure, no caption).
-- [ ] 🟢 Implementar.
-- [ ] 🔴 Test `pages/PokedexEntryPage.test.tsx`: sets bloqueados → `EmptyState` explicativo; rankings truncados a 5 con "Ver más".
-- [ ] 🟢 Implementar con `Collapsible`.
-- [ ] 🔴 Test: stagger 30ms máx. 8 filas solo en primera carga (no al ordenar/filtrar).
-- [ ] 🟢 Implementar (clase de stagger controlada por flag `firstLoad`).
+- [x] 🔴 Test `pages/PokedexPage.test.tsx`: filtro por tipo reduce filas; filtro persiste en query string; selector de temporada.
+- [x] 🟢 Chips `TypeFilter` + `SeasonSelect` (menú de radios, compartido con P9/P10). `PokedexRow` no trae tipos: el filtro los resuelve con el snapshot del dex (`useDexEssentials`).
+- [x] 🔴 Test `components/app/DataList.test.tsx`: fila renderiza `<a href>` en la celda de nombre (click medio/Ctrl abre pestaña); Enter y Space activan en tabla y cards (`DataList.tsx` ~151).
+- [x] 🟢 Implementar links reales y teclado.
+- [x] 🔴 Test: cards móviles muestran `Meter`; definición pick/bring accesible (tooltip/disclosure, no caption).
+- [x] 🟢 Implementar.
+- [x] 🔴 Test `pages/PokedexEntryPage.test.tsx`: sets bloqueados → `EmptyState` explicativo; rankings truncados a 5 con "Ver más".
+- [x] 🟢 Implementar con `Collapsible`.
+- [x] 🔴 Test: stagger 30ms máx. 8 filas solo en primera carga (no al ordenar/filtrar).
+- [x] 🟢 Implementar (clase de stagger controlada por flag `firstLoad`).
 
 **Archivos:** `pages/{PokedexPage,PokedexEntryPage}.tsx`, `components/app/DataList.tsx` (+tests).
 **Aceptación:** tests verdes; filas son links; sin re-animación al filtrar.

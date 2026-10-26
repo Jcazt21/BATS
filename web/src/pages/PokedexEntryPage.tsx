@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
@@ -8,6 +9,7 @@ import { PokemonSprite } from "@/components/app/PokemonSprite";
 import { TypeBadges } from "@/components/app/TypeBadge";
 import { Meter } from "@/components/app/Meter";
 import { EmptyState, ErrorState } from "@/components/app/States";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/http";
 import { useActiveSeason, usePokedexEntry } from "@/lib/queries";
@@ -77,9 +79,8 @@ export function PokedexEntryPage() {
           <h2 className="px-1 text-footnote font-medium uppercase tracking-wide text-muted-foreground">Sets registrados</h2>
           <div className="flex flex-col gap-5 rounded-2xl bg-card p-5 shadow-sm ring-1 ring-border">
             {q.isPending ? <Skeleton className="h-32" /> : !d || d.sets.players === 0 ? (
-              <p className="text-subhead text-muted-foreground">
-                Los sets son información competitiva: se publican cuando el admin cierra el registro de equipos.
-              </p>
+              <EmptyState className="py-8" title="Los sets aún son privados"
+                description="Los sets son información competitiva: se publican cuando el admin cierra el registro de equipos." />
             ) : (
               <>
                 <p className="text-footnote text-muted-foreground">De {d.sets.players} {d.sets.players === 1 ? "jugador" : "jugadores"}.</p>
@@ -97,20 +98,39 @@ export function PokedexEntryPage() {
   );
 }
 
+const VISIBLES = 5;
+
+function RankingRow({ i, total }: { i: CountedName; total: number }) {
+  return (
+    <li className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1">
+      <span className="truncate text-subhead">{i.name}</span>
+      <span className="tabular text-footnote text-muted-foreground">{pct((100 * i.count) / total)}</span>
+      <Meter className="col-span-2" label={`${i.name}: ${i.count} de ${total}`} value={i.count} max={total} />
+    </li>
+  );
+}
+
+/** Top 5 siempre visible; el resto, tras "Ver más". */
 function Ranking({ title, items, total }: { title: string; items: CountedName[]; total: number }) {
+  const [open, setOpen] = useState(false);
   if (!items.length) return null;
+  const resto = items.slice(VISIBLES);
   return (
     <div>
       <h3 className="mb-2 text-footnote font-medium text-muted-foreground">{title}</h3>
       <ul className="flex flex-col gap-2">
-        {items.map((i) => (
-          <li key={i.name} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1">
-            <span className="truncate text-subhead">{i.name}</span>
-            <span className="tabular text-footnote text-muted-foreground">{pct((100 * i.count) / total)}</span>
-            <Meter className="col-span-2" label={`${i.name}: ${i.count} de ${total}`} value={i.count} max={total} />
-          </li>
-        ))}
+        {items.slice(0, VISIBLES).map((i) => <RankingRow key={i.name} i={i} total={total} />)}
       </ul>
+      {resto.length > 0 && (
+        <Collapsible open={open} onOpenChange={setOpen}>
+          <CollapsibleContent>
+            <ul className="mt-2 flex flex-col gap-2">{resto.map((i) => <RankingRow key={i.name} i={i} total={total} />)}</ul>
+          </CollapsibleContent>
+          <CollapsibleTrigger className="mt-1 flex min-h-11 items-center rounded-lg text-subhead text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            {open ? "Ver menos" : `Ver más (${resto.length})`}
+          </CollapsibleTrigger>
+        </Collapsible>
+      )}
     </div>
   );
 }

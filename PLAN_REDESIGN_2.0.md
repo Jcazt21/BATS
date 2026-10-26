@@ -165,14 +165,14 @@ Skills al implementar: `impeccable` (leer craft-floor antes de cualquier edició
 ## P8 — Home
 **Objetivo:** la portada responde "¿qué hago ahora?" con estado personal y el tipo del mes como protagonista.
 
-- [ ] 🔴 Test `pages/HomePage.test.tsx`: con sesión muestra tarjeta personal (récord, estado de equipo, ban abierto); sin sesión, CTA de entrar.
-- [ ] 🟢 Implementar tarjeta personal.
-- [ ] 🔴 Test: tipo del mes aparece en el hero (antes del leaderboard); tiles son links a su detalle; sin subtítulo genérico.
-- [ ] 🟢 Reordenar secciones, links en `StatTile`.
-- [ ] 🔴 Test: leaderboard y MVP vacíos muestran `EmptyState`; cargando, skeleton.
-- [ ] 🟢 Implementar con `Group loading/empty` (P2).
-- [ ] 🔴 Test guarda: `HomePage.tsx:101` hover con movimiento usa `@media (hover:hover) and (pointer:fine)`.
-- [ ] 🟢 Corregir; unificar `gap-8`.
+- [x] 🔴 Test `pages/HomePage.test.tsx`: con sesión muestra tarjeta personal (récord, estado de equipo, ban abierto); sin sesión, CTA de entrar.
+- [x] 🟢 Implementar tarjeta personal.
+- [x] 🔴 Test: tipo del mes aparece en el hero (antes del leaderboard); tiles son links a su detalle; sin subtítulo genérico.
+- [x] 🟢 Reordenar secciones, links en `StatTile`.
+- [x] 🔴 Test: leaderboard y MVP vacíos muestran `EmptyState`; cargando, skeleton.
+- [x] 🟢 Implementar con `Group loading/empty` (P2).
+- [x] 🔴 Test guarda: `HomePage.tsx:101` hover con movimiento usa `@media (hover:hover) and (pointer:fine)`.
+- [x] 🟢 Corregir; unificar `gap-8`.
 
 **Archivos:** `pages/HomePage.tsx`, `components/app/StatTile.tsx` (+tests).
 **Aceptación:** tests verdes; foco visible en tarjetas-link.

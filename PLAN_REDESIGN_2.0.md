@@ -133,14 +133,14 @@ Skills al implementar: `impeccable` (leer craft-floor antes de cualquier edició
 ## P6 — Bans
 **Objetivo:** votar es la acción dominante en móvil y la página nunca muestra vacío falso mientras carga.
 
-- [ ] 🔴 Test `components/ban/VoteFlow.test.tsx`: durante verificación de sesión muestra skeleton (no `null`, `VoteFlow.tsx:38,51`).
-- [ ] 🟢 Implementar skeleton.
-- [ ] 🔴 Test: buscador muestra sugerencias/populares antes de escribir; filtros "≥1/3/5" con unidad ("votos").
-- [ ] 🟢 Implementar.
-- [ ] 🔴 Test: confirmación de voto cross-fade a estado "Voto enviado" (`VoteFlow.tsx:94`), anunciado con `role="status"`.
-- [ ] 🟢 Implementar con `Reveal`.
-- [ ] 🔴 Test `pages/BansPage.test.tsx`: orden DOM = (estado compacto, VoteFlow, ranking, radar); ranking en carga muestra skeleton, no "Aún no hay votos".
-- [ ] 🟢 Reordenar/unificar títulos (`Group` vs `h2`), umbral 70% desde config/constante compartida.
+- [x] 🔴 Test `components/ban/VoteFlow.test.tsx`: durante verificación de sesión muestra skeleton (no `null`, `VoteFlow.tsx:38,51`).
+- [x] 🟢 Implementar skeleton.
+- [x] 🔴 Test: buscador muestra sugerencias/populares antes de escribir; filtros "≥1/3/5" con unidad ("batallas mínimas": el filtro cuenta batallas, no votos).
+- [x] 🟢 Implementar.
+- [x] 🔴 Test: confirmación de voto cross-fade a estado "Voto enviado" (`VoteFlow.tsx:94`), anunciado con `role="status"`.
+- [x] 🟢 Implementar con `Reveal`.
+- [x] 🔴 Test `pages/BansPage.test.tsx`: orden DOM = (estado compacto, VoteFlow, ranking, radar); ranking en carga muestra skeleton, no "Aún no hay votos".
+- [x] 🟢 Reordenar/unificar títulos (`Group` vs `h2`), umbral 70% desde config/constante compartida.
 
 **Archivos:** `pages/BansPage.tsx`, `components/ban/VoteFlow.tsx` (+tests).
 **Aceptación:** tests verdes; sin vacío falso; umbral en un solo lugar.

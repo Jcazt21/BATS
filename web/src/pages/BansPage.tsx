@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { PageHeader } from "@/components/app/PageHeader";
-import { StatTile } from "@/components/app/StatTile";
 import { Group, GroupRow } from "@/components/app/Group";
 import { DataList, type Column } from "@/components/app/DataList";
 import { PokemonSprite } from "@/components/app/PokemonSprite";
@@ -9,10 +8,15 @@ import { Meter } from "@/components/app/Meter";
 import { SegmentedControl } from "@/components/app/SegmentedControl";
 import { EmptyState, ErrorState } from "@/components/app/States";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { VoteFlow } from "@/components/ban/VoteFlow";
 import type { BanCandidate } from "@/lib/api";
 import { useActiveSeason, useBanCandidates, useBanRanking, useBanStatus } from "@/lib/queries";
 import { num, pct } from "@/lib/format";
+import { BAN_RADAR_THRESHOLD_PCT } from "@/lib/ban";
+
+/** Mismo estilo que el título de `Group`, para que todas las secciones se lean igual. */
+const tituloCls = "px-1 text-footnote font-medium uppercase tracking-wide text-muted-foreground";
 
 export function BansPage() {
   const season = useActiveSeason();
@@ -41,20 +45,26 @@ export function BansPage() {
         subtitle="Vota por el pokémon que crees que rompe la liga. Los candidatos con más victorias te ayudan a decidir."
       />
 
-      <section aria-label="Estado de la votación" className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        <StatTile label="Han votado" value={status.data ? `${status.data.total_voted}/${status.data.total_authorized}` : "—"} loading={status.isPending}
-          hint={status.data ? <Meter label="Participación" value={status.data.total_voted} max={Math.max(1, status.data.total_authorized)} className="mt-1" /> : undefined} />
-        <StatTile label="Votos emitidos" value={num(status.data?.total_votes_cast)} loading={status.isPending} />
-        <StatTile label="Estado" value={status.data?.voting_open ? "Abierta" : "Completa"} loading={status.isPending} className="col-span-2 md:col-span-1" />
+      <section aria-label="Estado de la votación" className="flex flex-col gap-2 rounded-2xl bg-card p-4 shadow-sm ring-1 ring-border">
+        {status.isPending ? (
+          <Skeleton className="h-5 w-56" />
+        ) : (
+          <p className="tabular text-subhead">
+            <strong>{status.data ? `${status.data.total_voted}/${status.data.total_authorized}` : "—"}</strong> han votado ·{" "}
+            {num(status.data?.total_votes_cast)} votos · {status.data?.voting_open ? "Abierta" : "Completa"}
+          </p>
+        )}
+        {status.data && <Meter label="Participación" value={status.data.total_voted} max={Math.max(1, status.data.total_authorized)} />}
       </section>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <section className="flex flex-col gap-3">
-          <h2 className="text-title3">Tu voto</h2>
+          <h2 className={tituloCls}>Tu voto</h2>
           <VoteFlow />
         </section>
 
-        <Group title="Ranking en vivo" footer="Se actualiza solo cada pocos segundos.">
+        <Group title="Ranking en vivo" footer="Se actualiza solo cada pocos segundos."
+          loading={ranking.isPending} loadingRows={4}>
           {ranking.isError ? <ErrorState error={ranking.error} onRetry={() => ranking.refetch()} /> :
             votes.length === 0 ? <EmptyState title="Aún no hay votos" description="El primero en votar aparecerá aquí." /> :
             votes.slice(0, 8).map((r) => (
@@ -70,16 +80,19 @@ export function BansPage() {
       <section className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-title3">Ban Radar</h2>
-            <p className="text-footnote text-muted-foreground">Pokémon con más del 70 % de victorias.</p>
+            <h2 className={tituloCls}>Ban Radar</h2>
+            <p className="px-1 text-footnote text-muted-foreground">Pokémon con más del {BAN_RADAR_THRESHOLD_PCT} % de victorias.</p>
           </div>
-          <SegmentedControl label="Mínimo de batallas" value={min} onChange={setMin}
-            options={[{ value: "1", label: "≥ 1" }, { value: "3", label: "≥ 3" }, { value: "5", label: "≥ 5" }]} />
+          <div className="flex items-center gap-2">
+            <SegmentedControl label="Mínimo de batallas" value={min} onChange={setMin}
+              options={[{ value: "1", label: "≥ 1" }, { value: "3", label: "≥ 3" }, { value: "5", label: "≥ 5" }]} />
+            <span className="text-caption text-muted-foreground">batallas mínimas</span>
+          </div>
         </div>
         {candidates.isError ? <ErrorState error={candidates.error} onRetry={() => candidates.refetch()} /> : (
           <DataList caption="Candidatos a ban" rows={candidates.data ?? []} columns={cols} rowKey={(r) => `${r.species}-${r.format_name}`}
             loading={candidates.isPending} defaultSort={{ key: "wr", dir: "desc" }}
-            empty={<EmptyState title="Ningún pokémon domina" description={`Nadie supera el 70 % de victorias con al menos ${min} batallas. Buena señal.`} />} />
+            empty={<EmptyState title="Ningún pokémon domina" description={`Nadie supera el ${BAN_RADAR_THRESHOLD_PCT} % de victorias con al menos ${min} batallas. Buena señal.`} />} />
         )}
       </section>
     </div>

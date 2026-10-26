@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SeasonSelect } from "./SeasonSelect";
 import { abrirMenu } from "@/lib/test-utils";
@@ -30,6 +30,13 @@ describe("SeasonSelect", () => {
     await abrirMenu(screen.getByRole("button", { name: /Temporada/ }));
     await userEvent.click(await screen.findByRole("menuitemradio", { name: "Temporada 2" }));
     expect(onChange).toHaveBeenCalledWith(2);
+  });
+
+  it("elegir una opción cierra el menú (los radios de Base UI no lo hacen solos)", async () => {
+    render(<SeasonSelect seasons={seasons} value="active" onChange={() => {}} />);
+    await abrirMenu(screen.getByRole("button", { name: /Temporada/ }));
+    await userEvent.click(await screen.findByRole("menuitemradio", { name: "Temporada 2" }));
+    await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
   });
 
   it("elegir 'Todas' llama a onChange('all')", async () => {

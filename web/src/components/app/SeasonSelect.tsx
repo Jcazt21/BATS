@@ -31,11 +31,11 @@ export function SeasonSelect({ seasons, value, onChange, allowAll = true }: {
           value={String(value)}
           onValueChange={(v: string) => onChange(v === "active" || v === "all" ? v : Number(v))}
         >
-          {active && <DropdownMenuRadioItem className="min-h-11 text-subhead" value="active">{active.season_name} (activa)</DropdownMenuRadioItem>}
+          {active && <DropdownMenuRadioItem closeOnClick className="min-h-11 text-subhead" value="active">{active.season_name} (activa)</DropdownMenuRadioItem>}
           {seasons.filter((s) => !s.is_active).map((s) => (
-            <DropdownMenuRadioItem key={s.season_id} className="min-h-11 text-subhead" value={String(s.season_id)}>{s.season_name}</DropdownMenuRadioItem>
+            <DropdownMenuRadioItem key={s.season_id} closeOnClick className="min-h-11 text-subhead" value={String(s.season_id)}>{s.season_name}</DropdownMenuRadioItem>
           ))}
-          {allowAll && <DropdownMenuRadioItem className="min-h-11 text-subhead" value="all">Todas las temporadas</DropdownMenuRadioItem>}
+          {allowAll && <DropdownMenuRadioItem closeOnClick className="min-h-11 text-subhead" value="all">Todas las temporadas</DropdownMenuRadioItem>}
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>
     </DropdownMenu>

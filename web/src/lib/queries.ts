@@ -68,6 +68,9 @@ export const usePokedex = (s?: SeasonArg) =>
   useQuery({ queryKey: keys.pokedex(s), queryFn: () => api.getPokedex(s ?? undefined), placeholderData: keepPreviousData, enabled: s !== null });
 export const usePokedexEntry = (species: string, s?: number) =>
   useQuery({ queryKey: keys.pokedexEntry(species, s), queryFn: () => api.getPokedexEntry(species, s) });
+/** Detalle pokémon a pokémon de una batalla; solo se pide cuando hay una elegida. */
+export const useBattleDetails = (battleId: string | null) =>
+  useQuery({ queryKey: ["stats", "battle", battleId], queryFn: () => api.getBattleDetails(battleId!), enabled: !!battleId });
 export const usePlayerProfile = (username: string, s?: number) =>
   useQuery({ queryKey: keys.player(username, s), queryFn: () => api.getPlayerProfile(username, s) });
 

@@ -7,17 +7,22 @@ interface Props {
   /** Texto pequeño sobre el título (sección, temporada...). */
   eyebrow?: ReactNode;
   actions?: ReactNode;
+  /** A la izquierda del título (avatar, sprite...), dentro de la misma cabecera. */
+  leading?: ReactNode;
   className?: string;
 }
 
 /** Título grande estilo iOS: jerarquía por tamaño y peso, con tracking apretado. */
-export function PageHeader({ title, subtitle, eyebrow, actions, className }: Props) {
+export function PageHeader({ title, subtitle, eyebrow, actions, leading, className }: Props) {
   return (
     <header className={cn("flex flex-wrap items-end justify-between gap-x-6 gap-y-3", className)}>
-      <div className="min-w-0">
+      <div className={cn("min-w-0", leading && "flex items-center gap-4")}>
+        {leading}
+        <div className="min-w-0">
         {eyebrow && <p className="mb-1 text-footnote font-medium text-muted-foreground">{eyebrow}</p>}
         <h1 className="text-title1 text-foreground sm:text-display">{title}</h1>
         {subtitle && <p className="mt-2 max-w-prose text-body text-muted-foreground">{subtitle}</p>}
+        </div>
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
     </header>

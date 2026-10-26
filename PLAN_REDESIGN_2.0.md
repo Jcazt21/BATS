@@ -195,12 +195,12 @@ Skills al implementar: `impeccable` (leer craft-floor antes de cualquier edició
 ## P10 — Jugador y Blog
 **Objetivo:** perfil y noticias consistentes con el resto del sistema.
 
-- [ ] 🔴 Test `pages/PlayerPage.test.tsx`: `PageHeader` alineado a la grilla (no anidado en flex); batallas recientes son links a `BattleDetail`; back vuelve a la página previa (`navigate(-1)` con fallback `/stats`); selector de temporada.
-- [ ] 🟢 Implementar.
-- [ ] 🔴 Test `pages/BlogPage.test.tsx`: spotlight sin `blur-3xl`/`-mx-3`; filas con foco visible; estados loading/empty.
-- [ ] 🟢 Implementar con tokens (`bg-primary/..` sin blur hardcodeado).
-- [ ] 🔴 Test: posts muestran tags; guarda de hover.
-- [ ] 🟢 Implementar.
+- [x] 🔴 Test `pages/PlayerPage.test.tsx`: `PageHeader` alineado a la grilla (no anidado en flex); batallas recientes abren `BattleDetail` en una hoja (son botones, no rutas: no existe una página de batalla pública); back vuelve a la página previa (`navigate(-1)` con fallback `/stats`); selector de temporada.
+- [x] 🟢 Implementar.
+- [x] 🔴 Test `pages/BlogPage.test.tsx`: spotlight sin `blur-3xl`/`-mx-3`; filas con foco visible; estados loading/empty.
+- [x] 🟢 Implementar con tokens (`bg-primary/..` sin blur hardcodeado).
+- [ ] 🔴 ~~posts muestran tags~~ **No hecho:** el blog no tiene tags en la DB ni en la API (`/api/blog`); requeriría migración + endpoint + editor admin. Se hizo solo la guarda de hover (en `BlogPage.test.tsx`).
+- [x] 🟢 Guarda de hover implementada; tags pendientes de backend.
 
 **Archivos:** `pages/{PlayerPage,BlogPage,BlogPostPage}.tsx` (+tests).
 **Aceptación:** tests verdes.

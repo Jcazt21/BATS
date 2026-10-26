@@ -1,6 +1,11 @@
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Flame, Snowflake } from "lucide-react";
+import { Flame, Snowflake } from "lucide-react";
+import { BackLink } from "@/components/app/BackLink";
 import { PageHeader } from "@/components/app/PageHeader";
+import { ResponsiveSheet } from "@/components/app/ResponsiveSheet";
+import { BattleDetail } from "@/components/app/BattleDetail";
+import { SeasonSelect, type SeasonChoice } from "@/components/app/SeasonSelect";
 import { StatTile } from "@/components/app/StatTile";
 import { Group, GroupRow } from "@/components/app/Group";
 import { PlayerAvatar } from "@/components/app/PlayerAvatar";
@@ -10,19 +15,21 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState, ErrorState } from "@/components/app/States";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/http";
-import { useActiveSeason, usePlayerProfile } from "@/lib/queries";
+import type { PlayerProfile } from "@/lib/api";
+import { useActiveSeason, useBattleDetails, usePlayerProfile, useSeasons } from "@/lib/queries";
 import { fmtDateShort, num, pct } from "@/lib/format";
 
 export function PlayerPage() {
   const { username = "" } = useParams();
   const season = useActiveSeason();
-  const q = usePlayerProfile(username, season.data?.season_id);
+  const seasons = useSeasons();
+  const [choice, setChoice] = useState<SeasonChoice>("active");
+  const sid = choice === "active" ? season.data?.season_id : choice === "all" ? undefined : choice;
+  const q = usePlayerProfile(username, sid);
+  const [opened, setOpened] = useState<PlayerProfile["recent"][number] | null>(null);
+  const detail = useBattleDetails(opened?.battle_id ?? null);
 
-  const back = (
-    <Link to="/stats" className="inline-flex items-center gap-1 text-subhead text-primary hover:underline">
-      <ArrowLeft className="size-4" /> Estadísticas
-    </Link>
-  );
+  const back = <BackLink fallback="/stats">Estadísticas</BackLink>;
 
   if (q.isError) {
     const notFound = q.error instanceof ApiError && q.error.status === 404;
@@ -39,17 +46,17 @@ export function PlayerPage() {
   return (
     <div className="flex flex-col gap-8">
       {back}
-      <div className="flex items-center gap-4">
-        <PlayerAvatar name={p?.username ?? username} size={64} className="text-title3" />
-        <div className="min-w-0">
-          <PageHeader eyebrow={season.data?.season_name} title={p?.username ?? username} />
-          {streak && streak.type && streak.length >= 2 && (
-            <Badge variant={streak.type === "win" ? "success" : "destructive"} className="mt-2">
-              {streak.type === "win" ? <Flame /> : <Snowflake />} Racha de {streak.length} {streak.type === "win" ? "victorias" : "derrotas"}
-            </Badge>
-          )}
-        </div>
-      </div>
+      <PageHeader
+        leading={<PlayerAvatar name={p?.username ?? username} size={64} className="text-title3" />}
+        eyebrow={choice === "all" ? "Todas las temporadas" : seasons.data?.find((x) => x.season_id === sid)?.season_name ?? season.data?.season_name}
+        title={p?.username ?? username}
+        subtitle={streak && streak.type && streak.length >= 2 ? (
+          <Badge variant={streak.type === "win" ? "success" : "destructive"}>
+            {streak.type === "win" ? <Flame /> : <Snowflake />} Racha de {streak.length} {streak.type === "win" ? "victorias" : "derrotas"}
+          </Badge>
+        ) : undefined}
+        actions={seasons.data && seasons.data.length > 0 ? <SeasonSelect seasons={seasons.data} value={choice} onChange={setChoice} /> : undefined}
+      />
 
       <section aria-label="Récord" className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatTile label="Récord" value={p ? `${p.record.wins}–${p.record.losses}` : "—"} hint={p ? `${p.record.battles} batallas` : undefined} loading={q.isPending} />
@@ -72,12 +79,19 @@ export function PlayerPage() {
         <Group title="Últimas batallas">
           {q.isPending ? <div className="p-4"><Skeleton className="h-28" /></div> : !p?.recent.length ? <EmptyState title="Sin batallas" /> :
             p.recent.map((g) => (
-              <GroupRow key={g.battle_id} title={`vs ${g.opponent}`}
+              <GroupRow key={g.battle_id} title={`vs ${g.opponent}`} onClick={() => setOpened(g)}
                 subtitle={`${fmtDateShort(g.date)} · ${g.turns} turnos${g.end_type === "forfeit" ? " · abandono" : ""}`}
                 trailing={<Badge variant={g.won ? "success" : "destructive"}>{g.won ? "Victoria" : "Derrota"}</Badge>} />
             ))}
         </Group>
       </div>
+
+      <ResponsiveSheet open={!!opened} onOpenChange={(o) => !o && setOpened(null)} className="sm:max-w-3xl"
+        title={opened && p ? `${p.username} vs ${opened.opponent}` : ""} description={opened?.date ? fmtDateShort(opened.date) : undefined}>
+        {opened && p && (
+          <BattleDetail rows={detail.data} loading={detail.isPending} players={[p.username, opened.opponent]} winner={opened.won ? p.username : opened.opponent} />
+        )}
+      </ResponsiveSheet>
 
       {p?.roster && (
         <section className="flex flex-col gap-3">

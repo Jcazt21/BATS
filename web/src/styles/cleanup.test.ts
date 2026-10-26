@@ -19,4 +19,13 @@ describe("limpieza de código muerto", () => {
     const pkg = JSON.parse(leerRaiz("package.json")) as { dependencies: Record<string, string> };
     expect(pkg.dependencies).not.toHaveProperty("ogl");
   });
+
+  it("ningún color suelto (#hex, rgb()) fuera de tokens.css y los logos de Google", () => {
+    const BLANCA = ["/src/styles/tokens.css", "/src/components/SignInCard.tsx"];
+    const sueltos = Object.entries(fuentes())
+      .filter(([ruta]) => !BLANCA.includes(ruta) && !/\.test\.tsx?$/.test(ruta))
+      .flatMap(([ruta, texto]) =>
+        [...texto.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/#[0-9a-fA-F]{3,8}\b|\brgba?\(/g)].map((m) => `${ruta}: ${m[0]}`));
+    expect(sueltos).toEqual([]);
+  });
 });

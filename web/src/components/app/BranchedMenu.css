@@ -1,9 +1,9 @@
 /* BranchedMenu — React Bits (https://reactbits.dev/micro/branched-menu), variante TS-CSS */
 .branched-menu {
   --bm-w: 240px;
-  --bm-ink: #f5f5f5;
-  --bm-accent: #f5f5f5;
-  --bm-line: #3f3f46;
+  --bm-ink: var(--foreground);
+  --bm-accent: var(--foreground);
+  --bm-line: var(--border);
   --bm-font: 14px;
   --bm-row: 36px;
   --bm-indent: 40px;

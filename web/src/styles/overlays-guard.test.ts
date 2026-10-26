@@ -39,9 +39,14 @@ describe("motion de overlays (guarda de fuente)", () => {
     expect(s).toMatch(/motion-reduce:transition-none/);
   });
 
-  it("chevron del checklist: gira con duration-200 ease-ios", () => {
-    const s = leerFuente("components/builder/TeamBuilder.tsx");
-    expect(s).toMatch(/ChevronUp className=\{cn\("transition-transform duration-200 ease-ios"/);
+  it("barras fijas del builder: nunca por debajo del TabBar (z-40) ni en un ancestro con transform", () => {
+    for (const f of ["components/builder/TeamBuilder.tsx", "components/team/RulesBar.tsx"]) {
+      const src = leerFuente(f);
+      for (const m of src.matchAll(/fixed[^"`]*?\bz-(\d+)/g)) expect(Number(m[1]), f).toBeGreaterThanOrEqual(40);
+    }
+    // TeamBuilder en una hoja (agregar/reemplazar) usa la barra en línea.
+    const page = leerFuente("pages/TeamPage.tsx");
+    expect(page.match(/<TeamBuilder[\s\S]*?\/>/g)!.filter((b) => /context=/.test(b)).every((b) => /\binline\b/.test(b))).toBe(true);
   });
 
   it.each(["HoldButton", "BranchedMenu"])("%s.css usa los tokens de motion, no curvas propias", (nombre) => {

@@ -34,17 +34,16 @@ const dex: DexEssentials = {
 const mon = (name: string): BuilderMon => ({ species: name, moves: [], evs: {}, ivs: {} });
 
 describe("TeamBuilder", () => {
-  it("muestra la debilidad compartida en los paneles de escritorio y móvil", async () => {
+  it("muestra la debilidad compartida en el panel de cobertura de escritorio y en la hoja de reglas", async () => {
     const user = userEvent.setup();
     render(<TeamBuilder dex={dex} initial={[mon("Dragonite"), mon("Garchomp")]} season={{ restrictions: {} }}
       banned={new Set()} maxSize={6} onSave={vi.fn()} />);
-    await user.click(screen.getByText(/reglas cumplidas/));
-    const panels = screen.getAllByRole("region", { name: "Cobertura de tipos" });
-    expect(panels).toHaveLength(2);
-    for (const panel of panels) {
-      expect(within(panel).getByText("Hielo")).toBeInTheDocument();
-      expect(within(panel).getAllByText(/Dragonite, Garchomp/).length).toBeGreaterThan(0);
-    }
+    const desktop = screen.getByRole("region", { name: "Cobertura de tipos" });
+    expect(within(desktop).getByText("Hielo")).toBeInTheDocument();
+    expect(within(desktop).getAllByText(/Dragonite, Garchomp/).length).toBeGreaterThan(0);
+    await user.click(screen.getByRole("button", { name: /^Reglas/ }));
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByRole("region", { name: "Cobertura de tipos" })).toBeInTheDocument();
   });
 
   it("con el equipo vacío el botón queda apagado y explica por qué", () => {

@@ -276,7 +276,7 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
       <ResponsiveSheet open={adding} onOpenChange={(o) => (o ? setAdding(true) : guardClose(addDirty, closeAdd))} title="Agregar pokémon" description={`Te caben ${room} más.`}>
         <TeamBuilder
           dex={dex} initial={[]} context={contextWithout()} season={ruleSeason} banned={banned} maxSize={room}
-          saveLabel="Agregar al equipo" onDirtyChange={setAddDirty}
+          saveLabel="Agregar al equipo" inline onDirtyChange={setAddDirty}
           onSave={async (team) => {
             await add.mutateAsync(team.map((m) => toPayload(dex, m)));
             closeAdd();
@@ -294,7 +294,7 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
         {swapping && (
           <TeamBuilder
             dex={dex} initial={[]} context={contextWithout(swapping.pokemon_id)} season={ruleSeason} banned={banned} maxSize={1}
-            saveLabel="Reemplazar" onDirtyChange={setSwapDirty}
+            saveLabel="Reemplazar" inline onDirtyChange={setSwapDirty}
             onSave={async (team) => {
               await swap.mutateAsync({ removeId: swapping.pokemon_id, add: toPayload(dex, team[0]) });
               closeSwap();

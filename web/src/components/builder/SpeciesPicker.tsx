@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PokemonSprite } from "@/components/app/PokemonSprite";
 import { ResponsiveSheet } from "@/components/app/ResponsiveSheet";
 import { TypeBadges } from "@/components/app/TypeBadge";
@@ -22,6 +22,8 @@ interface Props {
   banned?: Set<string>;
   /** Una sugerencia por cada regla de conjunto que le falta al equipo (lib/dex/hints.ts). */
   hints?: SpeciesHint[];
+  /** Filtros con los que arranca cada vez que se abre (p. ej. desde una regla que falta). */
+  initialFilters?: SpeciesFilters;
 }
 
 const MAX_RESULTS = 60;
@@ -42,10 +44,16 @@ const selectClass = "h-9 min-w-0 flex-1 rounded-xl border border-input bg-card p
  * egg group, orden, sprite, tipos, BST y distintivos (Paradox, pseudo, restringido, Ultra Beast,
  * no legal, baneado). `hints` son atajos de un toque para lo que le falta al equipo.
  */
-export function SpeciesPicker({ dex, open, onOpenChange, onPick, team = [], banned = new Set(), hints = [] }: Props) {
+export function SpeciesPicker({ dex, open, onOpenChange, onPick, team = [], banned = new Set(), hints = [], initialFilters }: Props) {
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<SpeciesFilters>(DEFAULT_FILTERS);
   const [sort, setSort] = useState<SpeciesSort>("num");
+
+  // Al abrir, parte de los filtros pedidos por quien lo abre (o de los predeterminados).
+  useEffect(() => {
+    if (open) setFilters({ ...DEFAULT_FILTERS, ...initialFilters });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   // Valores reales del snapshot: así los selects nunca ofrecen algo que no exista.
   const options = useMemo(() => {

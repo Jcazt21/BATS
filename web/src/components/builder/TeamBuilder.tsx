@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "motion/react";
-import { ChevronUp, Loader2, Plus, X } from "lucide-react";
+import { Loader2, Plus, X } from "lucide-react";
 import { MonCard } from "@/components/team/MonCard";
-import { ChecklistPanel } from "@/components/team/ChecklistPanel";
+import { RulesBar } from "@/components/team/RulesBar";
 import { RuleErrors } from "@/components/team/RuleErrors";
 import { TypeCoveragePanel } from "@/components/team/TypeCoveragePanel";
 import { PasteIO, type ImportMode } from "@/components/builder/PasteIO";
@@ -12,16 +12,15 @@ import { saveBlockers } from "@/lib/dex/blockers";
 import { buildHints } from "@/lib/dex/hints";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import type { DexEssentials } from "@/lib/dex/snapshot";
+import type { DexEssentials, SpeciesFilters } from "@/lib/dex/snapshot";
 import { speciesById } from "@/lib/dex/snapshot";
 import { useLearnset, useLearnsets } from "@/lib/dex/useLearnset";
 import { checkSet, checkTeam, type BuilderMon, type RuleSeason } from "@/lib/dex/validate";
 import { computeTypeCoverage } from "@/lib/dex/coverage";
 import { teamErrorMessage } from "@/lib/dex/ruleMessages";
+import { cn } from "@/lib/utils";
 import { clearDraft, loadDraft, saveDraft } from "@/lib/draft";
 import { fmtDateShort } from "@/lib/format";
-import { cn } from "@/lib/utils";
 
 interface Props {
   dex: DexEssentials;
@@ -41,6 +40,8 @@ interface Props {
   draftKey?: string;
   /** Avisa cuando el equipo difiere de `initial` (hay cambios sin guardar). */
   onDirtyChange?: (dirty: boolean) => void;
+  /** Dentro de una hoja (agregar/reemplazar): la barra de reglas va en línea, no fija. */
+  inline?: boolean;
 }
 
 const DRAFT_DEBOUNCE_MS = 500;
@@ -57,7 +58,7 @@ function withUid(mon: BuilderMon): TeamItem {
  * import/export (PasteIO). `onSave` decide qué hace el llamador con el pool final
  * (registrar, agregar, reemplazar): TeamBuilder no conoce la API.
  */
-export function TeamBuilder({ dex, initial, context = [], season, banned, maxSize, onSave, saveLabel = "Guardar", draftKey, onDirtyChange }: Props) {
+export function TeamBuilder({ dex, initial, context = [], season, banned, maxSize, onSave, saveLabel = "Guardar", draftKey, onDirtyChange, inline }: Props) {
   // Cada pokémon lleva un uid estable para que React no mezcle tarjetas al quitar o reordenar.
   // El borrador solo se restaura en un registro nuevo (`initial` vacío).
   const [restored] = useState(() => (draftKey && initial.length === 0 ? loadDraft(draftKey) : null));
@@ -82,7 +83,7 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
   }, [team, draftKey]);
   const [selected, setSelected] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [checklistOpen, setChecklistOpen] = useState(false);
+  const [pickerFilters, setPickerFilters] = useState<SpeciesFilters | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -159,10 +160,23 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
     }
   }
 
-  const passedCount = rows.filter((r) => r.ok).length;
+  function openPicker(filters?: SpeciesFilters) {
+    setPickerFilters(filters);
+    setPickerOpen(true);
+  }
 
   return (
-    <div className="flex flex-col gap-6 pb-24 sm:pb-0">
+    <div className="flex flex-col gap-6 pb-32 md:pb-0">
+      <div className={cn(inline ? "" : "sticky top-14 z-30 -mx-4 bg-background/90 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6", "md:py-2")}>
+        <RulesBar
+          rows={rows}
+          season={season}
+          empty={team.length === 0}
+          onAction={openPicker}
+          inline={inline}
+          sheetExtra={<div className="mt-4 md:hidden"><TypeCoveragePanel rows={coverage} empty={team.length === 0} /></div>}
+        />
+      </div>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <div className="flex flex-col gap-3">
           {restoredAt && (
@@ -197,7 +211,7 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
           </ul>
 
           {team.length < maxSize && (
-            <Button variant="secondary" onClick={() => setPickerOpen(true)}>
+            <Button variant="secondary" onClick={() => openPicker()}>
               <Plus /> Agregar pokémon
             </Button>
           )}
@@ -214,24 +228,9 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
         </div>
       </div>
 
-      {/* Escritorio: reglas y cobertura siempre visibles. */}
-      <div className="hidden flex-col gap-4 sm:flex">
-        <ChecklistPanel rows={rows} empty={team.length === 0} />
+      {/* Escritorio: cobertura siempre visible; las reglas van en la barra de arriba. */}
+      <div className="hidden md:block">
         <TypeCoveragePanel rows={coverage} empty={team.length === 0} />
-      </div>
-
-      {/* Móvil: barra inferior plegable. */}
-      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-card pb-safe sm:hidden">
-        <Collapsible open={checklistOpen} onOpenChange={setChecklistOpen}>
-          <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-subhead">
-            <span>{passedCount} de {rows.length} reglas cumplidas</span>
-            <ChevronUp className={cn("transition-transform duration-200 ease-ios", checklistOpen && "rotate-180")} />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="flex max-h-[50vh] flex-col gap-4 overflow-y-auto px-4 pb-4">
-            <ChecklistPanel rows={rows} empty={team.length === 0} />
-            <TypeCoveragePanel rows={coverage} empty={team.length === 0} />
-          </CollapsibleContent>
-        </Collapsible>
       </div>
 
       {learnsets.error && (
@@ -260,6 +259,7 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
         team={combined}
         banned={banned}
         hints={hints}
+        initialFilters={pickerFilters}
         onPick={(sp) => {
           setItems((cur) => [...cur, withUid({ species: sp.name, held_item: null, ability: null, nature: null, tera_type: null, moves: [], evs: {}, ivs: {} })]);
           setSelected(team.length);

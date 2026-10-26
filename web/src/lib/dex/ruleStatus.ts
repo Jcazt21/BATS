@@ -12,6 +12,8 @@ export interface RuleStatus {
   rule: string;
   state: "pass" | "fail" | "info";
   label: string;
+  /** Etiqueta corta para chips ("Tipo Ice", "Gen 5"). */
+  short: string;
   /** Aclaración corta bajo el estado ("Se exige al batallar"). */
   note?: string;
   action?: { label: string; filters: SpeciesFilters };
@@ -20,7 +22,13 @@ export interface RuleStatus {
 export function ruleStatus(row: ChecklistRow, season: RuleSeason): RuleStatus {
   const { required_color: color, required_generation: gen, required_egg_group: egg } = season.restrictions;
   const state: RuleStatus["state"] = row.ok ? "pass" : "fail";
-  const base: RuleStatus = { rule: row.rule, state, label: row.label };
+  const short =
+    row.rule === "type_of_month" && season.type_of_month ? `Tipo ${season.type_of_month}`
+    : row.rule === "required_generation" && gen ? `Gen ${gen}`
+    : row.rule === "required_color" && color ? `Color ${color}`
+    : row.rule === "required_egg_group" && egg ? `Egg Group ${egg}`
+    : row.label;
+  const base: RuleStatus = { rule: row.rule, state, label: row.label, short };
   if (row.ok) return base;
   switch (row.rule) {
     case "type_of_month":

@@ -32,7 +32,7 @@ export function StatTile({ label, value, hint, icon, loading, to, className }: P
       {loading ? (
         <Skeleton className="h-8 w-20" />
       ) : (
-        <span className={cn("tabular text-title1 text-foreground", startedLoading && "animate-in fade-in-0 duration-300")}>{value}</span>
+        <span className={cn("tabular font-heading text-title1 text-foreground", startedLoading && "animate-in fade-in-0 duration-300")}>{value}</span>
       )}
       {hint && <span className="text-caption text-muted-foreground">{hint}</span>}
     </>

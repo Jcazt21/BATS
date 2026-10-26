@@ -51,14 +51,14 @@ export function SignInCard({
   return (
     <Card className="w-full max-w-sm shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="text-xl font-semibold tracking-tight">{title}</CardTitle>
-        <CardDescription className="text-sm text-muted-foreground">
+        <CardTitle className="text-title3 font-semibold tracking-tight">{title}</CardTitle>
+        <CardDescription className="text-subhead text-muted-foreground">
           {sent ? "Listo. Abre el enlace que te enviamos para entrar." : description}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {!authConfigured ? (
-          <p className="text-sm text-destructive">
+          <p className="text-subhead text-destructive">
             Falta configurar VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY.
           </p>
         ) : sent ? (
@@ -77,7 +77,7 @@ export function SignInCard({
               <GoogleIcon className="size-4" />
               {googleLoading ? "Redirigiendo…" : "Continuar con Google"}
             </Button>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-3 text-caption text-muted-foreground">
               <span className="h-px flex-1 bg-border" />
               o
               <span className="h-px flex-1 bg-border" />
@@ -92,7 +92,7 @@ export function SignInCard({
               autoFocus
               autoComplete="email"
             />
-            {error && <p className="text-sm text-destructive leading-snug">{error}</p>}
+            {error && <p className="text-subhead text-destructive leading-snug">{error}</p>}
             <Button onClick={handleSend} disabled={!email.trim() || loading} className="w-full">
               {loading ? "Enviando…" : "Enviar enlace"}
             </Button>

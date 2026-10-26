@@ -82,7 +82,7 @@ function TopBar({ scrolled }: { scrolled: boolean }) {
     >
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4 sm:px-6">
         <NavLink to="/" className="press flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="BATS, inicio">
-          <span className="text-headline">BATS</span>
+          <span className="font-heading text-title3 tracking-tight">BATS</span>
         </NavLink>
 
         <nav aria-label="Principal" className="ml-4 hidden items-center gap-1 md:flex">
@@ -196,7 +196,7 @@ function TabBar() {
               onClick={onTab(to)}
               className={({ isActive }) =>
                 cn(
-                  "press relative isolate flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1 text-[0.6875rem] font-medium outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ring",
+                  "press relative isolate flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1 text-caption font-medium outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ring",
                   isActive ? "text-primary" : "text-muted-foreground",
                 )
               }

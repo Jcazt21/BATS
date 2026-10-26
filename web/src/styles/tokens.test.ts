@@ -58,7 +58,10 @@ describe("neutros cálidos (sin el azul Apple, hue 264)", () => {
       const c = parseOklch(variables(tokens, sel)[nombre]);
       expect(c, nombre).not.toBeNull();
       // Blanco puro (c=0) no tiene matiz; cualquier otro neutro debe ser cálido (hue 30–110).
-      if (c!.c > 0) expect(c!.h).toBeGreaterThanOrEqual(30), expect(c!.h).toBeLessThanOrEqual(110);
+      if (c!.c > 0) {
+        expect(c!.h).toBeGreaterThanOrEqual(30);
+        expect(c!.h).toBeLessThanOrEqual(110);
+      }
     });
   }
   it("ninguna variable de color de tokens.css usa hue 264 (incluido prefers-contrast)", () => {

@@ -235,5 +235,8 @@ Skills al implementar: `impeccable` (leer craft-floor antes de cualquier edició
 **Archivos:** ninguno nuevo (correcciones puntuales).
 **Aceptación:** checklist anterior completo; sin hallazgos "feel-breaking".
 
+## Paleta "Tipo del mes vivo"
+Plan: [PLAN_PALETA.md](PLAN_PALETA.md) · evidencia: [docs/evidencia-paleta/EVIDENCIA_PALETA.md](docs/evidencia-paleta/EVIDENCIA_PALETA.md). Implementadas F1–F5 en código (tests de contraste AA, `MonthTheme`, sin colores sueltos); la matriz visual completa (F6) queda para P12.
+
 ## Verificación global
 `cd web && npm test && npm run lint && npm run build`; luego P12 en navegador.

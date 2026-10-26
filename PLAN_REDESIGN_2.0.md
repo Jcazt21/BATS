@@ -48,15 +48,15 @@ Skills al implementar: `impeccable` (leer craft-floor antes de cualquier edició
 ## P1 — Targets táctiles y reduced-motion global
 **Objetivo:** todo control pulsable tiene ≥44px de área táctil y la preferencia de reduced-motion se respeta en animaciones **y** transiciones.
 
-- [ ] 🔴 Test `ui/button.test.tsx`: variantes `xs` e `icon-xs` exponen hit-area ≥44px (clase de hit-area `before:` / `min-h` documentada) sin cambiar el tamaño visual.
-- [ ] 🟢 Ajustar `ui/button.tsx:25` (cva) con pseudo-elemento de hit-area.
-- [ ] 🔴 Test `components/app/SegmentedControl.test.tsx`: cada opción tiene hit-area ≥44px, `role="radio"`/`tab` correcto, flechas cambian selección.
-- [ ] 🟢 Ajustar `SegmentedControl.tsx` (`min-h-8` → visual 32px + hit-area 44px).
-- [ ] 🔴 Test `styles/reduced-motion.test.ts` (texto de `tokens.css`/`index.css`): bloque `@media (prefers-reduced-motion: reduce)` incluye `transition-duration` ≈0 para transform, `.press:active{transform:none}`, `animate-pulse`/`animate-spin` sin movimiento.
-- [ ] 🟢 Implementar el bloque en `tokens.css` (~350-356) y `index.css:51-56`.
-- [ ] 🔴 Test `components/app/Meter.test.tsx`: con `mockReducedMotion(true)` no tiene clase de transición; con motion normal usa `duration-300 ease-ios` (no `duration-500 ease-out`).
-- [ ] 🟢 Corregir `Meter.tsx:23`.
-- [ ] 🔵 Quitar de la guarda (P0) las excepciones resueltas.
+- [x] 🔴 Test `ui/button.test.tsx`: variantes `xs` e `icon-xs` exponen hit-area ≥44px (clase de hit-area `before:` / `min-h` documentada) sin cambiar el tamaño visual.
+- [x] 🟢 Ajustar `ui/button.tsx:25` (cva) con pseudo-elemento de hit-area.
+- [x] 🔴 Test `components/app/SegmentedControl.test.tsx`: cada opción tiene hit-area ≥44px, `role="radio"`/`tab` correcto, flechas cambian selección.
+- [x] 🟢 Ajustar `SegmentedControl.tsx` (`min-h-8` → visual 32px + hit-area 44px).
+- [x] 🔴 Test `styles/reduced-motion.test.ts` (texto de `tokens.css`/`index.css`): bloque `@media (prefers-reduced-motion: reduce)` incluye `transition-duration` ≈0 para transform, `.press:active{transform:none}`, `animate-pulse`/`animate-spin` sin movimiento.
+- [x] 🟢 Implementar el bloque en `tokens.css` (~350-356) y `index.css:51-56`.
+- [x] 🔴 Test `components/app/Meter.test.tsx`: con `mockReducedMotion(true)` no tiene clase de transición; con motion normal usa `duration-300 ease-ios` (no `duration-500 ease-out`).
+- [x] 🟢 Corregir `Meter.tsx:23`.
+- [x] 🔵 Quitar de la guarda (P0) las excepciones resueltas.
 
 **Archivos:** `ui/button.tsx`, `components/app/{SegmentedControl,Meter}.tsx`, `styles/tokens.css`, `index.css`, tests nuevos junto a cada uno.
 **Aceptación:** tests verdes; `Meter` ≤300ms; reduced-motion cubre transiciones; sin cambios visuales visibles a 100% de zoom.

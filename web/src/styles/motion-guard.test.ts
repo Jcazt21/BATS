@@ -27,8 +27,6 @@ const PATRONES: [nombre: string, re: RegExp][] = [
 
 /** archivo → patrones tolerados hasta que su paquete los corrija. */
 const EXCEPCIONES: Record<string, string[]> = {
-  // TODO(P1): Meter pasa a duration-300 ease-ios.
-  "/src/components/app/Meter.tsx": ["duración >300ms (duration-500+)"],
 };
 
 describe("guarda de motion", () => {

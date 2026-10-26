@@ -360,4 +360,16 @@
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
   }
+  /* Sin transiciones de movimiento: solo color y opacidad siguen animándose. */
+  .press {
+    transition-property: background-color, opacity;
+  }
+  .press:active {
+    transform: none;
+  }
+  /* Pulso y giro de carga quedan estáticos; el texto/rol del estado sigue informando. */
+  .animate-pulse,
+  .animate-spin {
+    animation: none;
+  }
 }

@@ -180,14 +180,14 @@ Skills al implementar: `impeccable` (leer craft-floor antes de cualquier edició
 ## P9 — Stats
 **Objetivo:** la página larga se vuelve navegable y la tabla es usable en móvil.
 
-- [ ] 🔴 Test `pages/StatsPage.test.tsx`: selector de temporada es `SegmentedControl`/menú accesible (no `<select>` nativo, `:187`); cambiar temporada muestra estado refreshing y luego `Reveal`.
-- [ ] 🟢 Implementar.
-- [ ] 🔴 Test: navegación interna (Tabla · MVP · Uso) con tabs de P3; contenido de cada tab se monta al seleccionar.
-- [ ] 🟢 Implementar.
-- [ ] 🔴 Test: en móvil, orden por chip ("Ordenar por") y cards con rank + `Meter`.
-- [ ] 🟢 Implementar en `DataList` (opción `mobileSort`).
-- [ ] 🔴 Test: gráfico usa también patrón/forma además de color (win rate ≥50%) y tick sizes desde tokens.
-- [ ] 🟢 Implementar.
+- [x] 🔴 Test `pages/StatsPage.test.tsx`: selector de temporada es `SegmentedControl`/menú accesible (no `<select>` nativo, `:187`); cambiar temporada muestra estado refreshing y luego `Reveal`.
+- [x] 🟢 Implementar.
+- [x] 🔴 Test: navegación interna (Tabla · MVP · Uso) con tabs de P3; contenido de cada tab se monta al seleccionar.
+- [x] 🟢 Implementar.
+- [x] 🔴 Test: en móvil, orden por chip ("Ordenar por") y cards con rank + `Meter`.
+- [x] 🟢 Implementar en `DataList` (opción `mobileSort`).
+- [x] 🔴 Test: gráfico usa también patrón/forma además de color (win rate ≥50%) y tick sizes desde tokens.
+- [x] 🟢 Implementar.
 
 **Archivos:** `pages/StatsPage.tsx`, `components/app/DataList.tsx` (+tests).
 **Aceptación:** tests verdes; `StatsPage` sigue sirviendo a admin sin regresión.

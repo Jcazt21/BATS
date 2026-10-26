@@ -107,3 +107,39 @@ describe("DataList · entrada escalonada", () => {
     for (const fila of filasTabla()) expect(fila.className).not.toMatch(/animate-in/);
   });
 });
+
+describe("DataList · orden en móvil (mobileSort)", () => {
+  const ordenar = () => screen.getByRole("radiogroup", { name: "Ordenar por" });
+  const nombresTarjetas = () =>
+    within(screen.getByRole("list", { name: "Pokémon" })).getAllByRole("listitem").map((li) => li.textContent?.slice(0, 9));
+
+  it("sin la opción no hay selector de orden", () => {
+    montar();
+    expect(screen.queryByRole("radiogroup", { name: "Ordenar por" })).not.toBeInTheDocument();
+  });
+
+  it("muestra un chip por columna ordenable, con el orden actual marcado", () => {
+    montar({ mobileSort: true, defaultSort: { key: "wr", dir: "desc" } });
+    const chips = within(ordenar()).getAllByRole("radio");
+    expect(chips.map((c) => c.textContent)).toEqual(["Nombre", "Win rate"]);
+    expect(within(ordenar()).getByRole("radio", { name: /Win rate/ })).toBeChecked();
+  });
+
+  it("elegir un chip reordena las tarjetas", async () => {
+    montar({ mobileSort: true, defaultSort: { key: "wr", dir: "desc" } });
+    expect(nombresTarjetas()[0]).toMatch(/Dragonite/);
+    await userEvent.click(within(ordenar()).getByRole("radio", { name: "Nombre" })); // nuevo criterio: descendente
+    expect(nombresTarjetas()[0]).toMatch(/Gengar/);
+  });
+
+  it("pulsar el chip activo invierte la dirección", async () => {
+    montar({ mobileSort: true, defaultSort: { key: "wr", dir: "desc" } });
+    await userEvent.click(within(ordenar()).getByRole("radio", { name: /Win rate/ }));
+    expect(nombresTarjetas()[0]).toMatch(/Gengar/); // ascendente: 40% primero
+  });
+
+  it("cada chip mide ≥44px de área táctil", () => {
+    montar({ mobileSort: true });
+    for (const chip of within(ordenar()).getAllByRole("radio")) expect(chip.className).toMatch(/before:-inset-y-/);
+  });
+});

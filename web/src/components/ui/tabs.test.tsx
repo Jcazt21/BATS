@@ -41,5 +41,7 @@ describe("Tabs", () => {
     expect(indicador).toBeInTheDocument();
     expect(indicador).toHaveClass("ease-ios", "motion-reduce:transition-none");
     expect(indicador.className).toMatch(/transition-\[translate,width\]/);
+    // Sin `left-0` el indicador queda en su posición estática (tras las pestañas) y el translate parte de ahí.
+    expect(indicador).toHaveClass("left-0");
   });
 });

@@ -61,7 +61,7 @@ function TabsIndicator() {
   return (
     <TabsPrimitive.Indicator
       data-slot="tabs-indicator"
-      className="pointer-events-none absolute z-0 w-(--active-tab-width) translate-x-(--active-tab-left) transition-[translate,width] duration-200 ease-ios motion-reduce:transition-none group-data-horizontal/tabs:top-(--active-tab-top) group-data-horizontal/tabs:h-(--active-tab-height) group-data-[variant=default]/tabs-list:rounded-md group-data-[variant=default]/tabs-list:bg-background group-data-[variant=default]/tabs-list:shadow-sm group-data-[variant=line]/tabs-list:h-0.5 group-data-[variant=line]/tabs-list:bg-foreground group-data-[variant=line]/tabs-list:top-[calc(var(--active-tab-top)+var(--active-tab-height)+5px)] group-data-vertical/tabs:left-0 group-data-vertical/tabs:w-full"
+      className="pointer-events-none absolute left-0 z-0 w-(--active-tab-width) translate-x-(--active-tab-left) transition-[translate,width] duration-200 ease-ios motion-reduce:transition-none group-data-horizontal/tabs:top-(--active-tab-top) group-data-horizontal/tabs:h-(--active-tab-height) group-data-[variant=default]/tabs-list:rounded-md group-data-[variant=default]/tabs-list:bg-background group-data-[variant=default]/tabs-list:shadow-sm group-data-[variant=line]/tabs-list:h-0.5 group-data-[variant=line]/tabs-list:bg-foreground group-data-[variant=line]/tabs-list:top-[calc(var(--active-tab-top)+var(--active-tab-height)+5px)] group-data-vertical/tabs:left-0 group-data-vertical/tabs:w-full"
     />
   )
 }

@@ -34,6 +34,8 @@ interface Props<T> {
   loading?: boolean;
   empty?: ReactNode;
   caption: string;
+  /** En móvil (tarjetas) ofrece chips "Ordenar por" para las columnas ordenables. */
+  mobileSort?: boolean;
   className?: string;
 }
 
@@ -41,7 +43,7 @@ interface Props<T> {
  * Una sola lista de datos con dos presentaciones: tabla en pantallas anchas y tarjetas
  * en el móvil. Sin desplazamiento horizontal y sin duplicar código por página.
  */
-export function DataList<T>({ rows, columns, rowKey, onRowClick, rowHref, rowPrefetch, defaultSort, loading, empty, caption, className }: Props<T>) {
+export function DataList<T>({ rows, columns, rowKey, onRowClick, rowHref, rowPrefetch, defaultSort, loading, empty, caption, mobileSort, className }: Props<T>) {
   const [sort, setSort] = useState(defaultSort);
   // Solo si esta lista llegó a mostrar el esqueleto: con datos en caché no hay nada que suavizar.
   const [startedLoading] = useState(!!loading);
@@ -98,6 +100,27 @@ export function DataList<T>({ rows, columns, rowKey, onRowClick, rowHref, rowPre
 
   return (
     <div className={cn("overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border", className)}>
+      {/* Orden en móvil: la tabla tiene cabeceras pulsables, las tarjetas no */}
+      {mobileSort && (
+        <div role="radiogroup" aria-label="Ordenar por" className="flex gap-2 overflow-x-auto border-b border-separator px-4 py-3 md:hidden">
+          {columns.filter((c) => c.sortValue).map((c) => {
+            const active = sort?.key === c.key;
+            return (
+              <button
+                key={c.key} type="button" role="radio" aria-checked={active} onClick={() => toggle(c)}
+                className={cn(
+                  "press relative inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3 text-footnote font-medium outline-none transition-colors duration-200 before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-[''] focus-visible:ring-2 focus-visible:ring-ring",
+                  active ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
+                )}
+              >
+                {c.header}
+                {active && (sort!.dir === "asc" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />)}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Tarjetas (móvil) */}
       <ul className="divide-y divide-separator md:hidden" aria-label={caption}>
         {sorted.map((row, i) => (

@@ -221,7 +221,7 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
         <Collapsible open={checklistOpen} onOpenChange={setChecklistOpen}>
           <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-subhead">
             <span>{passedCount} de {rows.length} reglas cumplidas</span>
-            <ChevronUp className={cn("transition-transform", checklistOpen && "rotate-180")} />
+            <ChevronUp className={cn("transition-transform duration-200 ease-ios", checklistOpen && "rotate-180")} />
           </CollapsibleTrigger>
           <CollapsibleContent className="flex max-h-[50vh] flex-col gap-4 overflow-y-auto px-4 pb-4">
             <ChecklistPanel rows={rows} empty={team.length === 0} />

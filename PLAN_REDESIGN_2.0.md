@@ -79,19 +79,19 @@ Skills al implementar: `impeccable` (leer craft-floor antes de cualquier edició
 ## P3 — Motion de overlays y primitivas
 **Objetivo:** toasts, sheets, dialogs, tooltips, collapsibles y tabs se mueven con curvas/duraciones correctas, salida más rápida que entrada, interrumpibles y accesibles.
 
-- [ ] 🔴 Test `components/app/Toaster.test.tsx`: `useToast` muestra, apila y cierra; timer **se pausa en hover/focus** y se limpia al desmontar (fake timers); nueva entrada usa `transform` string (no `y`/`scale`).
-- [ ] 🟢 Refactor `Toaster.tsx:97,114-118`: `transform: translateY(-12px) scale(.96)`, salida direccional, cleanup de timers.
-- [ ] 🔴 Test guarda: `ui/sheet.tsx` no contiene `transition ` genérico; usa `transition-[transform,opacity]` y salida `duration-200`.
-- [ ] 🟢 Ajustar `ui/sheet.tsx:56`.
-- [ ] 🔴 Test guarda: `ui/dialog.tsx:56`, `ui/alert-dialog.tsx:53` tienen salida más corta que entrada (`data-closed:duration-100/120`).
-- [ ] 🟢 Ajustar ambos.
-- [ ] 🔴 Test `ui/tooltip.test.tsx`: sin selectores `data-[state=delayed-open]`; segundo tooltip se abre sin delay ni animación (`data-instant`).
-- [ ] 🟢 Limpiar `tooltip.tsx:51` e implementar skip-delay (`Tooltip.Provider` con delay group).
-- [ ] 🔴 Test `ui/collapsible.test.tsx`: abrir/cerrar alterna `aria-expanded` y clase de animación grid-rows; chevron con `duration-200 ease-ios`.
-- [ ] 🟢 Implementar patrón `grid-template-rows 0fr→1fr` en `ui/collapsible.tsx` y chevron en `TeamBuilder.tsx:224`.
-- [ ] 🔴 Test `ui/tabs.test.tsx`: indicador activo usa `layoutId` (reutiliza patrón de `SegmentedControl`); cambio por teclado funciona.
-- [ ] 🟢 Reescribir indicador en `ui/tabs.tsx:59-62`.
-- [ ] 🔵 Migrar `HoldButton.css` / `BranchedMenu.css` a los tokens de P0; quitar excepciones de la guarda.
+- [x] 🔴 Test `components/app/Toaster.test.tsx`: `useToast` muestra, apila y cierra; timer **se pausa en hover/focus** y se limpia al desmontar (fake timers); nueva entrada usa `transform` string (no `y`/`scale`).
+- [x] 🟢 Refactor `Toaster.tsx:97,114-118`: `transform: translateY(-12px) scale(.96)`, salida direccional, cleanup de timers.
+- [x] 🔴 Test guarda: `ui/sheet.tsx` no contiene `transition ` genérico; usa `transition-[transform,opacity]` y salida `duration-200`.
+- [x] 🟢 Ajustar `ui/sheet.tsx:56`.
+- [x] 🔴 Test guarda: `ui/dialog.tsx:56`, `ui/alert-dialog.tsx:53` tienen salida más corta que entrada (`data-closed:duration-100/120`).
+- [x] 🟢 Ajustar ambos.
+- [x] 🔴 Test `ui/tooltip.test.tsx`: sin selectores `data-[state=delayed-open]`; segundo tooltip se abre sin delay ni animación (`data-instant`).
+- [x] 🟢 Limpiar `tooltip.tsx:51` e implementar skip-delay (`Tooltip.Provider` con delay group).
+- [x] 🔴 Test `ui/collapsible.test.tsx`: abrir/cerrar alterna `aria-expanded` y clase de animación grid-rows; chevron con `duration-200 ease-ios`.
+- [x] 🟢 Implementado con la altura de Base UI (`--collapsible-panel-height`) en vez de `grid-template-rows`: el panel se desmonta al cerrar y el patrón grid exigiría `keepMounted`. Chevron en `components/builder/TeamBuilder.tsx`.
+- [x] 🔴 Test `ui/tabs.test.tsx`: indicador activo usa `layoutId` (reutiliza patrón de `SegmentedControl`); cambio por teclado funciona.
+- [x] 🟢 Indicador con `TabsPrimitive.Indicator` de Base UI (translate + ancho, curva iOS) en vez de `layoutId`: sigue el tab activo con sus variables CSS sin estado extra. `TabsList` activa al enfocar (`activateOnFocus`).
+- [x] 🔵 Migrar `HoldButton.css` / `BranchedMenu.css` a los tokens de P0; quitar excepciones de la guarda.
 
 **Archivos:** `components/app/Toaster.tsx`, `ui/{sheet,dialog,alert-dialog,tooltip,collapsible,tabs}.tsx`, `components/app/{HoldButton,BranchedMenu}.css`, `components/team/TeamBuilder.tsx` (solo chevron).
 **Aceptación:** tests verdes; guarda sin excepciones para estos archivos; `review-animations` sobre el diff sin "feel-breaking".

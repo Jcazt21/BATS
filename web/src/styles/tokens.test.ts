@@ -131,3 +131,73 @@ describe("series de gráficos", () => {
     });
   }
 });
+
+// ── Paleta: acento dinámico por tipo del mes (F3) ─────────────────────────────
+const TIPOS = [...tokens.matchAll(/--type-([a-z]+):/g)].map((m) => m[1]).filter((t, i, a) => a.indexOf(t) === i);
+const bloqueTipo = (t: string) => variables(tokens, `[data-month-type="${t}"]`);
+
+/** Acento (primary y su texto) de un mes en un tema: lo que `tokens.css` deriva de --month-*. */
+function acento(tema: Tema, tipo: string | null) {
+  const v = { ...variables(tokens, ":root"), ...(tipo ? bloqueTipo(tipo) : {}) };
+  const l = parseFloat(v[`--month-l-${tema === "claro" ? "light" : "dark"}`]);
+  const primary: Oklch = { l, c: parseFloat(v["--month-c"]), h: parseFloat(v["--month-h"]), a: 1 };
+  let crudo = v[`--month-fg-${tema === "claro" ? "light" : "dark"}`];
+  if (crudo.startsWith("var(")) crudo = v[crudo.slice(4, -1).trim()];
+  const fg = parseOklch(crudo)!;
+  return { primary, fg };
+}
+
+describe("acento del mes", () => {
+  it("hay un bloque [data-month-type] por cada tipo (18)", () => {
+    const nombres = [...tokens.matchAll(/\[data-month-type="([a-z]+)"\]\s*\{/g)].map((m) => m[1]).sort();
+    expect(TIPOS).toHaveLength(18);
+    expect(nombres).toEqual([...TIPOS].sort());
+  });
+  it("--primary, --ring y --sidebar-primary se derivan de --month-*", () => {
+    const v = variables(tokens, ":root");
+    expect(v["--primary"]).toBe("oklch(var(--month-l) var(--month-c) var(--month-h))");
+    expect(v["--primary-foreground"]).toBe("var(--month-fg)");
+    expect(v["--ring"]).toBe("var(--primary)");
+    expect(v["--sidebar-primary"]).toBe("var(--primary)");
+    expect(v["--sidebar-ring"]).toBe("var(--primary)");
+    expect(v["--sidebar-primary-foreground"]).toBe("var(--month-fg)");
+    // .dark no redefine el acento: lo hereda por --month-l / --month-fg.
+    for (const n of ["--primary", "--primary-foreground", "--ring", "--sidebar-primary", "--sidebar-ring"])
+      expect(variables(tokens, ".dark")[n], n).toBeUndefined();
+  });
+  it("sin atributo, el acento es la laca de Pokédex (hue ≈ 27)", () => {
+    const { primary } = acento("claro", null);
+    expect(primary.h).toBe(27);
+    expect(primary.c).toBeGreaterThan(0.15);
+  });
+  for (const [tema] of TEMAS) {
+    it.each([null, ...TIPOS])(`${tema}: acento %s cumple contraste`, (tipo) => {
+      const { primary, fg } = acento(tema, tipo);
+      const fondo = color(tema, "--background");
+      expect(contraste(primary, fg), "primary/primary-foreground").toBeGreaterThanOrEqual(4.5);
+      expect(contraste(primary, fondo), "primary/background (anillo de foco)").toBeGreaterThanOrEqual(3);
+      expect(contraste(primary, color(tema, "--card")), "primary/card").toBeGreaterThanOrEqual(3);
+    });
+  }
+  it("el texto sobre el acento es blanco o tinta (sin otros matices)", () => {
+    for (const t of TIPOS) for (const [tema] of TEMAS) {
+      const { fg } = acento(tema, t);
+      expect([1, 0.16]).toContain(fg.l);
+    }
+  });
+});
+
+describe("avatar con el acento del mes (chart-1/15 sobre card)", () => {
+  // El acento del mes no garantiza 4.5:1 sobre su propio tinte (los claros son L≈.6), así que
+  // el tono 1 del avatar pinta las iniciales con `foreground` y solo el fondo toma el acento.
+  it("el tono 1 de PlayerAvatar usa text-foreground", () => {
+    expect(leerFuente("components/app/PlayerAvatar.tsx")).toMatch(/"bg-chart-1\/15 text-foreground"/);
+  });
+  for (const [tema] of TEMAS) {
+    it.each([null, ...TIPOS])(`${tema}: iniciales sobre el tinte del acento %s ≥ 4.5:1`, (tipo) => {
+      const { primary } = acento(tema, tipo);
+      const tinte = sobre({ ...primary, a: 0.15 }, color(tema, "--card"));
+      expect(contraste(color(tema, "--foreground"), tinte)).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+});

@@ -20,9 +20,6 @@
   --popover:              oklch(0.985 0.007 85);
   --popover-foreground:   oklch(0.22 0.03 45);
 
-  /* Acento (systemBlue). El texto blanco sobre él cumple AA. */
-  --primary:              oklch(0.55 0.2 258);
-  --primary-foreground:   oklch(1 0 0);
 
   --secondary:            oklch(0.935 0.014 82);
   --secondary-foreground: oklch(0.27 0.03 45);
@@ -45,7 +42,6 @@
   --border:               oklch(0.22 0.03 45 / 0.12);
   --input:                oklch(0.22 0.03 45 / 0.18);
   --separator:            oklch(0.22 0.03 45 / 0.09);
-  --ring:                 oklch(0.55 0.2 258 / 0.55);
 
   /* Series de gráficos. chart-1 sigue al acento del mes; 2–6 son fijas (oro, brasa, glaciar,
      uva, verde LCD). El tinte `/15` del avatar exige ≥ 4.5:1 → L ≈ .5 en claro, ≈ .78 en oscuro. */
@@ -59,12 +55,9 @@
   /* Barra lateral (admin) */
   --sidebar:                    oklch(0.975 0.009 85);
   --sidebar-foreground:         oklch(0.22 0.03 45);
-  --sidebar-primary:            oklch(0.55 0.2 258);
-  --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent:             oklch(0.92 0.018 80);
   --sidebar-accent-foreground:  oklch(0.22 0.03 45);
   --sidebar-border:             oklch(0.22 0.03 45 / 0.12);
-  --sidebar-ring:               oklch(0.55 0.2 258 / 0.55);
 
   /* Materiales translúcidos (ver .material-* más abajo) */
   --material-thin:    oklch(0.985 0.007 85 / 0.55);
@@ -92,9 +85,6 @@
   --popover:              oklch(0.24 0.015 50);
   --popover-foreground:   oklch(0.95 0.012 85);
 
-  --primary:              oklch(0.7 0.16 255);
-  --primary-foreground:   oklch(0.16 0.012 50);
-
   --secondary:            oklch(0.27 0.015 50);
   --secondary-foreground: oklch(0.95 0.012 85);
   --muted:                oklch(0.26 0.014 50);
@@ -114,7 +104,6 @@
   --border:               oklch(1 0 0 / 0.1);
   --input:                oklch(1 0 0 / 0.16);
   --separator:            oklch(1 0 0 / 0.08);
-  --ring:                 oklch(0.7 0.16 255 / 0.6);
 
   --chart-1: var(--primary);
   --chart-2: oklch(0.82 0.13 85);
@@ -125,12 +114,9 @@
 
   --sidebar:                    oklch(0.185 0.013 50);
   --sidebar-foreground:         oklch(0.95 0.012 85);
-  --sidebar-primary:            oklch(0.7 0.16 255);
-  --sidebar-primary-foreground: oklch(0.16 0.012 50);
   --sidebar-accent:             oklch(0.27 0.015 50);
   --sidebar-accent-foreground:  oklch(0.95 0.012 85);
   --sidebar-border:             oklch(1 0 0 / 0.1);
-  --sidebar-ring:               oklch(0.7 0.16 255 / 0.6);
 
   --material-thin:    oklch(0.205 0.014 50 / 0.5);
   --material-regular: oklch(0.205 0.014 50 / 0.68);
@@ -165,6 +151,52 @@
   --type-steel:    oklch(0.72 0.03 240);  --type-steel-fg:    oklch(0.2 0.01 264);
   --type-fairy:    oklch(0.8 0.11 350);   --type-fairy-fg:    oklch(0.2 0.01 264);
 }
+
+/* ─── Acento del mes ────────────────────────────────────────────────────────────
+   `MonthTheme` pone `data-month-type="<tipo>"` en <html> según el `type_of_month` de la
+   temporada activa. Sin atributo manda la laca de Pokédex (marca de BATS).
+   Cada tipo da matiz (h), croma (c) y luminosidad por tema; el texto sobre el acento es
+   blanco o tinta. L/C NO son los del --type-*: se ajustan para que el acento cumpla
+   ≥ 4.5:1 con su texto y ≥ 3:1 contra fondo y tarjeta (el foco y los botones se ven).
+   Por eso electric/ground/fairy... son más oscuros aquí que en su etiqueta de tipo.
+   `tokens.test.ts` lo verifica para los 18 tipos × 2 temas. */
+:root {
+  --month-ink: oklch(0.16 0.012 50);
+  --month-h: 27; --month-c: 0.18; --month-l-light: 0.5; --month-l-dark: 0.72;
+  --month-fg-light: oklch(1 0 0);
+  --month-fg-dark: var(--month-ink);
+  --month-l: var(--month-l-light);
+  --month-fg: var(--month-fg-light);
+
+  --primary:                    oklch(var(--month-l) var(--month-c) var(--month-h));
+  --primary-foreground:         var(--month-fg);
+  --ring:                       var(--primary);
+  --sidebar-primary:            var(--primary);
+  --sidebar-primary-foreground: var(--month-fg);
+  --sidebar-ring:               var(--primary);
+}
+.dark {
+  --month-l: var(--month-l-dark);
+  --month-fg: var(--month-fg-dark);
+}
+[data-month-type="normal"] { --month-h: 80; --month-c: 0.03; --month-l-light: 0.56; --month-l-dark: 0.7; }
+[data-month-type="fire"] { --month-h: 40; --month-c: 0.18; --month-l-light: 0.58; --month-l-dark: 0.7; }
+[data-month-type="water"] { --month-h: 250; --month-c: 0.17; --month-l-light: 0.56; --month-l-dark: 0.7; }
+[data-month-type="electric"] { --month-h: 95; --month-c: 0.17; --month-l-light: 0.56; --month-l-dark: 0.8; }
+[data-month-type="grass"] { --month-h: 145; --month-c: 0.17; --month-l-light: 0.54; --month-l-dark: 0.7; }
+[data-month-type="ice"] { --month-h: 210; --month-c: 0.08; --month-l-light: 0.55; --month-l-dark: 0.8; }
+[data-month-type="fighting"] { --month-h: 25; --month-c: 0.18; --month-l-light: 0.5; --month-l-dark: 0.7; }
+[data-month-type="poison"] { --month-h: 320; --month-c: 0.18; --month-l-light: 0.52; --month-l-dark: 0.7; }
+[data-month-type="ground"] { --month-h: 80; --month-c: 0.11; --month-l-light: 0.62; --month-l-dark: 0.7; --month-fg-light: var(--month-ink); }
+[data-month-type="flying"] { --month-h: 265; --month-c: 0.1; --month-l-light: 0.56; --month-l-dark: 0.72; }
+[data-month-type="psychic"] { --month-h: 355; --month-c: 0.18; --month-l-light: 0.58; --month-l-dark: 0.7; }
+[data-month-type="bug"] { --month-h: 125; --month-c: 0.16; --month-l-light: 0.55; --month-l-dark: 0.7; }
+[data-month-type="rock"] { --month-h: 90; --month-c: 0.07; --month-l-light: 0.56; --month-l-dark: 0.7; }
+[data-month-type="ghost"] { --month-h: 300; --month-c: 0.12; --month-l-light: 0.46; --month-l-dark: 0.7; }
+[data-month-type="dragon"] { --month-h: 275; --month-c: 0.18; --month-l-light: 0.48; --month-l-dark: 0.7; }
+[data-month-type="dark"] { --month-h: 50; --month-c: 0.03; --month-l-light: 0.36; --month-l-dark: 0.7; }
+[data-month-type="steel"] { --month-h: 240; --month-c: 0.03; --month-l-light: 0.56; --month-l-dark: 0.72; }
+[data-month-type="fairy"] { --month-h: 350; --month-c: 0.11; --month-l-light: 0.57; --month-l-dark: 0.8; }
 
 /* ─── Mapeo a Tailwind ─────────────────────────────────────────────────────── */
 @theme inline {

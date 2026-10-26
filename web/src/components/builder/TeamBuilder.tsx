@@ -284,6 +284,8 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
         banned={banned}
         hints={hints}
         initialFilters={pickerFilters}
+        keepOpen={swapIndex === null}
+        progress={{ count: team.length, max: maxSize }}
         onPick={(sp) => {
           const fresh: BuilderMon = { species: sp.name, held_item: null, ability: null, nature: null, tera_type: null, moves: [], evs: {}, ivs: {} };
           if (swapIndex !== null) {
@@ -292,6 +294,7 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
           } else {
             setItems((cur) => [...cur, withUid(fresh)]);
             setSelected(team.length);
+            return; // "agregar y seguir": el buscador se cierra solo al llenar el equipo
           }
           setPickerOpen(false);
         }}

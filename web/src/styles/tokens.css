@@ -78,19 +78,19 @@
 .dark {
   color-scheme: dark;
 
-  --background:           oklch(0.16 0.012 50);
-  --foreground:           oklch(0.95 0.012 85);
-  --card:                 oklch(0.205 0.014 50);
-  --card-foreground:      oklch(0.95 0.012 85);
-  --popover:              oklch(0.24 0.015 50);
-  --popover-foreground:   oklch(0.95 0.012 85);
+  --background:           oklch(0.14 0.004 70);
+  --foreground:           oklch(0.95 0.006 85);
+  --card:                 oklch(0.18 0.005 70);
+  --card-foreground:      oklch(0.95 0.006 85);
+  --popover:              oklch(0.21 0.006 70);
+  --popover-foreground:   oklch(0.95 0.006 85);
 
-  --secondary:            oklch(0.27 0.015 50);
-  --secondary-foreground: oklch(0.95 0.012 85);
-  --muted:                oklch(0.26 0.014 50);
-  --muted-foreground:     oklch(0.72 0.02 70);
-  --accent:               oklch(0.31 0.018 50);
-  --accent-foreground:    oklch(0.95 0.012 85);
+  --secondary:            oklch(0.24 0.006 70);
+  --secondary-foreground: oklch(0.95 0.006 85);
+  --muted:                oklch(0.23 0.006 70);
+  --muted-foreground:     oklch(0.72 0.01 80);
+  --accent:               oklch(0.28 0.008 70);
+  --accent-foreground:    oklch(0.95 0.006 85);
 
   --success:              oklch(0.78 0.16 145);
   --success-soft:         oklch(0.27 0.06 145);
@@ -112,15 +112,15 @@
   --chart-5: oklch(0.76 0.14 305);
   --chart-6: oklch(0.78 0.16 148);
 
-  --sidebar:                    oklch(0.185 0.013 50);
-  --sidebar-foreground:         oklch(0.95 0.012 85);
-  --sidebar-accent:             oklch(0.27 0.015 50);
-  --sidebar-accent-foreground:  oklch(0.95 0.012 85);
+  --sidebar:                    oklch(0.16 0.004 70);
+  --sidebar-foreground:         oklch(0.95 0.006 85);
+  --sidebar-accent:             oklch(0.24 0.006 70);
+  --sidebar-accent-foreground:  oklch(0.95 0.006 85);
   --sidebar-border:             oklch(1 0 0 / 0.1);
 
-  --material-thin:    oklch(0.205 0.014 50 / 0.5);
-  --material-regular: oklch(0.205 0.014 50 / 0.68);
-  --material-thick:   oklch(0.205 0.014 50 / 0.84);
+  --material-thin:    oklch(0.18 0.005 70 / 0.5);
+  --material-regular: oklch(0.18 0.005 70 / 0.68);
+  --material-thick:   oklch(0.18 0.005 70 / 0.84);
   --material-edge:    oklch(1 0 0 / 0.1);
 
   --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.4);
@@ -161,7 +161,7 @@
    Por eso electric/ground/fairy... son más oscuros aquí que en su etiqueta de tipo.
    `tokens.test.ts` lo verifica para los 18 tipos × 2 temas. */
 :root {
-  --month-ink: oklch(0.16 0.012 50);
+  --month-ink: oklch(0.16 0.004 70);
   --month-h: 27; --month-c: 0.18; --month-l-light: 0.5; --month-l-dark: 0.72;
   --month-fg-light: oklch(1 0 0);
   --month-fg-dark: var(--month-ink);
@@ -376,10 +376,10 @@
     --border: oklch(1 0 0 / 0.4);
     --input: oklch(1 0 0 / 0.55);
     --separator: oklch(1 0 0 / 0.3);
-    --muted-foreground: oklch(0.84 0.02 70);
-    --material-thin: oklch(0.16 0.012 50);
-    --material-regular: oklch(0.16 0.012 50);
-    --material-thick: oklch(0.16 0.012 50);
+    --muted-foreground: oklch(0.84 0.01 80);
+    --material-thin: oklch(0.14 0.004 70);
+    --material-regular: oklch(0.14 0.004 70);
+    --material-thick: oklch(0.14 0.004 70);
   }
 }
 

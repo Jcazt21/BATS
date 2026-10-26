@@ -49,3 +49,9 @@ Los 18 tipos × 2 temas se verifican en `web/src/styles/tokens.test.ts` (texto/a
 - **Avatar tono 1:** las iniciales usan `text-foreground` (el acento del mes no garantiza 4.5:1 sobre su propio tinte `/15`).
 - `--ring` es ahora el acento opaco (antes alfa .55) para cumplir ≥ 3:1 en foco.
 - `impeccable detect` no se ejecutó.
+
+## Pilar de luz en el hero del Home (añadido después de F5)
+`HomePillar` + `LightPillar` (React Bits, portado a TS). Oscuro + movimiento + WebGL2 + puntero fino; si no, degradado estático con el acento. Chunk aparte (~5.5 kB gzip).
+- ✅ Comprobado en Chrome (Apple M5) con `ice`, `fire` y `electric`: el pilar y el acento cambian con el mes; texto legible sobre el efecto; sin rectángulo de fondo.
+- Bugs que salieron en la verificación (ambos con test): StrictMode dejaba el contexto WebGL perdido (pilar en blanco + icono de canvas roto) y un `mix-blend-mode: screen` dentro de un grupo enmascarado pintaba un rectángulo negro.
+- No medido: FPS reales, móvil y claro (no se monta por diseño).

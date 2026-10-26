@@ -8,6 +8,7 @@ import { PokemonSprite } from "@/components/app/PokemonSprite";
 import { TypeBadges } from "@/components/app/TypeBadge";
 import { Meter } from "@/components/app/Meter";
 import { ErrorState } from "@/components/app/States";
+import { HomePillar } from "@/components/home/HomePillar";
 import { Onboarding } from "@/components/home/Onboarding";
 import { PersonalCard } from "@/components/home/PersonalCard";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -28,11 +29,14 @@ export function HomePage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        eyebrow={season.data ? `${season.data.season_name} · Tipo del mes` : "PinchesGueys League"}
-        title={tipoDelMes ? `Temporada de ${tipoDelMes}` : "PinchesGueys League"}
-        subtitle={season.data?.type_of_month ? <TypeBadges types={season.data.type_of_month} /> : undefined}
-      />
+      <div className="relative">
+        <HomePillar />
+        <PageHeader
+          eyebrow={season.data ? `${season.data.season_name} · Tipo del mes` : "PinchesGueys League"}
+          title={tipoDelMes ? `Temporada de ${tipoDelMes}` : "PinchesGueys League"}
+          subtitle={season.data?.type_of_month ? <TypeBadges types={season.data.type_of_month} /> : undefined}
+        />
+      </div>
 
       <Onboarding />
 

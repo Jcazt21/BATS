@@ -8,14 +8,15 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
  */
 export function MonActions({ name, onEdit, onCopy, onSwap, onRemove }: {
   name: string;
-  onEdit: () => void;
+  /** Sin `onEdit` solo se muestra el menú (p. ej. en el tablero de slots, donde seleccionar ya edita). */
+  onEdit?: () => void;
   onCopy: () => void;
   onSwap: () => void;
   onRemove: () => void;
 }) {
   return (
-    <div className="flex w-full gap-2">
-      <Button variant="secondary" size="lg" className="flex-1" onClick={onEdit}><Pencil /> Editar</Button>
+    <div className={onEdit ? "flex w-full gap-2" : "flex"}>
+      {onEdit && <Button variant="secondary" size="lg" className="flex-1" onClick={onEdit}><Pencil /> Editar</Button>}
       <DropdownMenu>
         <DropdownMenuTrigger render={<Button variant="ghost" size="icon-lg" aria-label={`Más acciones de ${name}`} />}>
           <MoreHorizontal />

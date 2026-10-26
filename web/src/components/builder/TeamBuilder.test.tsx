@@ -11,7 +11,6 @@ vi.mock("@/lib/dex/useLearnset", () => ({
 }));
 vi.mock("@/components/builder/SetEditor", () => ({ SetEditor: () => <div>Editor</div> }));
 vi.mock("@/components/builder/SpeciesPicker", () => ({ SpeciesPicker: () => null }));
-vi.mock("@/components/team/MonCard", () => ({ MonCard: () => <div>Pokémon</div> }));
 
 function species(id: string, name: string, types: string[]): Species {
   return {

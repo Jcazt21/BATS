@@ -1,11 +1,12 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
+import { abrirMenu } from "@/lib/test-utils";
 import { TeamBuilder } from "./TeamBuilder";
 import type { DexEssentials, Species } from "@/lib/dex/snapshot";
 import type { BuilderMon } from "@/lib/dex/validate";
 
-// MonCard NO se mockea: aquí se prueba el marcado real de la lista.
+// SlotBoard NO se mockea: aquí se prueba el marcado real de la lista.
 vi.mock("@/lib/dex/useLearnset", () => ({
   useLearnset: () => ({ learnset: [], error: null, retry: () => {} }),
   useLearnsets: () => ({ map: {}, pending: false, error: null, retry: () => {} }),
@@ -56,12 +57,13 @@ describe("TeamBuilder: lista del equipo", () => {
   it("quitar un pokémon anterior al seleccionado conserva el mismo seleccionado", async () => {
     const user = userEvent.setup();
     renderBuilder();
-    await user.click(screen.getByRole("button", { name: /Gengar/ }));
+    await user.click(screen.getByRole("button", { name: /^Gengar/ }));
     expect(screen.getByTestId("editor")).toHaveTextContent("Gengar");
     const list = screen.getByRole("list", { name: "Pokémon del equipo" });
-    await user.click(within(list).getAllByRole("button", { name: "Quitar" })[0]);
+    await abrirMenu(within(list).getAllByRole("button", { name: /Más acciones/ })[0]);
+    await user.click(screen.getByRole("menuitem", { name: /Quitar/ }));
     expect(screen.getByTestId("editor")).toHaveTextContent("Gengar");
-    expect(screen.getByRole("button", { name: /Gengar/ })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /^Gengar/ })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("onSave recibe BuilderMon[] planos", async () => {

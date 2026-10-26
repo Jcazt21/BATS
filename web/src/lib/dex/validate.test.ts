@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Dex, Species } from "./snapshot";
-import { checkSet, checkTeam, type BuilderMon, type RuleSeason } from "./validate";
+import { checkSet, checkSetProblems, checkTeam, type BuilderMon, type RuleSeason } from "./validate";
 
 function species(over: Partial<Species> & { id: string; name: string }): Species {
   return {
@@ -208,5 +208,35 @@ describe("checkSet", () => {
 
   it("especie inexistente", () => {
     expect(checkSet(DEX, learnset, mon("noexiste")).length).toBeGreaterThan(0);
+  });
+});
+
+describe("checkSetProblems", () => {
+  const learnset = ["earthquake"];
+
+  it("cada problema lleva su campo y un código estable", () => {
+    const problems = checkSetProblems(DEX, learnset, mon("garchomp", {
+      moves: ["Psychic", "Earthquake", "Earthquake"], ability: "Levitate", held_item: "Objeto Falso",
+      tera_type: "Plasma", evs: { hp: 300 },
+    }));
+    const by = (field: string) => problems.filter((p) => p.field === field).map((p) => p.code);
+    expect(by("moves")).toEqual(["illegal_move:psychic", "duplicate_move:earthquake"]);
+    expect(by("ability")).toEqual(["bad_ability:levitate"]);
+    expect(by("item")).toEqual(["bad_item:objetofalso"]);
+    expect(by("tera")).toEqual(["bad_tera:plasma"]);
+    expect(by("evs")).toEqual(["ev_range:hp"]);
+  });
+
+  it("especie desconocida: un solo problema de species", () => {
+    expect(checkSetProblems(DEX, null, mon("missingno")).map((p) => p.field)).toEqual(["species"]);
+  });
+
+  it("un Tera válido no da error", () => {
+    expect(checkSetProblems(DEX, null, mon("garchomp", { tera_type: "Fire" }))).toEqual([]);
+  });
+
+  it("checkSet devuelve los mismos mensajes", () => {
+    const m = mon("garchomp", { ability: "Levitate" });
+    expect(checkSet(DEX, null, m)).toEqual(checkSetProblems(DEX, null, m).map((p) => p.message));
   });
 });

@@ -15,9 +15,12 @@ export function ChecklistPanel({ rows, pending, empty }: { rows: ChecklistRow[] 
           <li className="px-4 py-3 text-subhead text-muted-foreground">Agrega pokémon para comprobar las reglas.</li>
         ) : rows.map((r) => (
           <li key={r.rule} className="flex items-start gap-3 px-4 py-3">
-            {r.ok ? <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-success" />
-              : r.blocking === false ? <Info className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
-              : <XCircle className="mt-0.5 size-5 shrink-0 text-destructive" />}
+            {/* La clave cambia con el estado: el icono nuevo se remonta y entra con un fundido de 150ms. */}
+            <span key={r.ok ? "ok" : r.blocking === false ? "info" : "fail"} data-status-icon className="mt-0.5 shrink-0 animate-in fade-in-0 duration-150">
+              {r.ok ? <CheckCircle2 className="size-5 text-success" />
+                : r.blocking === false ? <Info className="size-5 text-muted-foreground" />
+                : <XCircle className="size-5 text-destructive" />}
+            </span>
             <span className="min-w-0 flex-1">
               <span className="block text-subhead">{r.label}</span>
               {!r.ok && r.blocking !== false && r.names.length > 0 && <span className="block text-footnote text-destructive">{r.names.join(", ")}</span>}
@@ -32,5 +35,5 @@ export function ChecklistPanel({ rows, pending, empty }: { rows: ChecklistRow[] 
 }
 
 export function PendingDot() {
-  return <Circle className="size-3 animate-pulse text-muted-foreground" aria-hidden />;
+  return <Circle className="size-3 text-muted-foreground" aria-hidden />;
 }

@@ -122,3 +122,28 @@ describe("TeamPage · descartar cambios", () => {
     expect(await screen.findByRole("alertdialog")).toHaveTextContent("¿Descartar los cambios?");
   });
 });
+
+describe("TeamPage · resumen, reglas y rotaciones", () => {
+  it("monta el resumen del equipo al inicio con el estado de validación", () => {
+    renderPage();
+    const resumen = screen.getByRole("region", { name: "Resumen del equipo" });
+    expect(resumen).toHaveTextContent("Válido");
+  });
+
+  it("los errores de Showdown son una lista y 'Ir al set' abre el editor del pokémon mencionado", async () => {
+    st.roster = { isPending: false, data: { ...roster, validation: { state: "errors", errors: ["Gengar: Shadow Ball es ilegal.", "Equipo inválido"], checked_at: null } } };
+    renderPage();
+    const alerta = screen.getByRole("alert");
+    expect(within(alerta).getAllByRole("listitem")).toHaveLength(2);
+    expect(screen.getByRole("region", { name: "Resumen del equipo" })).toHaveTextContent("2 errores");
+    const ir = within(alerta).getAllByRole("button", { name: /Ir al set/ });
+    expect(ir).toHaveLength(1); // solo el que nombra a un pokémon del pool
+    await userEvent.click(ir[0]);
+    expect(await screen.findByRole("dialog")).toHaveTextContent("Gengar");
+  });
+
+  it("las reglas de rotación están plegadas por defecto", () => {
+    renderPage();
+    expect(screen.getByRole("button", { name: /Cómo funcionan/ })).toHaveAttribute("aria-expanded", "false");
+  });
+});

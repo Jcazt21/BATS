@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence } from "motion/react";
 import { ChevronUp, Loader2, Plus, X } from "lucide-react";
 import { MonCard } from "@/components/team/MonCard";
 import { ChecklistPanel } from "@/components/team/ChecklistPanel";
+import { RuleErrors } from "@/components/team/RuleErrors";
 import { TypeCoveragePanel } from "@/components/team/TypeCoveragePanel";
 import { PasteIO, type ImportMode } from "@/components/builder/PasteIO";
 import { SetEditor } from "@/components/builder/SetEditor";
@@ -170,6 +172,7 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
             </div>
           )}
           <ul className="flex flex-col gap-2" aria-label="Pokémon del equipo">
+            <AnimatePresence initial={false}>
             {items.map(({ uid, mon: m }, i) => {
               const sp = speciesById(dex, m.species);
               return (
@@ -190,6 +193,7 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
                 />
               );
             })}
+            </AnimatePresence>
           </ul>
 
           {team.length < maxSize && (
@@ -238,7 +242,7 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
           </Button>
         </div>
       )}
-      {error && <p role="alert" className="text-subhead text-destructive">{error}</p>}
+      {error && <RuleErrors errors={[error]} />}
       <Button size="lg" disabled={!teamOk || busy} onClick={() => void save()}>
         {busy ? <><Loader2 className="animate-spin" /> Guardando…</> : saveLabel}
       </Button>

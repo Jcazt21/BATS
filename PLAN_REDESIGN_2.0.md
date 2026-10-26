@@ -114,18 +114,18 @@ Skills al implementar: `impeccable` (leer craft-floor antes de cualquier edició
 ## P5 — Mi equipo B: resumen, reglas, add/remove, checklist
 **Objetivo:** el usuario entiende de un vistazo si su equipo es válido y por qué, y los cambios del equipo se animan con suavidad.
 
-- [ ] 🔴 Test `components/team/TeamSummary.test.tsx` (nuevo): chip "Válido / N errores", cobertura de tipos (usa `TypeBadge`), estados loading/vacío.
-- [ ] 🟢 Crear `TeamSummary.tsx` y montarlo al inicio de `TeamPage`.
-- [ ] 🔴 Test `components/team/RuleErrors.test.tsx`: errores de validación como lista (`role="list"`), cada uno con acción ("Ir al set"); entra con `fade-in-0` 150ms (`TeamBuilder.tsx:234,241`, `PasteIO.tsx:131`).
-- [ ] 🟢 Implementar y reemplazar la caja de texto.
-- [ ] 🔴 Test `RotationRules` (prosa `TeamPage.tsx` ~530): colapsado por defecto, 3 puntos clave visibles, expandible por teclado.
-- [ ] 🟢 Convertir a `Collapsible` (P3).
-- [ ] 🔴 Test `MonCard` list: al quitar un Pokémon desaparece con `AnimatePresence` (queda en DOM hasta `onExitComplete`), `layout="position"`; con reduced-motion sin movimiento.
-- [ ] 🟢 Animar add/remove (fade 150ms + `translateY` 4px) usando springs de `lib/motion.ts`.
-- [ ] 🔴 Test `ChecklistPanel.test.tsx`: estado pendiente es icono estático (sin `animate-pulse`); pass↔fail hace cross-fade 150ms.
-- [ ] 🟢 Ajustar `ChecklistPanel.tsx:13,35`.
-- [ ] 🔴 Test `RestrictionField.test.tsx`: switch con `duration-200 ease-ios` (`:61`).
-- [ ] 🟢 Ajustar.
+- [x] 🔴 Test `components/team/TeamSummary.test.tsx` (nuevo): chip "Válido / N errores", cobertura de tipos (usa `TypeBadge`), estados loading/vacío.
+- [x] 🟢 Crear `TeamSummary.tsx` y montarlo al inicio de `TeamPage`.
+- [x] 🔴 Test `components/team/RuleErrors.test.tsx`: errores de validación como lista (`role="list"`), cada uno con acción ("Ir al set"); entra con `fade-in-0` 150ms (`TeamBuilder.tsx:234,241`, `PasteIO.tsx:131`).
+- [x] 🟢 Implementar y reemplazar la caja de texto.
+- [x] 🔴 Test `RotationRules` (prosa `TeamPage.tsx` ~530): colapsado por defecto, 3 puntos clave visibles, expandible por teclado.
+- [x] 🟢 Nuevo `RotationRules` (3 puntos a la vista + `Collapsible` con el detalle). El texto de los puntos plegados sale de los avisos que ya había en la UI.
+- [x] 🔴 Test `MonCard` list: al quitar un Pokémon desaparece con `AnimatePresence` (queda en DOM hasta `onExitComplete`), `layout="position"`; con reduced-motion sin movimiento.
+- [x] 🟢 Animar add/remove (fade 150ms + `translateY` 4px) usando springs de `lib/motion.ts`.
+- [x] 🔴 Test `ChecklistPanel.test.tsx`: estado pendiente es icono estático (sin `animate-pulse`); pass↔fail hace cross-fade 150ms.
+- [x] 🟢 Ajustar `ChecklistPanel.tsx:13,35`.
+- [x] 🔴 Test `RestrictionField.test.tsx`: switch con `duration-200 ease-ios` (`:61`).
+- [x] 🟢 Ajustar.
 
 **Archivos:** `pages/TeamPage.tsx`, `components/team/{TeamSummary,RuleErrors,ChecklistPanel,RestrictionField,MonCard,TeamBuilder,PasteIO}.tsx` (+tests).
 **Aceptación:** tests verdes; flujo registrar/editar sin saltos; `review-animations` limpio en el diff.

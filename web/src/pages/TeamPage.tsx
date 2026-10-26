@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence } from "motion/react";
 import { ClipboardCopy, Loader2, Lock, Plus } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Group, GroupRow } from "@/components/app/Group";
@@ -16,9 +17,12 @@ import {
 import { SignInCard } from "@/components/SignInCard";
 import { MonActions } from "@/components/team/MonActions";
 import { MonCard } from "@/components/team/MonCard";
+import { RotationRules } from "@/components/team/RotationRules";
+import { RuleErrors } from "@/components/team/RuleErrors";
+import { TeamSummary } from "@/components/team/TeamSummary";
 import { SetEditor } from "@/components/builder/SetEditor";
 import { TeamBuilder } from "@/components/builder/TeamBuilder";
-import type { PokemonPayload, RosterPokemon, RosterValidation } from "@/lib/api";
+import type { PokemonPayload, RosterPokemon } from "@/lib/api";
 import type { DexEssentials } from "@/lib/dex/snapshot";
 import { speciesById } from "@/lib/dex/snapshot";
 import { useLearnset } from "@/lib/dex/useLearnset";
@@ -190,7 +194,6 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
         <div className="flex flex-wrap items-center gap-2">
           {closed && <Badge variant="warning"><Lock /> Registro cerrado</Badge>}
           <Badge variant="secondary">{r.pool.length}/{r.max_team_size} pokémon</Badge>
-          <ValidationBadge validation={r.validation} />
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" size="sm" onClick={() => void copy()}><ClipboardCopy /> Copiar equipo</Button>
@@ -198,14 +201,19 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
         </div>
       </div>
 
+      <TeamSummary mons={r.pool} validation={r.validation} />
+
       {r.validation.state === "errors" && (
-        <div role="alert" className="rounded-2xl border border-destructive/40 bg-destructive-soft p-4 text-footnote text-destructive">
-          <p className="font-medium">Showdown encontró problemas en tu equipo registrado:</p>
-          <ul className="mt-1 list-disc pl-5">{r.validation.errors.map((e) => <li key={e}>{e}</li>)}</ul>
-        </div>
+        <RuleErrors title="Showdown encontró problemas en tu equipo registrado:" errors={r.validation.errors}
+          target={(e) => {
+            if (closed) return undefined;
+            const p = r.pool.find((m) => e.toLowerCase().includes(m.name.toLowerCase()));
+            return p ? () => setEditing(p) : undefined;
+          }} />
       )}
 
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Pokémon de tu equipo">
+        <AnimatePresence initial={false}>
         {r.pool.map((p) => (
           <MonCard key={p.pokemon_id} mon={p} banned={banned.has(p.name.toLowerCase())}
             badge={p.in_lineup ? <Badge variant="info">En el lineup</Badge> : undefined}
@@ -214,14 +222,13 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
                 onSwap={() => setSwapping(p)} onRemove={() => setRemoving(p)} />
             )} />
         ))}
+        </AnimatePresence>
       </ul>
 
       <div className="grid gap-8 lg:grid-cols-2">
         <section className="flex flex-col gap-3 rounded-2xl bg-card p-5 shadow-sm ring-1 ring-border">
           <h2 className="text-headline">Rotaciones</h2>
-          <p className="text-footnote text-muted-foreground">
-            Cambiar los 6 pokémon que llevas a batalla cuenta como una rotación. Se detectan solas al cargar tus batallas.
-          </p>
+          <RotationRules maxRotations={r.max_rotations} />
           <Meter label="Rotaciones usadas" value={r.rotations_used} max={Math.max(1, r.max_rotations)} tone={r.rotations_remaining === 0 ? "destructive" : "primary"} />
           <p className="tabular text-subhead"><strong>{r.rotations_remaining}</strong> de {r.max_rotations} disponibles</p>
         </section>
@@ -346,10 +353,4 @@ function EditSetForm({ dex, pokemon, onDone, onDirtyChange }: {
       </Button>
     </div>
   );
-}
-
-function ValidationBadge({ validation }: { validation: RosterValidation }) {
-  if (validation.state === "ok") return <Badge variant="success">Validado por Showdown</Badge>;
-  if (validation.state === "errors") return <Badge variant="destructive">Showdown encontró errores</Badge>;
-  return <Badge variant="secondary">Pendiente de revisión</Badge>;
 }

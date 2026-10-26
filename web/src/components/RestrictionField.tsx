@@ -56,9 +56,9 @@ export function RestrictionField({ rkey, spec, value, onChange }: {
       <button
         type="button" role="switch" aria-checked={on} aria-labelledby={`${id}_l`}
         onClick={() => onChange(rkey, !on)}
-        className={cn("press relative inline-flex h-[1.9375rem] w-[3.1875rem] shrink-0 rounded-full p-0.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring", on ? "bg-success" : "bg-input")}
+        className={cn("press relative inline-flex h-[1.9375rem] w-[3.1875rem] shrink-0 rounded-full p-0.5 outline-none transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-ring", on ? "bg-success" : "bg-input")}
       >
-        <span className={cn("block size-[1.6875rem] rounded-full bg-white shadow-md transition-transform duration-200", on ? "translate-x-[1.25rem]" : "translate-x-0")} />
+        <span className={cn("block size-[1.6875rem] rounded-full bg-white shadow-md transition-transform duration-200 ease-ios", on ? "translate-x-[1.25rem]" : "translate-x-0")} />
       </button>
     </div>
   );

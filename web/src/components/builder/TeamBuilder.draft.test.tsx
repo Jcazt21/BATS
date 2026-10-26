@@ -81,7 +81,8 @@ describe("TeamBuilder: borrador", () => {
     renderBuilder({ draftKey: KEY });
     await user.click(screen.getByRole("button", { name: "Descartar" }));
     expect(screen.queryByText(/Recuperamos tu borrador/)).toBeNull();
-    expect(screen.queryByRole("button", { name: "Quitar" })).toBeNull();
+    // El pokémon sale con una animación: desaparece al terminar.
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Quitar" })).toBeNull());
     expect(loadDraft(KEY)).toBeNull();
   });
 
@@ -147,7 +148,7 @@ describe("TeamBuilder: importar", () => {
     expect(list).toHaveTextContent("Garchomp");
     expect(list).toHaveTextContent("Gengar");
     await user.click(screen.getByRole("button", { name: "importar-reemplazar" }));
-    expect(list).not.toHaveTextContent("Garchomp");
+    await waitFor(() => expect(list).not.toHaveTextContent("Garchomp"));
     expect(list).toHaveTextContent("Gengar");
   });
 });

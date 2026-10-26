@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
+import { motion } from "motion/react";
 import { PokemonSprite } from "@/components/app/PokemonSprite";
 import { TypeBadges } from "@/components/app/TypeBadge";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useReducedMotion } from "@/lib/motion";
 
 export interface MonView {
   name: string;
@@ -22,6 +24,7 @@ export function MonCard({ mon, badge, banned, actions, className, onSelect, sele
   mon: MonView; badge?: ReactNode; banned?: boolean; actions?: ReactNode; className?: string;
   onSelect?: () => void; selected?: boolean;
 }) {
+  const reduce = useReducedMotion();
   const header = (
     <>
       <PokemonSprite species={mon.name} src={mon.sprite_url} size={56} />
@@ -34,7 +37,13 @@ export function MonCard({ mon, badge, banned, actions, className, onSelect, sele
     </>
   );
   return (
-    <li className={cn(
+    <motion.li
+      layout="position"
+      initial={reduce ? { opacity: 0 } : { opacity: 0, y: 4 }}
+      animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
+      exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4 }}
+      transition={reduce ? { duration: 0.15 } : { type: "spring", bounce: 0, duration: 0.28 }}
+      className={cn(
       "flex flex-col gap-3 rounded-2xl bg-card p-4 shadow-sm ring-1 ring-border transition-shadow",
       banned && "ring-destructive/60",
       selected && "ring-2 ring-primary",
@@ -52,6 +61,6 @@ export function MonCard({ mon, badge, banned, actions, className, onSelect, sele
       )}
       {mon.moves && mon.moves.length > 0 && <p className="text-caption text-muted-foreground">{mon.moves.join(" · ")}</p>}
       {actions && <div className="flex gap-2">{actions}</div>}
-    </li>
+    </motion.li>
   );
 }

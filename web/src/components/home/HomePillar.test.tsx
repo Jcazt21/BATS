@@ -21,6 +21,12 @@ describe("HomePillar", () => {
     expect(screen.getByTestId("pilar-estatico")).toBeTruthy();
     expect(container.firstElementChild?.getAttribute("aria-hidden")).toBe("true");
   });
+  it("es el fondo de toda la pantalla: fijo, detrás del contenido y sin recibir clics", () => {
+    const { container } = render(<HomePillar />);
+    const cls = container.firstElementChild?.className ?? "";
+    for (const c of ["fixed", "inset-0", "-z-10", "pointer-events-none"]) expect(cls).toContain(c);
+    expect(cls).not.toMatch(/\bh-\[/);
+  });
   it("mezcla con screen en el contenedor enmascarado, no dentro de un grupo aislado", async () => {
     // Un mask-image aísla su subárbol: un `screen` interno mezclaría con nada y dejaría un
     // rectángulo negro. Por eso el blend va en el propio contenedor y el canvas va en normal.

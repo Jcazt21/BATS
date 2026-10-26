@@ -29,14 +29,12 @@ export function HomePage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="relative">
-        <HomePillar />
-        <PageHeader
-          eyebrow={season.data ? `${season.data.season_name} · Tipo del mes` : "PinchesGueys League"}
-          title={tipoDelMes ? `Temporada de ${tipoDelMes}` : "PinchesGueys League"}
-          subtitle={season.data?.type_of_month ? <TypeBadges types={season.data.type_of_month} /> : undefined}
-        />
-      </div>
+      <HomePillar />
+      <PageHeader
+        eyebrow={season.data ? `${season.data.season_name} · Tipo del mes` : "PinchesGueys League"}
+        title={tipoDelMes ? `Temporada de ${tipoDelMes}` : "PinchesGueys League"}
+        subtitle={season.data?.type_of_month ? <TypeBadges types={season.data.type_of_month} /> : undefined}
+      />
 
       <Onboarding />
 

@@ -64,14 +64,14 @@ Skills al implementar: `impeccable` (leer craft-floor antes de cualquier edició
 ## P2 — Skeleton y transición carga → contenido
 **Objetivo:** ninguna vista muestra `null`, vacío engañoso o salto brusco mientras carga; el contenido entra con fade corto.
 
-- [ ] 🔴 Test `ui/skeleton.test.tsx`: `Skeleton` es `aria-hidden`, usa pulso lento (>=1.5s) y se detiene con reduced-motion.
-- [ ] 🟢 Ajustar `ui/skeleton.tsx:7`.
-- [ ] 🔴 Test `components/app/Reveal.test.tsx` (nuevo): `<Reveal>` aplica `animate-in fade-in-0 duration-200` al montar y nada si ya estaba montado (no re-anima en refetch).
-- [ ] 🟢 Crear `components/app/Reveal.tsx` (envoltorio mínimo, usa tokens P0).
-- [ ] 🔴 Test `components/app/States.test.tsx`: `EmptyState`/`ErrorState` ya existentes + nuevo `LoadingState` (skeleton genérico de lista) con roles `status`/`alert`.
-- [ ] 🟢 Añadir `LoadingState` a `States.tsx`.
-- [ ] 🔴 Test `components/app/Group.test.tsx`: `Group` acepta `loading` y `empty` y renderiza skeleton / `EmptyState` en vez de lista vacía.
-- [ ] 🟢 Implementar props en `Group`/`GroupRow`.
+- [x] 🔴 Test `ui/skeleton.test.tsx`: `Skeleton` es `aria-hidden`, usa pulso lento (>=1.5s) y se detiene con reduced-motion.
+- [x] 🟢 Ajustar `ui/skeleton.tsx:7`.
+- [x] 🔴 Test `components/app/Reveal.test.tsx` (nuevo): `<Reveal>` aplica `animate-in fade-in-0 duration-200` al montar y nada si ya estaba montado (no re-anima en refetch).
+- [x] 🟢 Crear `components/app/Reveal.tsx` (envoltorio mínimo, usa tokens P0).
+- [x] 🔴 Test `components/app/States.test.tsx`: `EmptyState`/`ErrorState` ya existentes + nuevo `LoadingState` (skeleton genérico de lista) con roles `status`/`alert`.
+- [x] 🟢 Añadir `LoadingState` a `States.tsx`.
+- [x] 🔴 Test `components/app/Group.test.tsx`: `Group` acepta `loading` y `empty` y renderiza skeleton / `EmptyState` en vez de lista vacía.
+- [x] 🟢 Implementar props en `Group` (`loading`, `loadingRows`, `empty`); `GroupRow` no necesitó cambios: el esqueleto es `LoadingState`.
 
 **Archivos:** `ui/skeleton.tsx`, `components/app/{Reveal,States,Group}.tsx` (+tests).
 **Aceptación:** tests verdes; API de `Group` documentada; sin cambios de página aún (se consumen en P4-P10).

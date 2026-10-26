@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { motion, type Transition } from "motion/react";
 import { BarChart3, BookOpen, House, LogOut, Monitor, Moon, Newspaper, ShieldBan, ShieldCheck, Sun, UserRound, Users } from "lucide-react";
+import { GlobalSearch } from "@/components/app/GlobalSearch";
+import { OfflineNotice } from "@/components/app/OfflineNotice";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -24,6 +26,15 @@ const NAV = [
   { to: "/pokedex", label: "Pokédex", icon: BookOpen },
   { to: "/bans", label: "Bans", icon: ShieldBan },
   { to: "/equipo", label: "Mi equipo", icon: Users },
+] as const;
+
+/** Barra inferior del móvil: 5 destinos con etiqueta corta (el Blog vive en la cabecera). */
+const TAB_NAV = [
+  { to: "/", label: "Inicio", icon: House, end: true },
+  { to: "/stats", label: "Stats", icon: BarChart3 },
+  { to: "/pokedex", label: "Pokédex", icon: BookOpen },
+  { to: "/bans", label: "Bans", icon: ShieldBan },
+  { to: "/equipo", label: "Equipo", icon: Users },
 ] as const;
 
 /** Estructura de las páginas públicas: barra superior translúcida + barra de pestañas en móvil. */
@@ -50,6 +61,7 @@ export function AppShell() {
       </a>
       <div ref={sentinel} aria-hidden className="absolute top-0 h-px w-px" />
       <TopBar scrolled={scrolled} />
+      <OfflineNotice />
       <main id="contenido" className="mx-auto w-full max-w-6xl px-4 pt-6 pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:px-6 md:pb-16">
         <RouteOutlet />
       </main>
@@ -98,6 +110,10 @@ function TopBar({ scrolled }: { scrolled: boolean }) {
         </nav>
 
         <div className="ml-auto flex items-center gap-1">
+          <NavLink to="/blog" aria-label="Blog" className="press grid size-11 place-items-center rounded-full text-muted-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring md:hidden">
+            <Newspaper className="size-5" />
+          </NavLink>
+          <GlobalSearch />
           <ThemeMenu />
           <UserMenu />
         </div>
@@ -172,7 +188,7 @@ function TabBar() {
       className="material-regular material-edge-top pb-safe fixed inset-x-0 bottom-0 z-40 md:hidden"
     >
       <ul className="mx-auto flex max-w-md items-stretch justify-around px-2 pt-1.5">
-        {NAV.map(({ to, label, icon: Icon, ...rest }) => (
+        {TAB_NAV.map(({ to, label, icon: Icon, ...rest }) => (
           <li key={to} className="flex-1">
             <NavLink
               to={to}

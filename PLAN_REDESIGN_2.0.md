@@ -208,16 +208,16 @@ Skills al implementar: `impeccable` (leer craft-floor antes de cualquier edició
 ## P11 — Navegación móvil, estados globales y limpieza
 **Objetivo:** navegar con una mano sin saturación y sin código muerto.
 
-- [ ] 🔴 Test `components/app/AppShell.test.tsx`: tab bar con ≤5 destinos, labels cortos, cada tab ≥44px, `aria-current`, re-tap en activa hace scroll top.
-- [ ] 🟢 Reorganizar `AppShell.tsx:160` (fusionar/“Más”).
-- [ ] 🔴 Test `PageTransition.test.tsx`: no anima entre rutas hermanas de primer nivel ni en back/forward; sí en entrada a detalle; reduced-motion = fade.
-- [ ] 🟢 Ajustar `PageTransition.tsx:65`.
-- [ ] 🔴 Test: búsqueda global (atajo `/` o botón) abre `Combobox` de especies/jugadores; sin animación de apertura vía teclado.
-- [ ] 🟢 Implementar reutilizando `ui/combobox.tsx`.
-- [ ] 🔴 Test: estado offline/error de red muestra `ErrorState` con "Reintentar"; onboarding de primera visita se muestra una vez (localStorage con try/catch).
-- [ ] 🟢 Implementar.
-- [ ] 🔴 Test: `LandingPage`, `Scanner` y dependencia `ogl` no se importan en ningún lado (grep-test) → borrar.
-- [ ] 🟢 Eliminar archivos y dependencia; `npm run build` verde.
+- [x] 🔴 Test `components/app/AppShell.test.tsx`: tab bar con ≤5 destinos, labels cortos, cada tab ≥44px, `aria-current`, re-tap en activa hace scroll top.
+- [x] 🟢 5 pestañas (Inicio, Stats, Pokédex, Bans, Equipo); el Blog pasa a un icono en la cabecera móvil. Escritorio conserva los 6.
+- [x] 🔴 Test `PageTransition.test.tsx`: no anima entre rutas hermanas de primer nivel, ni en back/forward, ni al salir de un detalle; sí en entrada a detalle; reduced-motion = fade.
+- [x] 🟢 Ajustar `PageTransition.tsx:65`.
+- [x] 🔴 Test: búsqueda global (atajo `/` o botón) abre `Combobox` de especies/jugadores; sin animación de apertura vía teclado.
+- [x] 🟢 `GlobalSearch` con su propio listbox dentro del diálogo, no `ui/combobox.tsx`: ese pinta la lista en un portal fuera del diálogo y Base UI lo trataría como clic exterior (cerraría antes de elegir).
+- [x] 🔴 Test: estado offline/error de red muestra `ErrorState` con "Reintentar"; onboarding de primera visita se muestra una vez (localStorage con try/catch).
+- [x] 🟢 Implementar.
+- [x] 🔴 Test: `LandingPage`, `Scanner` y dependencia `ogl` no se importan en ningún lado (grep-test) → borrar.
+- [x] 🟢 Eliminar archivos y dependencia; `npm run build` verde.
 
 **Archivos:** `components/app/{AppShell,PageTransition}.tsx`, `pages/LandingPage.tsx` y `Scanner` (borrar), `package.json`.
 **Aceptación:** tests verdes; bundle sin `ogl`.

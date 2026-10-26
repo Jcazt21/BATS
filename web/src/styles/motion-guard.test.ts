@@ -13,8 +13,6 @@ const sources = fuentes();
 const FUERA_DE_ALCANCE = [
   /^\/src\/components\/ui\/sidebar\.tsx$/,
   /^\/src\/pages\/admin\//,
-  /LandingPage/,
-  /Scanner/,
   /\.test\.tsx?$/,
 ];
 

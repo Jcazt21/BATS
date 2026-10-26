@@ -23,11 +23,11 @@ export function EmptyState({ title, description, action, icon, className }: {
 }
 
 /** Error recuperable: dice qué pasó en cristiano y ofrece reintentar. */
-export function ErrorState({ error, onRetry, className }: { error: unknown; onRetry?: () => void; className?: string }) {
+export function ErrorState({ error, onRetry, className, title = "No se pudo cargar" }: { error: unknown; onRetry?: () => void; className?: string; title?: string }) {
   return (
     <div role="alert" className={cn("flex flex-col items-center gap-2 px-6 py-12 text-center", className)}>
       <AlertCircle className="mb-1 size-10 text-destructive" strokeWidth={1.25} />
-      <h3 className="text-headline text-foreground">No se pudo cargar</h3>
+      <h3 className="text-headline text-foreground">{title}</h3>
       <p className="max-w-sm text-subhead text-muted-foreground">{errorMessage(error)}</p>
       {onRetry && (
         <Button variant="secondary" size="sm" className="mt-3" onClick={onRetry}>

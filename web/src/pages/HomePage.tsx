@@ -8,6 +8,7 @@ import { PokemonSprite } from "@/components/app/PokemonSprite";
 import { TypeBadges } from "@/components/app/TypeBadge";
 import { Meter } from "@/components/app/Meter";
 import { ErrorState } from "@/components/app/States";
+import { Onboarding } from "@/components/home/Onboarding";
 import { PersonalCard } from "@/components/home/PersonalCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useActiveSeason, useBanStatus, useLeaderboard, useMvp, useSummary } from "@/lib/queries";
@@ -32,6 +33,8 @@ export function HomePage() {
         title={tipoDelMes ? `Temporada de ${tipoDelMes}` : "PinchesGueys League"}
         subtitle={season.data?.type_of_month ? <TypeBadges types={season.data.type_of_month} /> : undefined}
       />
+
+      <Onboarding />
 
       <PersonalCard leaderboard={leaderboard.data} ban={ban.data} />
 

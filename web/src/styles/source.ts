@@ -21,3 +21,8 @@ export function fuentes(): Record<string, string> {
   }
   return out;
 }
+
+/** Contenido de un archivo relativo a la raíz de `web/` (package.json, vite.config.ts...). */
+export function leerRaiz(ruta: string): string {
+  return readFileSync(join(process.cwd(), ruta), "utf8");
+}

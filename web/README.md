@@ -71,3 +71,19 @@ export default defineConfig([
   },
 ])
 ```
+
+## Motion
+
+Tokens en `src/styles/tokens.css` (úsalos en vez de valores sueltos):
+
+| Token | Valor | Uso |
+| --- | --- | --- |
+| `--ease-ios` | `cubic-bezier(0.32, 0.72, 0, 1)` | hojas, popovers, indicadores |
+| `--ease-out` | `cubic-bezier(0.23, 1, 0.32, 1)` | entradas y hover |
+| `--duration-fast` | 120ms | salidas, feedback de press |
+| `--duration-base` | 200ms | transiciones por defecto |
+| `--duration-slow` | 300ms | máximo para UI |
+
+`src/styles/motion-guard.test.ts` lee el código y falla si reaparece `transition-all`, `ease-in`, `scale(0)`/`zoom-in-0` o `duration-500`+. Las violaciones pendientes están en `EXCEPCIONES` (una por archivo, con su TODO); cada paquete de `PLAN_REDESIGN_2.0.md` borra la suya. Sidebar, admin, `LandingPage` y `Scanner` quedan fuera.
+
+Helpers de test en `src/lib/test-utils.tsx`: `renderWithProviders` y `mockReducedMotion` (+ `restoreMatchMedia` en `afterEach`). Vitest vacía los `.css` importados, así que las guardas de fuente los leen del disco con `src/styles/source.ts`.

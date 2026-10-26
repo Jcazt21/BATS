@@ -173,6 +173,13 @@
 
   /* Curva de las hojas y popovers de iOS (UISpringTimingParameters críticos ≈ esto) */
   --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Desaceleración para entradas y hover (arranca rápido, asienta suave) */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+  /* Duraciones de UI: ≤300ms. Las salidas usan una más corta que la entrada. */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);

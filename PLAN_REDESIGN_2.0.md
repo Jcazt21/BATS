@@ -34,13 +34,13 @@ Skills al implementar: `impeccable` (leer craft-floor antes de cualquier edició
 ## P0 — Infra de tests, tokens de motion y guardas
 **Objetivo:** dejar helpers de test y tokens de motion únicos para que el resto del plan sea testeable y cohesivo.
 
-- [ ] 🔴 Test `lib/test-utils.test.tsx`: `renderWithProviders` envuelve en `QueryClientProvider` + `MemoryRouter`; `mockReducedMotion(true)` hace que `matchMedia('(prefers-reduced-motion: reduce)').matches` sea `true`.
-- [ ] 🟢 Crear `lib/test-utils.tsx` con ambos helpers (y mock de `matchMedia` si `vitest.setup.ts` no lo trae).
-- [ ] 🔴 Test `styles/tokens.test.ts` (lee `tokens.css` como texto): existen `--ease-out`, `--ease-ios`, `--duration-fast: 120ms`, `--duration-base: 200ms`, `--duration-slow: 300ms`.
-- [ ] 🟢 Añadir esos tokens en `styles/tokens.css` (junto a `--ease-ios`, línea ~175).
-- [ ] 🔴 Test `styles/motion-guard.test.ts`: recorre `src/**/*.{tsx,css}` (excluye `components/ui/sidebar.tsx`, `pages/admin/**`, `LandingPage`, `Scanner`) y falla ante `transition-all`, `ease-in`(no `ease-in-out`), `scale(0)`/`zoom-in-0`, `duration-500`+.
-- [ ] 🟢 Dejar la guarda en rojo conocido: lista de excepciones explícita con TODO por archivo; cada paquete posterior elimina su excepción.
-- [ ] 🔵 Documentar en `web/README` (sección "Motion") los tokens y la guarda.
+- [x] 🔴 Test `lib/test-utils.test.tsx`: `renderWithProviders` envuelve en `QueryClientProvider` + `MemoryRouter`; `mockReducedMotion(true)` hace que `matchMedia('(prefers-reduced-motion: reduce)').matches` sea `true`.
+- [x] 🟢 Crear `lib/test-utils.tsx` con ambos helpers (y mock de `matchMedia` si `vitest.setup.ts` no lo trae).
+- [x] 🔴 Test `styles/tokens.test.ts` (lee `tokens.css` como texto): existen `--ease-out`, `--ease-ios`, `--duration-fast: 120ms`, `--duration-base: 200ms`, `--duration-slow: 300ms`.
+- [x] 🟢 Añadir esos tokens en `styles/tokens.css` (junto a `--ease-ios`, línea ~175).
+- [x] 🔴 Test `styles/motion-guard.test.ts`: recorre `src/**/*.{tsx,css}` (excluye `components/ui/sidebar.tsx`, `pages/admin/**`, `LandingPage`, `Scanner`) y falla ante `transition-all`, `ease-in`(no `ease-in-out`), `scale(0)`/`zoom-in-0`, `duration-500`+.
+- [x] 🟢 Dejar la guarda en rojo conocido: lista de excepciones explícita con TODO por archivo; cada paquete posterior elimina su excepción.
+- [x] 🔵 Documentar en `web/README` (sección "Motion") los tokens y la guarda.
 
 **Archivos:** `web/src/lib/test-utils.tsx` (+test), `web/src/styles/tokens.css`, `web/src/styles/tokens.test.ts`, `web/src/styles/motion-guard.test.ts`, `web/vitest.setup.ts`.
 **Aceptación:** `npm test` verde; tokens existen; la guarda lista las violaciones pendientes como excepciones nombradas.

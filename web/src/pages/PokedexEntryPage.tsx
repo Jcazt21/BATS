@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { StatTile } from "@/components/app/StatTile";
@@ -19,10 +19,14 @@ import { num, pct } from "@/lib/format";
 export function PokedexEntryPage() {
   const { species = "" } = useParams();
   const season = useActiveSeason();
-  const q = usePokedexEntry(species, season.data?.season_id);
+  const [params] = useSearchParams();
+  const temporada = params.get("temporada");
+  // Misma temporada que la lista de origen: "all" = todas, un número = esa, nada = la activa.
+  const sid = temporada === "all" ? undefined : temporada && Number.isInteger(Number(temporada)) ? Number(temporada) : season.data?.season_id;
+  const q = usePokedexEntry(species, sid);
 
   const back = (
-    <Link to="/pokedex" className="inline-flex items-center gap-1 text-subhead text-primary hover:underline">
+    <Link to={temporada ? `/pokedex?temporada=${encodeURIComponent(temporada)}` : "/pokedex"} className="inline-flex items-center gap-1 text-subhead text-primary hover:underline">
       <ArrowLeft className="size-4" /> Pokédex
     </Link>
   );

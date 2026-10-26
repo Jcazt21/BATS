@@ -42,6 +42,9 @@ export function PokedexPage() {
     }, { replace: true });
   }
 
+  // La ficha debe ver la misma temporada que la lista de la que se viene.
+  const ficha = (r: PokedexRow) => `/pokedex/${encodeURIComponent(r.species)}${temporadaParam ? `?temporada=${encodeURIComponent(temporadaParam)}` : ""}`;
+
   const rows = useMemo(
     () => (dex.data?.species ?? []).filter((r) => {
       if (!r.species.toLowerCase().includes(q.trim().toLowerCase())) return false;
@@ -86,9 +89,9 @@ export function PokedexPage() {
         <DataList
           caption="Pokémon de la liga" rows={rows} columns={cols} rowKey={(r) => r.species}
           loading={dex.isPending} defaultSort={{ key: "pick", dir: "desc" }}
-          rowHref={(r) => `/pokedex/${encodeURIComponent(r.species)}`}
-          rowPrefetch={(r) => `/pokedex/${encodeURIComponent(r.species)}`}
-          onRowClick={(r) => navigate(`/pokedex/${encodeURIComponent(r.species)}`)}
+          rowHref={ficha}
+          rowPrefetch={ficha}
+          onRowClick={(r) => navigate(ficha(r))}
           empty={<EmptyState title={filtrando ? "Sin resultados" : "Aún no hay datos"} description={filtrando ? "Ningún pokémon coincide con esos filtros." : "Aparecerán cuando se jueguen batallas."} />}
         />
       )}

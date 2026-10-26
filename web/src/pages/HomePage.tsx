@@ -12,6 +12,7 @@ import { PersonalCard } from "@/components/home/PersonalCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useActiveSeason, useBanStatus, useLeaderboard, useMvp, useSummary } from "@/lib/queries";
 import { num, pct } from "@/lib/format";
+import { parseTypes, typeLabel } from "@/lib/pokemon-types";
 import { cn } from "@/lib/utils";
 
 export function HomePage() {
@@ -21,15 +22,15 @@ export function HomePage() {
   const mvp = useMvp();
   const ban = useBanStatus();
   const closed = !!season.data?.restrictions?.registration_closed;
+  // "ice" → "Hielo": el título habla en español como el resto de la UI.
+  const tipoDelMes = parseTypes(season.data?.type_of_month).map(typeLabel).join(" / ") || season.data?.type_of_month;
 
   return (
     <div className="flex flex-col gap-8">
       <PageHeader
         eyebrow={season.data ? `${season.data.season_name} · Tipo del mes` : "PinchesGueys League"}
-        title={season.data?.type_of_month ? `Temporada de ${season.data.type_of_month}` : "PinchesGueys League"}
-        subtitle={season.data?.type_of_month ? (
-          <span className="flex flex-wrap items-center gap-2">Tipo del mes: <TypeBadges types={season.data.type_of_month} /></span>
-        ) : undefined}
+        title={tipoDelMes ? `Temporada de ${tipoDelMes}` : "PinchesGueys League"}
+        subtitle={season.data?.type_of_month ? <TypeBadges types={season.data.type_of_month} /> : undefined}
       />
 
       <PersonalCard leaderboard={leaderboard.data} ban={ban.data} />

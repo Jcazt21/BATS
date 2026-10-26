@@ -105,4 +105,10 @@ describe("PokedexPage · filas y definiciones", () => {
     await userEvent.click(boton);
     expect(screen.getByText(/porcentaje de equipos en los que el pokémon salió al campo/)).toBeVisible();
   });
+
+  it("los enlaces a la ficha conservan la temporada elegida", () => {
+    renderPage("/pokedex?temporada=all");
+    const enlaces = within(screen.getByRole("table")).getAllByRole("link");
+    expect(enlaces.map((a) => a.getAttribute("href"))).toContain("/pokedex/Dragonite?temporada=all");
+  });
 });

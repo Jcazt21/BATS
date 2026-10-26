@@ -1,12 +1,17 @@
 import { NavLink } from "react-router-dom";
 import { Swords, ShieldBan, UserRoundPlus, Lock, BarChart2 } from "lucide-react";
+import Scanner from "@/components/effects/Scanner";
 
 export function LandingPage() {
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-10 px-4">
+    <div className="relative isolate min-h-screen bg-background flex flex-col items-center justify-center gap-10 px-4">
+      {/* Fondo decorativo; el contenido deja pasar el puntero para el foco del scanner. */}
+      <div className="absolute inset-0 -z-10">
+        <Scanner />
+      </div>
 
       {/* Title */}
-      <div className="flex flex-col items-center gap-2 text-center">
+      <div className="pointer-events-none flex flex-col items-center gap-2 text-center">
         <Swords className="size-8 text-muted-foreground" />
         <h1 className="text-3xl font-bold tracking-tight">PinchesGueys League</h1>
       </div>

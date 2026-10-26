@@ -5,7 +5,10 @@ import { TeamBuilder } from "./TeamBuilder";
 import type { DexEssentials, Species } from "@/lib/dex/snapshot";
 import type { BuilderMon } from "@/lib/dex/validate";
 
-vi.mock("@/lib/dex/useLearnset", () => ({ useLearnset: () => [], useLearnsets: () => ({}) }));
+vi.mock("@/lib/dex/useLearnset", () => ({
+  useLearnset: () => ({ learnset: [], error: null, retry: () => {} }),
+  useLearnsets: () => ({ map: {}, pending: false, error: null, retry: () => {} }),
+}));
 vi.mock("@/components/builder/SetEditor", () => ({ SetEditor: () => <div>Editor</div> }));
 vi.mock("@/components/builder/SpeciesPicker", () => ({ SpeciesPicker: () => null }));
 vi.mock("@/components/team/MonCard", () => ({ MonCard: () => <div>Pokémon</div> }));
@@ -42,5 +45,25 @@ describe("TeamBuilder", () => {
       expect(within(panel).getByText("Hielo")).toBeInTheDocument();
       expect(within(panel).getAllByText(/Dragonite, Garchomp/).length).toBeGreaterThan(0);
     }
+  });
+
+  it("con el equipo vacío el botón queda apagado y explica por qué", () => {
+    render(<TeamBuilder dex={dex} initial={[]} season={{ restrictions: {} }}
+      banned={new Set()} maxSize={6} onSave={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Guardar" })).toBeDisabled();
+    expect(screen.getByText("El equipo está vacío")).toBeInTheDocument();
+  });
+
+  it("una regla que el servidor rechaza apaga el botón y se muestra su etiqueta", () => {
+    render(<TeamBuilder dex={dex} initial={[mon("Dragonite")]} season={{ restrictions: { required_color: "Red" } }}
+      banned={new Set()} maxSize={6} onSave={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Guardar" })).toBeDisabled();
+    expect(screen.getByTestId("save-blockers")).toHaveTextContent(/color Red/);
+  });
+
+  it("el tipo del mes no apaga el botón", () => {
+    render(<TeamBuilder dex={dex} initial={[mon("Dragonite")]} season={{ restrictions: {}, type_of_month: "Ice" }}
+      banned={new Set()} maxSize={6} onSave={vi.fn()} />);
+    expect(screen.getByRole("button", { name: "Guardar" })).toBeEnabled();
   });
 });

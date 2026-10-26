@@ -118,6 +118,29 @@ describe("searchSpecies", () => {
     expect(searchSpecies(dex, "", { type: "Water", gen: 4 })).toEqual([]);
     expect(searchSpecies(dex, "", { onlyLegal: true }).length).toBe(2);
   });
+  it("ordena por nombre, número, BST o velocidad", async () => {
+    installFetchMock();
+    const base = await loadDexEssentials();
+    const abra = {
+      ...SPECIES.garchomp, id: "abra", name: "Abra", num: 63, bst: 310,
+      baseStats: { hp: 25, atk: 20, def: 15, spa: 105, spd: 55, spe: 120 },
+    };
+    const dex = { ...base, species: { ...base.species, abra } };
+    const ids = (sort: Parameters<typeof searchSpecies>[3]) => searchSpecies(dex, "", {}, sort).map((s) => s.id);
+    expect(ids("name")).toEqual(["abra", "garchomp", "urshifurapidstrike"]);
+    expect(ids("num")).toEqual(["abra", "garchomp", "urshifurapidstrike"]);
+    expect(ids("bst")).toEqual(["garchomp", "urshifurapidstrike", "abra"]);
+    expect(ids("spe")).toEqual(["abra", "garchomp", "urshifurapidstrike"]);
+  });
+
+  it("acepta los valores de la temporada aunque el dex los escriba distinto", async () => {
+    installFetchMock();
+    const base = await loadDexEssentials();
+    const psyduck = { ...SPECIES.garchomp, id: "psyduck", name: "Psyduck", color: "Yellow", eggGroups: ["Water 1", "Field"], types: ["Water"] };
+    const dex = { ...base, species: { ...base.species, psyduck } };
+    expect(searchSpecies(dex, "", { eggGroup: "water1" }).map((s) => s.id)).toEqual(["psyduck"]);
+    expect(searchSpecies(dex, "", { color: "yellow", type: "water" }).map((s) => s.id)).toEqual(["psyduck"]);
+  });
 });
 
 describe("toId", () => {

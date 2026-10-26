@@ -13,21 +13,40 @@ export interface MonView {
   moves?: string[];
 }
 
-/** Tarjeta de un pokémon del equipo. Las acciones llegan como hijos (quitar, reemplazar...). */
-export function MonCard({ mon, badge, banned, actions, className }: {
+/**
+ * Tarjeta de un pokémon del equipo. Las acciones llegan como hijos (quitar, reemplazar...).
+ * Con `onSelect` la cabecera se vuelve un botón (aria-pressed) y las acciones quedan fuera
+ * de él, para no anidar botones.
+ */
+export function MonCard({ mon, badge, banned, actions, className, onSelect, selected }: {
   mon: MonView; badge?: ReactNode; banned?: boolean; actions?: ReactNode; className?: string;
+  onSelect?: () => void; selected?: boolean;
 }) {
-  return (
-    <li className={cn("flex flex-col gap-3 rounded-2xl bg-card p-4 shadow-sm ring-1 ring-border", banned && "ring-destructive/60", className)}>
-      <div className="flex items-center gap-3">
-        <PokemonSprite species={mon.name} src={mon.sprite_url} size={56} />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-headline">{mon.name}</p>
-          <TypeBadges types={mon.types} />
-        </div>
-        {badge}
-        {banned && <Badge variant="destructive">Baneado</Badge>}
+  const header = (
+    <>
+      <PokemonSprite species={mon.name} src={mon.sprite_url} size={56} />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-headline">{mon.name}</p>
+        <TypeBadges types={mon.types} />
       </div>
+      {badge}
+      {banned && <Badge variant="destructive">Baneado</Badge>}
+    </>
+  );
+  return (
+    <li className={cn(
+      "flex flex-col gap-3 rounded-2xl bg-card p-4 shadow-sm ring-1 ring-border transition-shadow",
+      banned && "ring-destructive/60",
+      selected && "ring-2 ring-primary",
+      className,
+    )}>
+      {onSelect ? (
+        <button type="button" aria-pressed={!!selected} onClick={onSelect} className="flex items-center gap-3 rounded-xl text-left">
+          {header}
+        </button>
+      ) : (
+        <div className="flex items-center gap-3">{header}</div>
+      )}
       {(mon.held_item || mon.ability) && (
         <p className="text-footnote text-muted-foreground">{[mon.held_item, mon.ability].filter(Boolean).join(" · ")}</p>
       )}

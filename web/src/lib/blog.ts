@@ -21,17 +21,29 @@ export function stripLeadingTitle(markdown: string, title: string): string {
   return markdown.slice(m[0].length).replace(/^\s+/, "");
 }
 
+/**
+ * Limpia un Markdown, venga de un archivo o pegado: sin BOM, saltos LF (los editores de Windows
+ * guardan con CRLF) y sin el front matter YAML de Obsidian, que no es parte de la entrada.
+ */
+export function normalizeMarkdown(text: string): string {
+  return text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n").replace(FRONT_MATTER, "");
+}
+
+/** Motivo por el que el contenido no se puede guardar, o null si vale. */
+export function markdownError(content: string): string | null {
+  if (!content.trim()) return "La entrada está vacía.";
+  if (content.length > BLOG_MAX_CHARS) return `La entrada es demasiado grande (máx. ${BLOG_MAX_CHARS} caracteres).`;
+  return null;
+}
+
 /** Error presentable al admin tal cual. */
 export class MarkdownFileError extends Error {}
 
 /** Lee el .md elegido; rechaza otros formatos, vacíos o demasiado grandes. */
 export async function readMarkdownFile(file: File): Promise<{ title: string; content: string }> {
   if (!/\.(md|markdown)$/i.test(file.name)) throw new MarkdownFileError("Elige un archivo .md.");
-  // Los editores de Windows a veces guardan con BOM y CRLF.
-  const content = (await file.text())
-    .replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n")
-    .replace(FRONT_MATTER, "");   // metadatos YAML de Obsidian: no son parte de la entrada
-  if (!content.trim()) throw new MarkdownFileError("El archivo está vacío.");
-  if (content.length > BLOG_MAX_CHARS) throw new MarkdownFileError("El archivo es demasiado grande (máx. 200000 caracteres).");
+  const content = normalizeMarkdown(await file.text());
+  const error = markdownError(content);
+  if (error) throw new MarkdownFileError(error);
   return { title: titleFromMarkdown(content, file.name).slice(0, BLOG_TITLE_MAX), content };
 }

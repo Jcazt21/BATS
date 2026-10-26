@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,10 @@ interface ComboboxProps {
   /** Clases para el <input> en sí (el `className` va al contenedor). */
   inputClassName?: string;
   disabled?: boolean;
+  /** Si llega y hay un valor elegido, se pinta un botón para vaciarlo. */
+  onClear?: () => void;
+  /** Nombre accesible del botón de vaciar ("Quitar objeto"...). */
+  clearLabel?: string;
 }
 
 /** Tope de opciones pintadas a la vez: con listas grandes (especies, movimientos) evita listas de miles de <li>. */
@@ -35,7 +40,7 @@ const LIST_MAX_H = 256;
  * como `role="combobox"` + `listbox` (WAI-ARIA combobox pattern). No depende de una librería:
  * es la pieza base de SpeciesPicker y de los selectores de movimiento del SetEditor.
  */
-export function Combobox({ items, value, onChange, placeholder, emptyText = "Sin resultados", className, inputClassName, disabled }: ComboboxProps) {
+export function Combobox({ items, value, onChange, placeholder, emptyText = "Sin resultados", className, inputClassName, disabled, onClear, clearLabel = "Quitar" }: ComboboxProps) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -124,6 +129,9 @@ export function Combobox({ items, value, onChange, placeholder, emptyText = "Sin
   }
 
   const activeItem = filtered[activeIndex];
+  // Por `value`, no por `selected`: un valor que ya no está en la lista (un movimiento ilegal
+  // importado de un paste) es justo el que más hace falta poder quitar.
+  const clearable = !!onClear && value != null && !disabled;
 
   return (
     <div ref={rootRef} className={cn("relative", className)}>
@@ -135,7 +143,7 @@ export function Combobox({ items, value, onChange, placeholder, emptyText = "Sin
         aria-autocomplete="list"
         aria-activedescendant={open && activeItem ? `${listboxId}-${activeItem.id}` : undefined}
         disabled={disabled}
-        className={inputClassName}
+        className={cn(clearable && "pr-9", inputClassName)}
         placeholder={selected ? selected.label : placeholder}
         value={query}
         onFocus={() => {
@@ -149,6 +157,20 @@ export function Combobox({ items, value, onChange, placeholder, emptyText = "Sin
         }}
         onKeyDown={onKeyDown}
       />
+      {clearable && (
+        <button
+          type="button"
+          aria-label={clearLabel}
+          onClick={(e) => {
+            e.preventDefault(); // dentro de un <label>: no reenviar el click al input
+            onClear();
+            setQuery("");
+          }}
+          className="absolute inset-y-0 right-1 my-auto flex size-7 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <X className="size-4" />
+        </button>
+      )}
       {open && rect && createPortal(
         <ul
           ref={listRef}

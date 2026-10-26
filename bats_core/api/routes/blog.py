@@ -8,7 +8,7 @@ Públicos (solo entradas publicadas):
 Admin:
   GET    /api/admin/blog            → todas, incluidos borradores
   GET    /api/admin/blog/{id}       → una, con contenido (para previsualizar borradores)
-  POST   /api/admin/blog            → crea una entrada desde un .md (borrador o publicada)
+  POST   /api/admin/blog            → crea una entrada (Markdown escrito, pegado o importado; borrador o publicada)
   PATCH  /api/admin/blog/{id}       → título / contenido / publicación (el slug no cambia)
   DELETE /api/admin/blog/{id}       → elimina
 
@@ -49,7 +49,7 @@ def _clean(title: str, content: str) -> tuple[str, str]:
     if not title:
         raise HTTPException(status_code=422, detail="La entrada necesita un título.")
     if not content.strip():
-        raise HTTPException(status_code=422, detail="El archivo está vacío.")
+        raise HTTPException(status_code=422, detail="La entrada está vacía.")
     return title, content
 
 

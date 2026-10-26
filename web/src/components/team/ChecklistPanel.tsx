@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle, XCircle } from "lucide-react";
+import { CheckCircle2, Circle, Info, XCircle } from "lucide-react";
 import type { ChecklistRow } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -15,12 +15,15 @@ export function ChecklistPanel({ rows, pending, empty }: { rows: ChecklistRow[] 
           <li className="px-4 py-3 text-subhead text-muted-foreground">Agrega pokémon para comprobar las reglas.</li>
         ) : rows.map((r) => (
           <li key={r.rule} className="flex items-start gap-3 px-4 py-3">
-            {r.ok ? <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-success" /> : <XCircle className="mt-0.5 size-5 shrink-0 text-destructive" />}
+            {r.ok ? <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-success" />
+              : r.blocking === false ? <Info className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+              : <XCircle className="mt-0.5 size-5 shrink-0 text-destructive" />}
             <span className="min-w-0 flex-1">
               <span className="block text-subhead">{r.label}</span>
-              {!r.ok && r.names.length > 0 && <span className="block text-footnote text-destructive">{r.names.join(", ")}</span>}
+              {!r.ok && r.blocking !== false && r.names.length > 0 && <span className="block text-footnote text-destructive">{r.names.join(", ")}</span>}
+              {!r.ok && r.blocking === false && <span className="block text-footnote text-muted-foreground">Se exige al batallar, no al registrar</span>}
             </span>
-            <span className="sr-only">{r.ok ? "Cumple" : "No cumple"}</span>
+            <span className="sr-only">{r.ok ? "Cumple" : r.blocking === false ? "Informativa" : "No cumple"}</span>
           </li>
         ))}
       </ul>

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { BLOG_MAX_CHARS, MarkdownFileError, readMarkdownFile, stripLeadingTitle, titleFromMarkdown } from "./blog";
+import {
+  BLOG_MAX_CHARS, MarkdownFileError, markdownError, normalizeMarkdown, readMarkdownFile, stripLeadingTitle, titleFromMarkdown,
+} from "./blog";
 
 const md = (text: string, name = "nota.md") => new File([text], name, { type: "text/markdown" });
 
@@ -21,9 +23,26 @@ describe("stripLeadingTitle", () => {
   });
 });
 
+describe("normalizeMarkdown", () => {
+  it("quita BOM, CRLF y front matter de un texto pegado", () => {
+    expect(normalizeMarkdown("\uFEFF---\r\ntags: [liga]\r\n---\r\n# Hola\r\n\r\nTexto")).toBe("# Hola\n\nTexto");
+  });
+  it("deja intacto un Markdown ya limpio", () => {
+    expect(normalizeMarkdown("# Hola\n\n---\n\nTexto")).toBe("# Hola\n\n---\n\nTexto");
+  });
+});
+
+describe("markdownError", () => {
+  it("rechaza vacíos y demasiado grandes; acepta lo demás", () => {
+    expect(markdownError(" \n")).toMatch("vacía");
+    expect(markdownError("x".repeat(BLOG_MAX_CHARS + 1))).toMatch("grande");
+    expect(markdownError("# Hola")).toBeNull();
+  });
+});
+
 describe("readMarkdownFile", () => {
   it("lee título y contenido, sin BOM y con CRLF de Windows", async () => {
-    const out = await readMarkdownFile(md("﻿# Hola liga\r\n\r\nTexto"));
+    const out = await readMarkdownFile(md("\uFEFF# Hola liga\r\n\r\nTexto"));
     expect(out.title).toBe("Hola liga");
     expect(out.content.startsWith("#")).toBe(true);
     expect(out.content).not.toContain("\r");
@@ -41,7 +60,7 @@ describe("readMarkdownFile", () => {
     await expect(readMarkdownFile(md("hola", "nota.txt"))).rejects.toBeInstanceOf(MarkdownFileError);
   });
   it("rechaza vacíos y demasiado grandes", async () => {
-    await expect(readMarkdownFile(md("  \n"))).rejects.toThrow("vacío");
+    await expect(readMarkdownFile(md("  \n"))).rejects.toThrow("vacía");
     await expect(readMarkdownFile(md("x".repeat(BLOG_MAX_CHARS + 1)))).rejects.toThrow("grande");
   });
 });

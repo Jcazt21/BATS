@@ -90,6 +90,12 @@ describe("checkTeam", () => {
       .rows.find((r) => r.rule === "required_egg_group")!.ok).toBe(true);
   });
 
+  it("tipo del mes es informativo (blocking: false) y las demás reglas no", () => {
+    const { rows } = checkTeam(DEX, [mon("fire")], season({ type_of_month: "Ice", restrictions: { item_clause: true } }));
+    expect(rows.find((r) => r.rule === "type_of_month")!.blocking).toBe(false);
+    expect(rows.find((r) => r.rule === "item_clause")!.blocking).toBeUndefined();
+  });
+
   it("tipo del mes: solo se exige si se pasa type_of_month", () => {
     expect(checkTeam(DEX, [mon("fire")], season()).rows.some((r) => r.rule === "type_of_month")).toBe(false);
     const { rows } = checkTeam(DEX, [mon("fire")], season({ type_of_month: "Ice" }));
@@ -156,6 +162,14 @@ describe("checkSet", () => {
 
   it("movimiento fuera del learnset", () => {
     expect(checkSet(DEX, learnset, mon("garchomp", { moves: ["Psychic"] })).length).toBeGreaterThan(0);
+  });
+
+  it("learnset aún no cargado (null): no dice que no aprende, pero sigue validando lo demás", () => {
+    expect(checkSet(DEX, null, mon("garchomp", { moves: ["Psychic"] }))).toEqual([]);
+    const errors = checkSet(DEX, null, mon("garchomp", { moves: ["Psychic", "Psychic"], ability: "Levitate" }));
+    expect(errors.some((e) => /no aprende/.test(e))).toBe(false);
+    expect(errors.some((e) => /repetido/i.test(e))).toBe(true);
+    expect(errors.some((e) => /habilidad/.test(e))).toBe(true);
   });
 
   it("movimiento repetido", () => {

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SetEditor } from "./SetEditor";
@@ -32,6 +32,7 @@ const baseMon = (over: Partial<BuilderMon> = {}): BuilderMon => ({
 const MOVES = {
   earthquake: { id: "earthquake", name: "Earthquake", type: "Ground", category: "Physical", basePower: 100, accuracy: 100, pp: 10, priority: 0, shortDesc: "" },
   dragontail: { id: "dragontail", name: "Dragon Tail", type: "Dragon", category: "Physical", basePower: 60, accuracy: 90, pp: 10, priority: -6, shortDesc: "" },
+  firefang: { id: "firefang", name: "Fire Fang", type: "Fire", category: "Physical", basePower: 65, accuracy: 95, pp: 15, priority: 0, shortDesc: "10% chance to burn. 10% chance to flinch." },
 };
 const NATURES = {
   impish: { name: "Impish", plus: "def", minus: "spa" },
@@ -46,7 +47,7 @@ function renderWithClient(ui: React.ReactElement) {
 function installLearnsetFetch() {
   vi.stubGlobal("fetch", vi.fn((url: string) => {
     if (url === "/dex/learnsets/g.json") {
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({ garchomp: ["earthquake", "dragontail"] }) } as Response);
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ garchomp: ["earthquake", "dragontail", "firefang"] }) } as Response);
     }
     if (url === "/dex/meta.json") return Promise.resolve({ ok: true, json: () => Promise.resolve(DEX.meta) } as Response);
     if (url.startsWith("/dex/moves.json")) return Promise.resolve({ ok: true, json: () => Promise.resolve(MOVES) } as Response);
@@ -101,5 +102,116 @@ describe("SetEditor", () => {
     await user.click(await screen.findByRole("option", { name: /Impish/ }));
 
     expect(screen.getByLabelText("Resumen de stats").textContent).not.toBe(before);
+  });
+
+  it("vaciar un movimiento lo quita sin dejar huecos", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    renderWithClient(<SetEditor mon={baseMon({ moves: ["Earthquake", "Dragon Tail"] })} dex={DEX} onChange={onChange} />);
+    await user.click(await screen.findByRole("button", { name: "Quitar movimiento 1" }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ moves: ["Dragon Tail"] }));
+  });
+
+  it("vaciar el objeto lo deja en null", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    renderWithClient(<SetEditor mon={baseMon({ held_item: "Leftovers" })} dex={DEX} onChange={onChange} />);
+    await user.click(await screen.findByRole("button", { name: "Quitar objeto" }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ held_item: null }));
+  });
+
+  it("no ofrece en otro slot un movimiento ya elegido", async () => {
+    const user = userEvent.setup();
+    renderWithClient(<SetEditor mon={baseMon({ moves: ["Earthquake"] })} dex={DEX} onChange={vi.fn()} />);
+    const secondSlot = await screen.findByPlaceholderText("Movimiento 2");
+    await user.type(secondSlot, "Earth");
+    expect(await screen.findByText("Sin movimientos legales que coincidan")).toBeInTheDocument();
+  });
+
+  it("marca STAB solo en los movimientos del tipo de la especie", async () => {
+    const user = userEvent.setup();
+    renderWithClient(<SetEditor mon={baseMon()} dex={DEX} onChange={vi.fn()} />);
+    await user.click(await screen.findByPlaceholderText("Movimiento 1"));
+    expect(await screen.findByRole("option", { name: /Earthquake.*STAB/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Fire Fang/ }).textContent).not.toMatch(/STAB/);
+  });
+
+  it("busca movimientos por tipo y muestra la descripción del elegido", async () => {
+    const user = userEvent.setup();
+    renderWithClient(<SetEditor mon={baseMon({ moves: ["Fire Fang"] })} dex={DEX} onChange={vi.fn()} />);
+    expect(await screen.findByText(/10% chance to burn/)).toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText("Movimiento 2"), "ground");
+    expect(await screen.findByRole("option", { name: /Earthquake/ })).toBeInTheDocument();
+  });
+
+  it("elegir en un slot vacío lejano agrega el movimiento sin huecos", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    renderWithClient(<SetEditor mon={baseMon({ moves: ["Earthquake"] })} dex={DEX} onChange={onChange} />);
+    await user.click(await screen.findByPlaceholderText("Movimiento 4"));
+    await user.click(await screen.findByRole("option", { name: /Fire Fang/ }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ moves: ["Earthquake", "Fire Fang"] }));
+  });
+
+  it("marca en el resumen la stat que sube y la que baja la naturaleza", async () => {
+    renderWithClient(<SetEditor mon={baseMon({ nature: "Impish" })} dex={DEX} onChange={vi.fn()} />);
+    const summary = await screen.findByLabelText("Resumen de stats");
+    expect(within(summary).getByLabelText(/^Def .*sube por la naturaleza/)).toHaveTextContent("↑");
+    expect(within(summary).getByLabelText(/^SpA .*baja por la naturaleza/)).toHaveTextContent("↓");
+    expect(within(summary).getByLabelText(/^Atk \d+$/)).not.toHaveTextContent(/[↑↓]/);
+  });
+
+  it("muestra y deja quitar un movimiento que la especie no aprende", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    renderWithClient(<SetEditor mon={baseMon({ moves: ["Psychic"] })} dex={DEX} onChange={onChange} />);
+    expect(await screen.findByPlaceholderText("Psychic")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Quitar movimiento 1" }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ moves: [] }));
+  });
+
+  it("mientras carga el learnset, los slots vacíos están deshabilitados con 'Cargando movimientos…'", async () => {
+    vi.stubGlobal("fetch", vi.fn((url: string) => {
+      if (url === "/dex/learnsets/g.json") return new Promise(() => {}); // nunca resuelve
+      if (url === "/dex/meta.json") return Promise.resolve({ ok: true, json: () => Promise.resolve(DEX.meta) } as Response);
+      if (url.startsWith("/dex/moves.json")) return Promise.resolve({ ok: true, json: () => Promise.resolve(MOVES) } as Response);
+      if (url.startsWith("/dex/natures.json")) return Promise.resolve({ ok: true, json: () => Promise.resolve(NATURES) } as Response);
+      return Promise.resolve({ ok: false, status: 404 } as Response);
+    }));
+    renderWithClient(<SetEditor mon={baseMon({ moves: ["Earthquake"] })} dex={DEX} onChange={vi.fn()} />);
+    const loading = await screen.findAllByPlaceholderText("Cargando movimientos…");
+    expect(loading).toHaveLength(3);
+    for (const el of loading) expect(el).toBeDisabled();
+    // El movimiento ya elegido sigue mostrando su nombre.
+    expect(screen.getByPlaceholderText("Earthquake")).toBeInTheDocument();
+  });
+
+  it("si el learnset falla, avisa y Reintentar vuelve a pedirlo", async () => {
+    const user = userEvent.setup();
+    let fail = true;
+    vi.stubGlobal("fetch", vi.fn((url: string) => {
+      if (url === "/dex/learnsets/g.json") {
+        if (fail) return Promise.reject(new Error("sin red"));
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ garchomp: ["earthquake"] }) } as Response);
+      }
+      if (url === "/dex/meta.json") return Promise.resolve({ ok: true, json: () => Promise.resolve(DEX.meta) } as Response);
+      if (url.startsWith("/dex/moves.json")) return Promise.resolve({ ok: true, json: () => Promise.resolve(MOVES) } as Response);
+      if (url.startsWith("/dex/natures.json")) return Promise.resolve({ ok: true, json: () => Promise.resolve(NATURES) } as Response);
+      return Promise.resolve({ ok: false, status: 404 } as Response);
+    }));
+    renderWithClient(<SetEditor mon={baseMon()} dex={DEX} onChange={vi.fn()} />);
+    expect(await screen.findByText("No se pudieron cargar los movimientos")).toBeInTheDocument();
+    fail = false;
+    await user.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(await screen.findAllByPlaceholderText(/Movimiento 1/)).toHaveLength(1);
+    expect(screen.queryByText("No se pudieron cargar los movimientos")).not.toBeInTheDocument();
+  });
+
+  it("deja quitar una habilidad que la especie no tiene", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    renderWithClient(<SetEditor mon={baseMon({ ability: "Levitate" })} dex={DEX} onChange={onChange} />);
+    await user.click(await screen.findByRole("button", { name: "Quitar habilidad" }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ability: null }));
   });
 });

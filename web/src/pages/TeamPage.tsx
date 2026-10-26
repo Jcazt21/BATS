@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowLeftRight, ClipboardCopy, Loader2, Lock, Pencil, Plus, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Group, GroupRow } from "@/components/app/Group";
@@ -21,11 +21,13 @@ import type { DexEssentials } from "@/lib/dex/snapshot";
 import { speciesById } from "@/lib/dex/snapshot";
 import { useLearnset } from "@/lib/dex/useLearnset";
 import { checkSet, type BuilderMon, type RuleSeason } from "@/lib/dex/validate";
-import { ApiError, errorMessage } from "@/lib/http";
+import { ApiError } from "@/lib/http";
+import { teamErrorMessage } from "@/lib/dex/ruleMessages";
 import {
-  useActiveSeason, useAddPokemon, useDexEssentials, useEditSet, usePlayerBans, useRegisterTeam, useRemovePokemon,
+  useActiveSeason, useAddPokemon, useDexEssentials, useEditSet, useMe, usePlayerBans, useRegisterTeam, useRemovePokemon,
   useRoster, useRotationHistory, useSwapPokemon,
 } from "@/lib/queries";
+import { draftKey } from "@/lib/draft";
 import { useSession } from "@/lib/session";
 import { toPaste } from "@/lib/showdown";
 import { useToast } from "@/lib/toast";
@@ -95,21 +97,45 @@ function Register({ dex, maxSize }: { dex: DexEssentials; maxSize: number }) {
   const season = useActiveSeason();
   const bans = usePlayerBans();
   const register = useRegisterTeam();
+  const me = useMe();
   const { toast } = useToast();
+  const [dirty, setDirty] = useState(false);
   const banned = useMemo(() => new Set((bans.data ?? []).map((b) => b.name.toLowerCase())), [bans.data]);
   const ruleSeason: RuleSeason = {
     type_of_month: season.data?.type_of_month, max_team_size: maxSize, restrictions: season.data?.restrictions ?? {},
   };
+  // Sin temporada o sin usuario no hay clave estable: se trabaja sin borrador.
+  const key = season.data && me.data ? draftKey(season.data.season_id, me.data.username) : undefined;
+  // El borrador se restaura al montar TeamBuilder: hay que esperar a tener la clave (si me falla, sin borrador).
+  const waitingKey = me.isPending || season.isPending;
+
+  // Avisa del navegador al cerrar o recargar la pestaña con cambios sin registrar.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+
   return (
     <div className="mx-auto w-full max-w-4xl">
-      <TeamBuilder
-        dex={dex} initial={[]} season={ruleSeason} banned={banned} maxSize={maxSize}
-        saveLabel="Registrar equipo"
-        onSave={async (team) => {
-          await register.mutateAsync(team.map((m) => toPayload(dex, m)));
-          toast({ title: "Equipo registrado", tone: "success" });
-        }}
-      />
+      {waitingKey ? (
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-36 rounded-2xl" />
+          <Skeleton className="h-36 rounded-2xl" />
+        </div>
+      ) : (
+        <TeamBuilder
+          key={key ?? "sin-borrador"}
+          dex={dex} initial={[]} season={ruleSeason} banned={banned} maxSize={maxSize}
+          draftKey={key} onDirtyChange={setDirty}
+          saveLabel="Registrar equipo"
+          onSave={async (team) => {
+            await register.mutateAsync(team.map((m) => toPayload(dex, m)));
+            toast({ title: "Equipo registrado", tone: "success" });
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -129,6 +155,17 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
   const [swapping, setSwapping] = useState<RosterPokemon | null>(null);
   const [editing, setEditing] = useState<RosterPokemon | null>(null);
   const [adding, setAdding] = useState(false);
+  const [addDirty, setAddDirty] = useState(false);
+  const [swapDirty, setSwapDirty] = useState(false);
+  const [editDirty, setEditDirty] = useState(false);
+  // Cierre pendiente de confirmar porque el sheet tiene cambios sin guardar.
+  const [discard, setDiscard] = useState<(() => void) | null>(null);
+
+  const closeAdd = () => { setAdding(false); setAddDirty(false); };
+  const closeSwap = () => { setSwapping(null); setSwapDirty(false); };
+  const closeEdit = () => { setEditing(null); setEditDirty(false); };
+  /** Cierra ya si no hay cambios; si los hay, pide confirmación primero. */
+  const guardClose = (dirty: boolean, close: () => void) => { if (dirty) setDiscard(() => close); else close(); };
 
   const r = roster.data!;
   const banned = useMemo(() => new Set((bans.data ?? []).map((b) => b.name.toLowerCase())), [bans.data]);
@@ -213,7 +250,7 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
             <AlertDialogAction variant="destructive" disabled={remove.isPending} onClick={async (e) => {
               e.preventDefault();
               try { await remove.mutateAsync(removing!.pokemon_id); setRemoving(null); }
-              catch (err) { toast({ title: "No se pudo quitar", description: errorMessage(err), tone: "error" }); }
+              catch (err) { toast({ title: "No se pudo quitar", description: teamErrorMessage(err), tone: "error" }); }
             }}>Quitar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -221,21 +258,21 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
 
       {/* Editar set */}
       <ResponsiveSheet
-        open={!!editing} onOpenChange={(o) => !o && setEditing(null)}
+        open={!!editing} onOpenChange={(o) => !o && guardClose(editDirty, closeEdit)}
         title={`Editar el set de ${editing?.name ?? ""}`}
         description="Objeto, habilidad, naturaleza, tera, movimientos, EVs e IVs. No consume cambios."
       >
-        {editing && <EditSetForm dex={dex} pokemon={editing} onDone={() => setEditing(null)} />}
+        {editing && <EditSetForm dex={dex} pokemon={editing} onDone={closeEdit} onDirtyChange={setEditDirty} />}
       </ResponsiveSheet>
 
       {/* Agregar */}
-      <ResponsiveSheet open={adding} onOpenChange={setAdding} title="Agregar pokémon" description={`Te caben ${room} más.`}>
+      <ResponsiveSheet open={adding} onOpenChange={(o) => (o ? setAdding(true) : guardClose(addDirty, closeAdd))} title="Agregar pokémon" description={`Te caben ${room} más.`}>
         <TeamBuilder
           dex={dex} initial={[]} context={contextWithout()} season={ruleSeason} banned={banned} maxSize={room}
-          saveLabel="Agregar al equipo"
+          saveLabel="Agregar al equipo" onDirtyChange={setAddDirty}
           onSave={async (team) => {
             await add.mutateAsync(team.map((m) => toPayload(dex, m)));
-            setAdding(false);
+            closeAdd();
             toast({ title: "Pokémon agregados", tone: "success" });
           }}
         />
@@ -243,33 +280,53 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
 
       {/* Reemplazar */}
       <ResponsiveSheet
-        open={!!swapping} onOpenChange={(o) => !o && setSwapping(null)}
+        open={!!swapping} onOpenChange={(o) => !o && guardClose(swapDirty, closeSwap)}
         title={`Reemplazar a ${swapping?.name ?? ""}`}
         description="Elige el pokémon nuevo. El cambio es atómico: si algo falla, no se quita nada."
       >
         {swapping && (
           <TeamBuilder
             dex={dex} initial={[]} context={contextWithout(swapping.pokemon_id)} season={ruleSeason} banned={banned} maxSize={1}
-            saveLabel="Reemplazar"
+            saveLabel="Reemplazar" onDirtyChange={setSwapDirty}
             onSave={async (team) => {
               await swap.mutateAsync({ removeId: swapping.pokemon_id, add: toPayload(dex, team[0]) });
-              setSwapping(null);
+              closeSwap();
               toast({ title: "Pokémon reemplazado", tone: "success" });
             }}
           />
         )}
       </ResponsiveSheet>
+
+      {/* Cerrar un sheet con cambios sin guardar */}
+      <AlertDialog open={!!discard} onOpenChange={(o) => !o && setDiscard(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Descartar los cambios?</AlertDialogTitle>
+            <AlertDialogDescription>Lo que armaste y no guardaste se perderá.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Seguir editando</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={() => { discard?.(); setDiscard(null); }}>Descartar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
-function EditSetForm({ dex, pokemon, onDone }: { dex: DexEssentials; pokemon: RosterPokemon; onDone: () => void }) {
+function EditSetForm({ dex, pokemon, onDone, onDirtyChange }: {
+  dex: DexEssentials; pokemon: RosterPokemon; onDone: () => void; onDirtyChange: (dirty: boolean) => void;
+}) {
   const [mon, setMon] = useState<BuilderMon>(() => toBuilderMon(pokemon));
   const editSet = useEditSet();
   const { toast } = useToast();
+  const dirty = JSON.stringify(mon) !== JSON.stringify(toBuilderMon(pokemon));
+  useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
   const species = speciesById(dex, mon.species);
-  const learnset = useLearnset(species?.id ?? null);
+  const { learnset, error: learnsetError } = useLearnset(species?.id ?? null);
   const errors = checkSet(dex, learnset, mon);
+  // Sin learnset (cargando o fallido) no se puede garantizar que los movimientos sean legales.
+  const learnsetReady = learnset !== null && !learnsetError;
 
   async function save() {
     try {
@@ -277,14 +334,14 @@ function EditSetForm({ dex, pokemon, onDone }: { dex: DexEssentials; pokemon: Ro
       toast({ title: "Set actualizado", tone: "success" });
       onDone();
     } catch (e) {
-      toast({ title: "No se pudo guardar", description: errorMessage(e), tone: "error" });
+      toast({ title: "No se pudo guardar", description: teamErrorMessage(e), tone: "error" });
     }
   }
 
   return (
     <div className="flex flex-col gap-4">
       <SetEditor mon={mon} dex={dex} onChange={setMon} errors={errors} />
-      <Button size="lg" disabled={errors.length > 0 || editSet.isPending} onClick={() => void save()}>
+      <Button size="lg" disabled={!learnsetReady || errors.length > 0 || editSet.isPending} onClick={() => void save()}>
         {editSet.isPending ? <><Loader2 className="animate-spin" /> Guardando…</> : "Guardar cambios"}
       </Button>
     </div>

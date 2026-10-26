@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { PasteIO } from "./PasteIO";
 import type { DexEssentials, Species } from "@/lib/dex/snapshot";
+import type { BuilderMon } from "@/lib/dex/validate";
 
 function species(over: Partial<Species> & { id: string; name: string }): Species {
   return {
@@ -15,7 +16,10 @@ function species(over: Partial<Species> & { id: string; name: string }): Species
 
 const DEX: DexEssentials = {
   meta: { generated_at: "x", ps_commit: "x", counts: { species: 0, moves: 0 }, formats: { league: "x", sparring: "x" } },
-  species: { garchomp: species({ id: "garchomp", name: "Garchomp" }) },
+  species: {
+    garchomp: species({ id: "garchomp", name: "Garchomp" }),
+    gengar: species({ id: "gengar", name: "Gengar", types: ["Ghost", "Poison"] }),
+  },
   items: {},
 };
 
@@ -40,7 +44,8 @@ describe("PasteIO", () => {
     await user.click(screen.getByRole("button", { name: /Importar/ }));
 
     expect(onImport).toHaveBeenCalledTimes(1);
-    const [mons] = onImport.mock.calls[0];
+    const [mons, mode] = onImport.mock.calls[0];
+    expect(mode).toBe("replace");
     expect(mons).toHaveLength(1);
     expect(mons[0]).toMatchObject({
       species: "Garchomp", held_item: "Rocky Helmet", ability: "Rough Skin", tera_type: "Steel",
@@ -75,5 +80,45 @@ describe("PasteIO", () => {
   it("el botón de importar está deshabilitado sin texto", () => {
     render(<PasteIO dex={DEX} team={[]} maxSize={8} onImport={vi.fn()} />);
     expect(screen.getByRole("button", { name: /Importar/ })).toBeDisabled();
+  });
+
+  describe("con un equipo ya armado", () => {
+    const mon = (species: string): BuilderMon => ({ species, moves: [], evs: {}, ivs: {} });
+
+    async function paste(text: string, team: BuilderMon[], maxSize: number) {
+      const user = userEvent.setup();
+      const onImport = vi.fn();
+      render(<PasteIO dex={DEX} team={team} maxSize={maxSize} onImport={onImport} />);
+      await user.type(screen.getByPlaceholderText(/Garchomp @/), text);
+      await user.click(screen.getByRole("button", { name: /Importar/ }));
+      return { user, onImport };
+    }
+
+    it("pide confirmar antes de reemplazar y no importa solo", async () => {
+      const { user, onImport } = await paste("Gengar", [mon("Garchomp")], 6);
+      expect(onImport).not.toHaveBeenCalled();
+      expect(screen.getByText(/Esto reemplaza tus 1 pokémon/)).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "Reemplazar" }));
+      expect(onImport).toHaveBeenCalledWith([expect.objectContaining({ species: "Gengar" })], "replace");
+    });
+
+    it("ofrece Agregar al final solo si cabe", async () => {
+      const { user, onImport } = await paste("Gengar", [mon("Garchomp")], 2);
+      await user.click(screen.getByRole("button", { name: "Agregar al final" }));
+      expect(onImport).toHaveBeenCalledWith([expect.objectContaining({ species: "Gengar" })], "append");
+    });
+
+    it("no ofrece Agregar al final si no cabe", async () => {
+      await paste("Gengar", [mon("Garchomp")], 1);
+      expect(screen.getByRole("button", { name: "Reemplazar" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Agregar al final" })).toBeNull();
+    });
+
+    it("al agregar omite las especies que ya están y lo avisa", async () => {
+      const { user, onImport } = await paste("Garchomp\n\nGengar", [mon("Garchomp")], 2);
+      await user.click(screen.getByRole("button", { name: "Agregar al final" }));
+      expect(onImport).toHaveBeenCalledWith([expect.objectContaining({ species: "Gengar" })], "append");
+      expect(screen.getByText(/Omitimos Garchomp/)).toBeInTheDocument();
+    });
   });
 });

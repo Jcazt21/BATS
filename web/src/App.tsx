@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionProvider } from "@/components/SessionProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { MonthTheme } from "@/components/MonthTheme";
 import { ToastProvider } from "@/components/app/Toaster";
 import { AppShell } from "@/components/app/AppShell";
 import { PageFallback } from "@/components/app/RouteOutlet";
@@ -33,6 +34,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
+        <MonthTheme />
         <SessionProvider>
           <TooltipProvider>
             <ToastProvider>

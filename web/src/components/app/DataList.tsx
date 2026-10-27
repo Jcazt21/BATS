@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ArrowDown, ArrowUp } from "lucide-react";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -44,6 +45,8 @@ interface Props<T> {
  * en el móvil. Sin desplazamiento horizontal y sin duplicar código por página.
  */
 export function DataList<T>({ rows, columns, rowKey, onRowClick, rowHref, rowPrefetch, defaultSort, loading, empty, caption, mobileSort, className }: Props<T>) {
+  // Solo se monta una presentación (tabla o tarjetas): montar las dos duplicaba filas, celdas y sprites.
+  const wide = useMediaQuery("(min-width: 768px)");
   const [sort, setSort] = useState(defaultSort);
   // Solo si esta lista llegó a mostrar el esqueleto: con datos en caché no hay nada que suavizar.
   const [startedLoading] = useState(!!loading);
@@ -101,7 +104,7 @@ export function DataList<T>({ rows, columns, rowKey, onRowClick, rowHref, rowPre
   return (
     <div className={cn("overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border", className)}>
       {/* Orden en móvil: la tabla tiene cabeceras pulsables, las tarjetas no */}
-      {mobileSort && (
+      {mobileSort && !wide && (
         <div role="radiogroup" aria-label="Ordenar por" className="flex gap-2 overflow-x-auto border-b border-separator px-4 py-3 md:hidden">
           {columns.filter((c) => c.sortValue).map((c) => {
             const active = sort?.key === c.key;
@@ -122,7 +125,7 @@ export function DataList<T>({ rows, columns, rowKey, onRowClick, rowHref, rowPre
       )}
 
       {/* Tarjetas (móvil) */}
-      <ul className="divide-y divide-separator md:hidden" aria-label={caption}>
+      {!wide && <ul className="divide-y divide-separator" aria-label={caption}>
         {sorted.map((row, i) => (
           // Fuera de pantalla no se maqueta ni se pinta: el scroll de listas largas (Pokédex) no se atasca.
           <li key={rowKey(row)} style={rowAnim(i).style} className={cn("[contain-intrinsic-size:auto_5.5rem] [content-visibility:auto]", rowAnim(i).className)}>
@@ -146,10 +149,10 @@ export function DataList<T>({ rows, columns, rowKey, onRowClick, rowHref, rowPre
             </div>
           </li>
         ))}
-      </ul>
+      </ul>}
 
       {/* Tabla (≥ md) */}
-      <table className="hidden w-full text-subhead md:table">
+      {wide && <table className="w-full text-subhead">
         <caption className="sr-only">{caption}</caption>
         <thead>
           <tr className="border-b border-separator text-footnote text-muted-foreground">
@@ -196,7 +199,7 @@ export function DataList<T>({ rows, columns, rowKey, onRowClick, rowHref, rowPre
             </tr>
           ))}
         </tbody>
-      </table>
+      </table>}
     </div>
   );
 }

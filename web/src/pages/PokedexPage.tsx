@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronDown, Search } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
@@ -16,6 +16,17 @@ import { isPokemonType, type PokemonType } from "@/lib/pokemon-types";
 import { useDexEssentials, usePokedex, useSeasons } from "@/lib/queries";
 import { num, pct } from "@/lib/format";
 
+// Fuera del componente: identidad estable, así el ordenamiento de DataList no se recalcula en cada tecla.
+const COLS: Column<PokedexRow>[] = [
+    { key: "mon", header: "Pokémon", primary: true, sortValue: (r) => r.species,
+      cell: (r) => <span className="inline-flex items-center gap-2 font-medium"><PokemonSprite species={r.species} size={40} />{r.species}</span> },
+    { key: "pick", header: "Pick rate", align: "right", sortValue: (r) => r.pick_pct,
+      cell: (r) => <span className="inline-flex items-center justify-end gap-2"><Meter label={`Pick rate de ${r.species}`} value={r.pick_pct} className="w-16" />{pct(r.pick_pct, 1)}</span> },
+    { key: "bring", header: "Bring rate", align: "right", sortValue: (r) => r.bring_pct, cell: (r) => pct(r.bring_pct, 1) },
+    { key: "wr", header: "Win rate", align: "right", sortValue: (r) => r.win_rate_pct, cell: (r) => pct(r.win_rate_pct, 1) },
+    { key: "mvp", header: "MVP medio", align: "right", hideOnMobile: true, sortValue: (r) => r.avg_mvp, cell: (r) => num(r.avg_mvp, 1) },
+  ];
+
 export function PokedexPage() {
   const seasons = useSeasons();
   const [params, setParams] = useSearchParams();
@@ -32,6 +43,8 @@ export function PokedexPage() {
   const dex = usePokedex(ready ? sid : null);
   const species = useDexEssentials();
   const [q, setQ] = useState("");
+  // La caja responde al instante; el filtrado de la lista va un paso detrás.
+  const qDiferida = useDeferredValue(q);
   const navigate = useNavigate();
 
   function setParam(clave: string, valor: string | null) {
@@ -47,24 +60,14 @@ export function PokedexPage() {
 
   const rows = useMemo(
     () => (dex.data?.species ?? []).filter((r) => {
-      if (!r.species.toLowerCase().includes(q.trim().toLowerCase())) return false;
+      if (!r.species.toLowerCase().includes(qDiferida.trim().toLowerCase())) return false;
       if (!tipo) return true;
       const tipos = species.data ? speciesById(species.data, r.species)?.types : undefined;
       return !!tipos?.some((t) => t.toLowerCase() === tipo);
     }),
-    [dex.data, q, tipo, species.data],
+    [dex.data, qDiferida, tipo, species.data],
   );
-  const filtrando = !!q || !!tipo;
-
-  const cols: Column<PokedexRow>[] = [
-    { key: "mon", header: "Pokémon", primary: true, sortValue: (r) => r.species,
-      cell: (r) => <span className="inline-flex items-center gap-2 font-medium"><PokemonSprite species={r.species} size={40} />{r.species}</span> },
-    { key: "pick", header: "Pick rate", align: "right", sortValue: (r) => r.pick_pct,
-      cell: (r) => <span className="inline-flex items-center justify-end gap-2"><Meter label={`Pick rate de ${r.species}`} value={r.pick_pct} className="w-16" />{pct(r.pick_pct, 1)}</span> },
-    { key: "bring", header: "Bring rate", align: "right", sortValue: (r) => r.bring_pct, cell: (r) => pct(r.bring_pct, 1) },
-    { key: "wr", header: "Win rate", align: "right", sortValue: (r) => r.win_rate_pct, cell: (r) => pct(r.win_rate_pct, 1) },
-    { key: "mvp", header: "MVP medio", align: "right", hideOnMobile: true, sortValue: (r) => r.avg_mvp, cell: (r) => num(r.avg_mvp, 1) },
-  ];
+  const filtrando = !!qDiferida || !!tipo;
 
   return (
     <div className="flex flex-col gap-8">
@@ -87,7 +90,7 @@ export function PokedexPage() {
 
       {dex.isError ? <ErrorState error={dex.error} onRetry={() => dex.refetch()} /> : (
         <DataList
-          caption="Pokémon de la liga" rows={rows} columns={cols} rowKey={(r) => r.species}
+          caption="Pokémon de la liga" rows={rows} columns={COLS} rowKey={(r) => r.species}
           loading={dex.isPending} defaultSort={{ key: "pick", dir: "desc" }}
           rowHref={ficha}
           rowPrefetch={ficha}

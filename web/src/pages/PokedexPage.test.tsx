@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
+import { mockViewport } from "@/lib/test-utils";
 import { PokedexPage } from "./PokedexPage";
 
 type Q = { data?: unknown; isPending?: boolean; isError?: boolean; isSuccess?: boolean; error?: unknown; refetch?: () => void };
@@ -25,6 +26,7 @@ const nombresEnTabla = () =>
   within(screen.getByRole("table")).getAllByRole("row").slice(1).map((r) => within(r).getAllByRole("cell")[0].textContent);
 
 beforeEach(() => {
+  mockViewport(true);
   st.seasons = { isSuccess: true, data: [
     { season_id: 3, season_name: "T3", is_active: true }, { season_id: 2, season_name: "T2", is_active: false },
   ] };
@@ -92,6 +94,7 @@ describe("PokedexPage · filas y definiciones", () => {
   });
 
   it("las tarjetas móviles muestran el Meter del pick rate", () => {
+    mockViewport(false);
     renderPage();
     const tarjetas = screen.getByRole("list", { name: "Pokémon de la liga" });
     expect(within(tarjetas).getAllByRole("meter").length).toBeGreaterThan(0);

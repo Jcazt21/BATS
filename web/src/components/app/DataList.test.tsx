@@ -2,7 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
+import { mockViewport, restoreMatchMedia } from "@/lib/test-utils";
 import { DataList, type Column } from "./DataList";
+
+// Solo se monta una presentación: por defecto la tabla (ancha); las tarjetas piden `mockViewport(false)`.
+beforeEach(() => mockViewport(true));
+afterEach(() => restoreMatchMedia());
 
 interface Row { name: string; wr: number }
 const cols: Column<Row>[] = [
@@ -25,8 +30,20 @@ describe("DataList · filas como enlaces", () => {
     const tabla = screen.getByRole("table");
     const enlace = within(tabla).getByRole("link", { name: "Dragonite" });
     expect(enlace).toHaveAttribute("href", "/pokedex/Dragonite");
+  });
+
+  it("en las tarjetas (móvil) el nombre también es un enlace real", () => {
+    mockViewport(false);
+    montar({ rowHref: (r) => `/pokedex/${r.name}` });
     const tarjetas = screen.getByRole("list", { name: "Pokémon" });
     expect(within(tarjetas).getByRole("link", { name: "Dragonite" })).toHaveAttribute("href", "/pokedex/Dragonite");
+    expect(screen.queryByRole("table")).toBeNull();
+  });
+
+  it("en pantalla ancha no se montan las tarjetas (no se duplican las filas)", () => {
+    montar({ rowHref: (r) => `/pokedex/${r.name}` });
+    expect(screen.queryByRole("list", { name: "Pokémon" })).toBeNull();
+    expect(screen.getAllByRole("link", { name: "Dragonite" })).toHaveLength(1);
   });
 
   it("el enlace no es una segunda parada de tabulador (la fila ya lo es)", () => {
@@ -60,6 +77,7 @@ describe("DataList · teclado", () => {
   });
 
   it.each(["{Enter}", " "])("en las tarjetas, %j activa la tarjeta", async (tecla) => {
+    mockViewport(false);
     const onRowClick = vi.fn();
     montar({ onRowClick });
     const tarjeta = within(screen.getByRole("list", { name: "Pokémon" })).getAllByRole("button")[0];
@@ -109,6 +127,7 @@ describe("DataList · entrada escalonada", () => {
 });
 
 describe("DataList · orden en móvil (mobileSort)", () => {
+  beforeEach(() => mockViewport(false));
   const ordenar = () => screen.getByRole("radiogroup", { name: "Ordenar por" });
   const nombresTarjetas = () =>
     within(screen.getByRole("list", { name: "Pokémon" })).getAllByRole("listitem").map((li) => li.textContent?.slice(0, 9));

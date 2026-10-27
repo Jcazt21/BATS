@@ -1,11 +1,15 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { motion } from "motion/react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigationType } from "react-router-dom";
 import { useReducedMotion, useSpring } from "@/lib/motion";
 
+/** Profundidad de una ruta: "/" y "/stats" son de primer nivel (1); "/pokedex/Gengar" es un detalle (2). */
+const depth = (pathname: string) => Math.max(1, pathname.split("/").filter(Boolean).length);
+
 /**
- * La página nueva entra con un leve ascenso y fundido. Resorte rápido y crítico: la
- * página está lista (precargada), así que el movimiento solo acompaña, no hace esperar.
+ * Solo se anima la entrada a un detalle (una ruta más profunda que la anterior), con un leve
+ * ascenso y fundido. Entre secciones de primer nivel, al salir de un detalle, en la primera
+ * carga y con atrás/adelante el cambio es inmediato: la navegación frecuente no debe hacer esperar.
  * Con "reducir movimiento": solo fundido.
  *
  * Se anima `transform` (no `y`) a propósito: así motion lo delega en el compositor
@@ -14,12 +18,19 @@ import { useReducedMotion, useSpring } from "@/lib/motion";
  */
 export function PageTransition({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
+  const navType = useNavigationType();
   const reduce = useReducedMotion();
   const transition = useSpring("snappy");
+
+  // Ruta anterior, guardada durante el render (patrón de React para derivar de un cambio de prop).
+  const [nav, setNav] = useState({ path: pathname, prev: pathname });
+  if (nav.path !== pathname) setNav({ path: pathname, prev: nav.path });
+  const entersDetail = navType !== "POP" && depth(pathname) > depth(nav.prev);
+
   return (
     <motion.div
       key={pathname}
-      initial={{ opacity: 0, transform: reduce ? "none" : "translateY(6px)" }}
+      initial={entersDetail ? { opacity: 0, transform: reduce ? "none" : "translateY(6px)" } : false}
       animate={{ opacity: 1, transform: "none" }}
       transition={transition}
     >

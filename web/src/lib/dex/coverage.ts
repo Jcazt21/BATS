@@ -1,5 +1,5 @@
 /** Cobertura defensiva estándar desde la sexta generación. */
-import { parseTypes, POKEMON_TYPES, type PokemonType } from "@/lib/pokemon-types";
+import { parseTypes, POKEMON_TYPES, typeLabel, type PokemonType } from "@/lib/pokemon-types";
 import { speciesById, type DexEssentials, type Species } from "./snapshot";
 import type { BuilderMon } from "./validate";
 
@@ -64,4 +64,13 @@ export function computeTypeCoverage(dex: DexEssentials, team: BuilderMon[]): Cov
     }
     return { type, weak, resist, immune, sharedWeakness: weak.length >= 2 };
   });
+}
+
+/** Un tipo sin respuesta: golpea a 2+ integrantes y nadie lo resiste ni es inmune. */
+export const unanswered = (row: CoverageRow) => row.weak.length >= 2 && row.resist.length + row.immune.length === 0;
+
+/** Resumen de una línea ("2 débiles a Tierra") para la barra móvil; null si no hay nada que señalar. */
+export function coverageSummary(rows: CoverageRow[]): string | null {
+  const worst = rows.filter((r) => r.sharedWeakness).sort((a, b) => b.weak.length - a.weak.length)[0];
+  return worst ? `${worst.weak.length} débiles a ${typeLabel(worst.type)}` : null;
 }

@@ -478,10 +478,6 @@ export interface TeamViolation {
   was_active: boolean; player_username: string; pokemon_species: string; battle_date: string | null; detected_at: string | null;
 }
 
-export interface ActiveRules {
-  season_id: number; season_name: string; type_of_month: string; restrictions: SeasonRestrictions; bans: string[];
-}
-
 // ── Ban ───────────────────────────────────────────────────────────────────────
 
 export type EligibilityReason = "not_registered" | "already_voted" | null;
@@ -512,7 +508,6 @@ export const getMe = () => request<Me>("/api/me", { auth: true });
 
 // ── Reglas y temporada activa ─────────────────────────────────────────────────
 
-export const getActiveRules = () => request<ActiveRules>("/api/rules/active");
 export const getActiveSeason = () => request<ActiveSeasonInfo>("/api/teams/active-season");
 
 // ── Estadísticas (públicas) ───────────────────────────────────────────────────
@@ -540,8 +535,6 @@ export const getPokedexEntry = (species: string, seasonId?: number) =>
 export const getPlayerBans = () => request<BannedPokemon[]>("/api/teams/me/banned", { auth: true });
 export const getRoster = () => request<RosterInfo>("/api/teams/me", { auth: true });
 export const getRotationHistory = () => request<RotationHistory>("/api/teams/me/history", { auth: true });
-export const validateTeam = (pokemon: PokemonPayload[], signal?: AbortSignal) =>
-  request<TeamValidation>("/api/teams/me/validate", { method: "POST", body: { pokemon }, auth: true, signal });
 
 export const registerTeam = (pokemon: PokemonPayload[]) =>
   request<{ roster_id: number; username: string; season_id: number; pokemon_count: number }>(

@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { abrirMenu } from "@/lib/test-utils";
 import { TeamBuilder } from "./TeamBuilder";
 import { loadDraft, saveDraft } from "@/lib/draft";
 import type { DexEssentials, Species } from "@/lib/dex/snapshot";
@@ -60,6 +61,18 @@ function renderBuilder(props: Partial<React.ComponentProps<typeof TeamBuilder>> 
 
 beforeEach(() => localStorage.clear());
 
+/** Quita el primer pokémon desde el menú de su slot (sin set escrito: no pide confirmación). */
+async function quitarPrimero() {
+  await abrirMenu(screen.getAllByRole("button", { name: /Más acciones/ })[0]);
+  await userEvent.click(screen.getByRole("menuitem", { name: /Quitar/ }));
+}
+
+/** Abre la hoja de importar desde el menú de la barra de acción. */
+async function abrirImportar() {
+  await abrirMenu(screen.getByRole("button", { name: "Importar o copiar equipo" }));
+  await userEvent.click(screen.getByRole("menuitem", { name: /Importar/ }));
+}
+
 describe("TeamBuilder: borrador", () => {
   it("restaura el borrador si initial está vacío y avisa", () => {
     saveDraft(KEY, [mon("Garchomp")]);
@@ -81,18 +94,19 @@ describe("TeamBuilder: borrador", () => {
     renderBuilder({ draftKey: KEY });
     await user.click(screen.getByRole("button", { name: "Descartar" }));
     expect(screen.queryByText(/Recuperamos tu borrador/)).toBeNull();
-    expect(screen.queryByRole("button", { name: "Quitar" })).toBeNull();
+    // El pokémon sale con una animación: desaparece al terminar.
+    await waitFor(() => expect(screen.queryByRole("button", { name: /Más acciones/ })).toBeNull());
     expect(loadDraft(KEY)).toBeNull();
   });
 
   it("autoguarda con debounce y deja de guardar un equipo vacío", async () => {
     const user = userEvent.setup();
     renderBuilder({ draftKey: KEY });
-    await user.click(screen.getByRole("button", { name: /Agregar pokémon/ }));
+    await user.click(screen.getAllByRole("button", { name: "Agregar Pokémon" })[0]);
     await user.click(screen.getByRole("button", { name: "elegir Gengar" }));
     expect(loadDraft(KEY)).toBeNull();
     await waitFor(() => expect(loadDraft(KEY)?.team.map((m) => m.species)).toEqual(["Gengar"]), { timeout: 2000 });
-    await user.click(screen.getByRole("button", { name: "Quitar" }));
+    await quitarPrimero();
     await waitFor(() => expect(loadDraft(KEY)).toBeNull(), { timeout: 2000 });
   });
 
@@ -120,7 +134,7 @@ describe("TeamBuilder: borrador", () => {
   it("sin draftKey no guarda nada", async () => {
     const user = userEvent.setup();
     renderBuilder();
-    await user.click(screen.getByRole("button", { name: /Agregar pokémon/ }));
+    await user.click(screen.getAllByRole("button", { name: "Agregar Pokémon" })[0]);
     await user.click(screen.getByRole("button", { name: "elegir Gengar" }));
     await act(() => new Promise((r) => setTimeout(r, 700)));
     expect(localStorage.length).toBe(0);
@@ -129,11 +143,10 @@ describe("TeamBuilder: borrador", () => {
 
 describe("TeamBuilder: cambios sin guardar", () => {
   it("avisa onDirtyChange al editar y al volver al estado inicial", async () => {
-    const user = userEvent.setup();
     const onDirtyChange = vi.fn();
     renderBuilder({ initial: [mon("Garchomp")], onDirtyChange });
     expect(onDirtyChange).toHaveBeenLastCalledWith(false);
-    await user.click(screen.getByRole("button", { name: "Quitar" }));
+    await quitarPrimero();
     expect(onDirtyChange).toHaveBeenLastCalledWith(true);
   });
 });
@@ -142,13 +155,27 @@ describe("TeamBuilder: importar", () => {
   it("append suma al final; replace sustituye", async () => {
     const user = userEvent.setup();
     renderBuilder({ initial: [mon("Garchomp")] });
-    await user.click(screen.getByRole("button", { name: "importar-agregar" }));
-    const list = screen.getByRole("list", { name: "Pokémon del equipo" });
+    await abrirImportar();
+    await user.click(await screen.findByRole("button", { name: "importar-agregar" }));
+    const list = await screen.findByRole("list", { name: "Pokémon del equipo" });
     expect(list).toHaveTextContent("Garchomp");
     expect(list).toHaveTextContent("Gengar");
-    await user.click(screen.getByRole("button", { name: "importar-reemplazar" }));
-    expect(list).not.toHaveTextContent("Garchomp");
+    await abrirImportar();
+    await user.click(await screen.findByRole("button", { name: "importar-reemplazar" }));
+    await waitFor(() => expect(list).not.toHaveTextContent("Garchomp"));
     expect(list).toHaveTextContent("Gengar");
+  });
+});
+
+describe("TeamBuilder: aviso de borrador", () => {
+  it("el aviso se puede ocultar sin descartar el borrador", async () => {
+    const user = userEvent.setup();
+    saveDraft(KEY, [mon("Garchomp")]);
+    renderBuilder({ draftKey: KEY });
+    await user.click(screen.getByRole("button", { name: "Ocultar aviso" }));
+    expect(screen.queryByText(/Recuperamos tu borrador/)).toBeNull();
+    expect(screen.getByRole("list", { name: "Pokémon del equipo" })).toHaveTextContent("Garchomp");
+    expect(loadDraft(KEY)).not.toBeNull();
   });
 });
 

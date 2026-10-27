@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useMediaQuery } from "@/hooks/use-media-query";
 
 /** Barra de porcentaje. El color no es la única señal: el valor va siempre escrito al lado. */
 export function Meter({ value, max = 100, tone = "primary", className, label }: {
@@ -8,6 +9,7 @@ export function Meter({ value, max = 100, tone = "primary", className, label }: 
   className?: string;
   label: string;
 }) {
+  const reduce = useMediaQuery("(prefers-reduced-motion: reduce)");
   const pct = value == null ? 0 : Math.max(0, Math.min(100, (value / max) * 100));
   const bg = { primary: "bg-primary", success: "bg-success", warning: "bg-warning", destructive: "bg-destructive" }[tone];
   return (
@@ -20,7 +22,7 @@ export function Meter({ value, max = 100, tone = "primary", className, label }: 
       className={cn("h-1.5 w-full overflow-hidden rounded-full bg-secondary", className)}
     >
       {/* Se desplaza en vez de cambiar de ancho: solo compositor, sin recalcular layout por frame. */}
-      <div className={cn("h-full w-full rounded-full transition-transform duration-500 ease-out", bg)} style={{ transform: `translateX(${pct - 100}%)` }} />
+      <div className={cn("h-full w-full rounded-full", !reduce && "transition-transform duration-300 ease-ios", bg)} style={{ transform: `translateX(${pct - 100}%)` }} />
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { hueIndex, initials } from "@/lib/format";
 
 const TONES = [
-  "bg-chart-1/15 text-chart-1", "bg-chart-2/15 text-chart-2", "bg-chart-3/15 text-chart-3",
+  "bg-chart-1/15 text-foreground", "bg-chart-2/15 text-chart-2", "bg-chart-3/15 text-chart-3",
   "bg-chart-4/15 text-chart-4", "bg-chart-5/15 text-chart-5", "bg-chart-6/15 text-chart-6",
 ];
 

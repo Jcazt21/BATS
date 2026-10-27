@@ -1,25 +1,30 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronUp, Loader2, Plus, X } from "lucide-react";
-import { MonCard } from "@/components/team/MonCard";
-import { ChecklistPanel } from "@/components/team/ChecklistPanel";
+import { X } from "lucide-react";
+import { SlotBoard, type Slot } from "@/components/team/SlotBoard";
+import { RulesBar } from "@/components/team/RulesBar";
+import { ActionBar } from "@/components/builder/ActionBar";
 import { TypeCoveragePanel } from "@/components/team/TypeCoveragePanel";
 import { PasteIO, type ImportMode } from "@/components/builder/PasteIO";
+import { ResponsiveSheet } from "@/components/app/ResponsiveSheet";
 import { SetEditor } from "@/components/builder/SetEditor";
 import { SpeciesPicker } from "@/components/builder/SpeciesPicker";
-import { saveBlockers } from "@/lib/dex/blockers";
+import { saveBlockerItems, type BlockerTarget } from "@/lib/dex/blockers";
+import { ruleStatus } from "@/lib/dex/ruleStatus";
+import { slotStatus } from "@/lib/dex/slotStatus";
 import { buildHints } from "@/lib/dex/hints";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import type { DexEssentials } from "@/lib/dex/snapshot";
+import type { DexEssentials, SpeciesFilters } from "@/lib/dex/snapshot";
 import { speciesById } from "@/lib/dex/snapshot";
 import { useLearnset, useLearnsets } from "@/lib/dex/useLearnset";
-import { checkSet, checkTeam, type BuilderMon, type RuleSeason } from "@/lib/dex/validate";
-import { computeTypeCoverage } from "@/lib/dex/coverage";
+import { checkSetProblems, checkTeam, type BuilderMon, type RuleSeason } from "@/lib/dex/validate";
+import { computeTypeCoverage, coverageSummary } from "@/lib/dex/coverage";
 import { teamErrorMessage } from "@/lib/dex/ruleMessages";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { cn } from "@/lib/utils";
+import { toPaste } from "@/lib/showdown";
+import { useToast } from "@/lib/toast";
 import { clearDraft, loadDraft, saveDraft } from "@/lib/draft";
 import { fmtDateShort } from "@/lib/format";
-import { cn } from "@/lib/utils";
 
 interface Props {
   dex: DexEssentials;
@@ -39,9 +44,13 @@ interface Props {
   draftKey?: string;
   /** Avisa cuando el equipo difiere de `initial` (hay cambios sin guardar). */
   onDirtyChange?: (dirty: boolean) => void;
+  /** Dentro de una hoja (agregar/reemplazar): la barra de reglas va en línea, no fija. */
+  inline?: boolean;
 }
 
 const DRAFT_DEBOUNCE_MS = 500;
+/** Referencia estable: un `[]` por defecto nuevo en cada render invalidaría los useMemo. */
+const NO_CONTEXT: BuilderMon[] = [];
 
 interface TeamItem { uid: string; mon: BuilderMon }
 
@@ -51,20 +60,21 @@ function withUid(mon: BuilderMon): TeamItem {
 
 /**
  * Teambuilder completo: hasta `maxSize` pokémon (izquierda), el set del seleccionado
- * (derecha, SetEditor), reglas de la temporada en vivo (ChecklistPanel) y paste
- * import/export (PasteIO). `onSave` decide qué hace el llamador con el pool final
+ * (derecha, SetEditor), reglas de la temporada en vivo (RulesBar), cobertura y la barra
+ * de acción (guardar, importar/copiar). `onSave` decide qué hace el llamador con el pool final
  * (registrar, agregar, reemplazar): TeamBuilder no conoce la API.
  */
-export function TeamBuilder({ dex, initial, context = [], season, banned, maxSize, onSave, saveLabel = "Guardar", draftKey, onDirtyChange }: Props) {
+export function TeamBuilder({ dex, initial, context = NO_CONTEXT, season, banned, maxSize, onSave, saveLabel = "Guardar", draftKey, onDirtyChange, inline }: Props) {
   // Cada pokémon lleva un uid estable para que React no mezcle tarjetas al quitar o reordenar.
   // El borrador solo se restaura en un registro nuevo (`initial` vacío).
   const [restored] = useState(() => (draftKey && initial.length === 0 ? loadDraft(draftKey) : null));
   const [restoredAt, setRestoredAt] = useState<string | null>(restored?.savedAt ?? null);
+  const [bandHidden, setBandHidden] = useState(false);
   const [items, setItems] = useState<TeamItem[]>(() => (restored ? restored.team : initial).map(withUid));
   const team = useMemo(() => items.map((it) => it.mon), [items]);
   // Último equipo (JSON) que ya está reflejado en el borrador: evita reescribirlo sin cambios.
   const draftedRef = useRef(JSON.stringify(restored ? restored.team : initial));
-  const dirty = JSON.stringify(team) !== JSON.stringify(initial);
+  const dirty = useMemo(() => JSON.stringify(team) !== JSON.stringify(initial), [team, initial]);
 
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
 
@@ -80,40 +90,66 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
   }, [team, draftKey]);
   const [selected, setSelected] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [checklistOpen, setChecklistOpen] = useState(false);
+  // Destino del buscador: agregar al final o cambiar la especie de un slot.
+  const [swapIndex, setSwapIndex] = useState<number | null>(null);
+  const [pickerFilters, setPickerFilters] = useState<SpeciesFilters | undefined>(undefined);
+  const { toast } = useToast();
+  const wide = useMediaQuery("(min-width: 768px)");
+  // En móvil el editor vive en una hoja que se abre al tocar un slot.
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const combined = [...context, ...team];
-  const { rows } = checkTeam(dex, combined, season, banned, false);
+  const combined = useMemo(() => [...context, ...team], [context, team]);
+  const rows = useMemo(() => checkTeam(dex, combined, season, banned, false).rows, [dex, combined, season, banned]);
   const coverage = useMemo(() => computeTypeCoverage(dex, team), [dex, team]);
-  const hints = buildHints(rows, season);
+  const hints = useMemo(() => buildHints(rows, season), [rows, season]);
 
-  const speciesIds = team.map((m) => speciesById(dex, m.species)?.id).filter((id): id is string => !!id);
+  const speciesIds = useMemo(
+    () => team.map((m) => speciesById(dex, m.species)?.id).filter((id): id is string => !!id),
+    [dex, team],
+  );
   const learnsets = useLearnsets(speciesIds);
   // Problemas de cada set; una especie desconocida cuenta como 1 (no se puede validar).
-  const setProblems = team.map((m) => {
+  const setProblems = useMemo(() => team.map((m) => {
     const id = speciesById(dex, m.species)?.id;
-    return { name: m.species, count: id ? checkSet(dex, learnsets.map[id] ?? null, m).length : 1 };
-  });
+    const problems = checkSetProblems(dex, id ? learnsets.map[id] ?? null : null, m);
+    return { name: m.species, count: id ? problems.length : 1, problems };
+  }), [dex, team, learnsets.map]);
+  const slots: Slot[] = useMemo(() => items.map(({ uid, mon: m }, i) => {
+    const sp = speciesById(dex, m.species);
+    return {
+      uid,
+      name: sp?.name ?? m.species,
+      types: sp?.types.join(" / "),
+      banned: !!sp && banned.has(sp.name.toLowerCase()),
+      status: slotStatus(m, setProblems[i].problems, learnsets.pending),
+      hasContent: !!(m.held_item || m.ability || m.moves.length),
+    };
+  }), [items, dex, banned, setProblems, learnsets.pending]);
   // Con learnsets pendientes o fallidos no se puede dar el equipo por válido.
   // Con contexto (agregar/reemplazar) el servidor no corre check_team: solo rechaza baneados
   // entre los pokémon NUEVOS y el desborde de tamaño. Las demás reglas son solo informativas.
-  const blockingRows = context.length === 0
-    ? rows
-    : [
-      ...rows.filter((r) => r.rule === "team_size"),
-      ...checkTeam(dex, team, season, banned, false).rows.filter((r) => r.rule === "banned"),
-    ];
-  const blockers = saveBlockers({
-    team, rows: blockingRows, setErrors: setProblems, learnsetsPending: learnsets.pending, learnsetsError: !!learnsets.error,
-  });
-  const teamOk = blockers.length === 0;
+  const blockers = useMemo(() => {
+    const blockingRows = context.length === 0
+      ? rows
+      : [
+        ...rows.filter((r) => r.rule === "team_size"),
+        ...checkTeam(dex, team, season, banned, false).rows.filter((r) => r.rule === "banned"),
+      ];
+    return saveBlockerItems({
+      team, rows: blockingRows, setErrors: setProblems, learnsetsPending: learnsets.pending, learnsetsError: !!learnsets.error,
+    });
+  }, [context, rows, dex, team, season, banned, setProblems, learnsets.pending, learnsets.error]);
 
   const selectedMon = team[selected] ?? null;
   const selectedSpecies = selectedMon ? speciesById(dex, selectedMon.species) : null;
   const { learnset: selectedLearnset } = useLearnset(selectedSpecies?.id ?? null);
-  const selectedErrors = selectedMon ? checkSet(dex, selectedLearnset, selectedMon) : [];
+  const selectedProblems = useMemo(
+    () => (selectedMon ? checkSetProblems(dex, selectedLearnset, selectedMon) : []),
+    [dex, selectedMon, selectedLearnset],
+  );
 
   function updateSelected(mon: BuilderMon) {
     setItems((cur) => cur.map((it, i) => (i === selected ? { ...it, mon } : it)));
@@ -125,6 +161,7 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
   }
 
   function importMons(mons: BuilderMon[], mode: ImportMode) {
+    setImportOpen(false);
     if (mode === "append") {
       setItems((cur) => [...cur, ...mons.map(withUid)]);
       return;
@@ -157,77 +194,117 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
     }
   }
 
-  const passedCount = rows.filter((r) => r.ok).length;
+  function openPicker(filters?: SpeciesFilters, swap: number | null = null) {
+    setPickerFilters(filters);
+    setSwapIndex(swap);
+    setPickerOpen(true);
+  }
+
+  function moveSlot(index: number, delta: -1 | 1) {
+    const target = index + delta;
+    setItems((cur) => {
+      if (target < 0 || target >= cur.length) return cur;
+      const next = [...cur];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+    setSelected((cur) => (cur === index ? target : cur === target ? index : cur));
+  }
+
+  async function copySet(index: number) {
+    const m = team[index];
+    const text = toPaste({
+      name: speciesById(dex, m.species)?.name ?? m.species,
+      held_item: m.held_item, ability: m.ability, nature: m.nature, tera_type: m.tera_type,
+      evs: m.evs, ivs: m.ivs, moves: m.moves,
+    });
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({ title: "Copiado", description: `${m.species} está en el portapapeles en formato Showdown.`, tone: "success" });
+    } catch {
+      toast({ title: "No se pudo copiar", tone: "error" });
+    }
+  }
+
+  async function copyTeam() {
+    const text = team
+      .map((m) => toPaste({
+        name: speciesById(dex, m.species)?.name ?? m.species,
+        held_item: m.held_item, ability: m.ability, nature: m.nature, tera_type: m.tera_type,
+        evs: m.evs, ivs: m.ivs, moves: m.moves,
+      }))
+      .join("\n\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({ title: "Copiado", description: "Tu equipo está en el portapapeles en formato Showdown.", tone: "success" });
+    } catch {
+      toast({ title: "No se pudo copiar", tone: "error" });
+    }
+  }
+
+  /** Lleva a la causa de un bloqueo: el slot (y su editor) o el buscador filtrado por la regla. */
+  function jumpTo(target: BlockerTarget) {
+    if (target.slot !== undefined) {
+      setSelected(target.slot);
+      if (!wide) setEditorOpen(true);
+    } else if (target.rule) {
+      const row = rows.find((r) => r.rule === target.rule);
+      const action = row && ruleStatus(row, season).action;
+      if (action) openPicker(action.filters);
+    }
+  }
+
+  const editor = selectedMon ? (
+    <SetEditor mon={selectedMon} dex={dex} onChange={updateSelected} problems={selectedProblems} />
+  ) : (
+    <p className="text-footnote text-muted-foreground">Agrega un pokémon para editar su set.</p>
+  );
 
   return (
-    <div className="flex flex-col gap-6 pb-24 sm:pb-0">
+    <div className="flex flex-col gap-6 pb-32 md:pb-0">
+      <div className={cn(inline ? "" : "sticky top-14 z-30 -mx-4 bg-background/90 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6", "md:py-2")}>
+        <RulesBar
+          rows={rows}
+          season={season}
+          empty={team.length === 0}
+          onAction={openPicker}
+          summary={coverageSummary(coverage)}
+          inline={inline}
+          sheetExtra={<div className="mt-4 md:hidden"><TypeCoveragePanel rows={coverage} empty={team.length === 0} /></div>}
+        />
+      </div>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <div className="flex flex-col gap-3">
-          {restoredAt && (
+          {restoredAt && !bandHidden && (
             <div role="status" className="flex items-center justify-between gap-2 rounded-xl bg-muted px-3 py-2 text-footnote">
               <span>Recuperamos tu borrador del {fmtDateShort(restoredAt)}</span>
-              <Button type="button" variant="secondary" size="xs" onClick={discardDraft}>Descartar</Button>
+              <span className="flex items-center gap-1">
+                <Button type="button" variant="secondary" size="xs" onClick={discardDraft}>Descartar</Button>
+                <Button type="button" variant="ghost" size="icon-xs" aria-label="Ocultar aviso" onClick={() => setBandHidden(true)}><X /></Button>
+              </span>
             </div>
           )}
-          <ul className="flex flex-col gap-2" aria-label="Pokémon del equipo">
-            {items.map(({ uid, mon: m }, i) => {
-              const sp = speciesById(dex, m.species);
-              return (
-                <MonCard
-                  key={uid}
-                  mon={{ name: sp?.name ?? m.species, types: sp?.types.join(" / "), held_item: m.held_item, ability: m.ability, moves: m.moves }}
-                  banned={!!sp && banned.has(sp.name.toLowerCase())}
-                  selected={i === selected}
-                  onSelect={() => setSelected(i)}
-                  badge={setProblems[i].count > 0 ? (
-                    <Badge variant="destructive">{setProblems[i].count} {setProblems[i].count === 1 ? "problema" : "problemas"}</Badge>
-                  ) : undefined}
-                  actions={
-                    <Button variant="ghost" size="xs" onClick={() => removeAt(i)}>
-                      <X /> Quitar
-                    </Button>
-                  }
-                />
-              );
-            })}
-          </ul>
+          <SlotBoard
+            slots={slots}
+            maxSize={maxSize}
+            selected={selected}
+            onSelect={setSelected}
+            onOpen={() => { if (!wide) setEditorOpen(true); }}
+            onAdd={() => openPicker()}
+            onRemove={removeAt}
+            onSwap={(i) => openPicker(undefined, i)}
+            onCopy={(i) => void copySet(i)}
+            onMove={moveSlot}
+          />
 
-          {team.length < maxSize && (
-            <Button variant="secondary" onClick={() => setPickerOpen(true)}>
-              <Plus /> Agregar pokémon
-            </Button>
-          )}
-
-          <PasteIO dex={dex} team={team} maxSize={maxSize} onImport={importMons} />
-        </div>
-
-        <div className="rounded-2xl bg-card p-5 shadow-sm ring-1 ring-border">
-          {selectedMon ? (
-            <SetEditor mon={selectedMon} dex={dex} onChange={updateSelected} errors={selectedErrors} />
-          ) : (
-            <p className="text-footnote text-muted-foreground">Agrega un pokémon para editar su set.</p>
-          )}
-        </div>
-      </div>
-
-      {/* Escritorio: reglas y cobertura siempre visibles. */}
-      <div className="hidden flex-col gap-4 sm:flex">
-        <ChecklistPanel rows={rows} empty={team.length === 0} />
-        <TypeCoveragePanel rows={coverage} empty={team.length === 0} />
-      </div>
-
-      {/* Móvil: barra inferior plegable. */}
-      <div className="fixed inset-x-0 bottom-0 z-10 border-t border-border bg-card pb-safe sm:hidden">
-        <Collapsible open={checklistOpen} onOpenChange={setChecklistOpen}>
-          <CollapsibleTrigger className="flex w-full items-center justify-between px-4 py-3 text-subhead">
-            <span>{passedCount} de {rows.length} reglas cumplidas</span>
-            <ChevronUp className={cn("transition-transform", checklistOpen && "rotate-180")} />
-          </CollapsibleTrigger>
-          <CollapsibleContent className="flex max-h-[50vh] flex-col gap-4 overflow-y-auto px-4 pb-4">
-            <ChecklistPanel rows={rows} empty={team.length === 0} />
+          {/* Escritorio: la cobertura queda bajo los slots; en móvil va dentro de la hoja de reglas. */}
+          <div className="hidden md:block">
             <TypeCoveragePanel rows={coverage} empty={team.length === 0} />
-          </CollapsibleContent>
-        </Collapsible>
+          </div>
+
+        </div>
+
+        {wide && <div className="rounded-2xl bg-card p-5 shadow-sm ring-1 ring-border">{editor}</div>}
       </div>
 
       {learnsets.error && (
@@ -238,15 +315,32 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
           </Button>
         </div>
       )}
-      {error && <p role="alert" className="text-subhead text-destructive">{error}</p>}
-      <Button size="lg" disabled={!teamOk || busy} onClick={() => void save()}>
-        {busy ? <><Loader2 className="animate-spin" /> Guardando…</> : saveLabel}
-      </Button>
-      {!teamOk && (
-        <ul data-testid="save-blockers" aria-label="Motivos por los que no se puede guardar" className="flex flex-col gap-1 text-footnote text-muted-foreground">
-          {blockers.slice(0, 3).map((b) => <li key={b}>{b}</li>)}
-          {blockers.length > 3 && <li>y {blockers.length - 3} más</li>}
-        </ul>
+      <ActionBar
+        blockers={blockers}
+        busy={busy}
+        saveLabel={saveLabel}
+        onSave={() => void save()}
+        onJump={jumpTo}
+        onImport={() => setImportOpen(true)}
+        onCopy={() => void copyTeam()}
+        copyDisabled={team.length === 0}
+        error={error}
+        inline={inline}
+      />
+
+      <ResponsiveSheet open={importOpen} onOpenChange={setImportOpen} title="Importar equipo" description="Pega un equipo en formato Showdown.">
+        <PasteIO dex={dex} team={team} maxSize={maxSize} onImport={importMons} />
+      </ResponsiveSheet>
+
+      {!wide && (
+        <ResponsiveSheet
+          open={editorOpen && !!selectedMon}
+          onOpenChange={setEditorOpen}
+          title={selectedMon ? speciesById(dex, selectedMon.species)?.name ?? selectedMon.species : "Set"}
+          description="Edita el set de este pokémon."
+        >
+          {editor}
+        </ResponsiveSheet>
       )}
 
       <SpeciesPicker
@@ -256,9 +350,19 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
         team={combined}
         banned={banned}
         hints={hints}
+        initialFilters={pickerFilters}
+        keepOpen={swapIndex === null}
+        progress={{ count: team.length, max: maxSize }}
         onPick={(sp) => {
-          setItems((cur) => [...cur, withUid({ species: sp.name, held_item: null, ability: null, nature: null, tera_type: null, moves: [], evs: {}, ivs: {} })]);
-          setSelected(team.length);
+          const fresh: BuilderMon = { species: sp.name, held_item: null, ability: null, nature: null, tera_type: null, moves: [], evs: {}, ivs: {} };
+          if (swapIndex !== null) {
+            setItems((cur) => cur.map((it, i) => (i === swapIndex ? { ...it, mon: fresh } : it)));
+            setSelected(swapIndex);
+          } else {
+            setItems((cur) => [...cur, withUid(fresh)]);
+            setSelected(team.length);
+            return; // "agregar y seguir": el buscador se cierra solo al llenar el equipo
+          }
           setPickerOpen(false);
         }}
       />

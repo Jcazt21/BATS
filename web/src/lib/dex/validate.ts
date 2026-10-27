@@ -9,6 +9,7 @@
  */
 import type { ChecklistRow, SeasonRestrictions } from "@/lib/api";
 import type { DexEssentials, Species } from "./snapshot";
+import { isPokemonType } from "@/lib/pokemon-types";
 import { speciesById, toId } from "./snapshot";
 
 export interface BuilderMon {
@@ -254,39 +255,53 @@ function speciesAbilities(sp: Species): Set<string> {
   return new Set(sp.abilities.map(toId));
 }
 
+export type SetField = "species" | "item" | "ability" | "nature" | "tera" | "moves" | "evs" | "ivs";
+
+/** Problema de un set con el campo al que pertenece, para pintarlo junto a su control. */
+export interface SetProblem {
+  field: SetField;
+  code: string;
+  message: string;
+}
+
 /**
- * Errores de un set individual: movimiento ilegal o repetido, EVs/IVs fuera de rango,
- * habilidad que la especie no tiene, más de 4 movimientos, objeto inexistente.
+ * Problemas de un set individual: movimiento ilegal o repetido, EVs/IVs fuera de rango,
+ * habilidad que la especie no tiene, más de 4 movimientos, objeto o Tera inexistente.
  * `learnset` son los ids de movimiento legales de la especie (lib/dex/learnsets.ts);
  * `null` = aún no cargado: se omite solo la comprobación "no aprende", para no dar
  * errores falsos mientras llega.
  */
-export function checkSet(dex: DexEssentials, learnset: string[] | null, mon: BuilderMon): string[] {
-  const errors: string[] = [];
+export function checkSetProblems(dex: DexEssentials, learnset: string[] | null, mon: BuilderMon): SetProblem[] {
+  const problems: SetProblem[] = [];
+  const add = (field: SetField, code: string, message: string) => problems.push({ field, code, message });
   const sp = speciesById(dex, mon.species);
-  if (!sp) return [`"${mon.species}" no existe en el dex.`];
+  if (!sp) return [{ field: "species", code: "unknown_species", message: `"${mon.species}" no existe en el dex.` }];
 
   const legalMoves = learnset ? new Set(learnset.map(toId)) : null;
   const moveIds = mon.moves.map(toId).filter(Boolean);
   if (legalMoves) {
     for (const [i, id] of moveIds.entries()) {
       const original = mon.moves[i];
-      if (!legalMoves.has(id)) errors.push(`${sp.name} no aprende ${original}.`);
+      if (!legalMoves.has(id)) add("moves", `illegal_move:${id}`, `${sp.name} no aprende ${original}.`);
     }
   }
   const seen = new Set<string>();
   for (const id of moveIds) {
-    if (seen.has(id)) errors.push(`Movimiento repetido: ${id}.`);
+    if (seen.has(id)) add("moves", `duplicate_move:${id}`, `Movimiento repetido: ${id}.`);
     seen.add(id);
   }
-  if (mon.moves.length > 4) errors.push("Un set no puede tener más de 4 movimientos.");
+  if (mon.moves.length > 4) add("moves", "too_many_moves", "Un set no puede tener más de 4 movimientos.");
 
   if (mon.ability && !speciesAbilities(sp).has(toId(mon.ability))) {
-    errors.push(`${sp.name} no puede tener la habilidad ${mon.ability}.`);
+    add("ability", `bad_ability:${toId(mon.ability)}`, `${sp.name} no puede tener la habilidad ${mon.ability}.`);
   }
 
   if (mon.held_item && !dex.items[toId(mon.held_item)]) {
-    errors.push(`"${mon.held_item}" no es un objeto válido.`);
+    add("item", `bad_item:${toId(mon.held_item)}`, `"${mon.held_item}" no es un objeto válido.`);
+  }
+
+  if (mon.tera_type && !isPokemonType(mon.tera_type.toLowerCase())) {
+    add("tera", `bad_tera:${toId(mon.tera_type)}`, `"${mon.tera_type}" no es un tipo Tera válido.`);
   }
 
   const evs = normalizeSpread(mon.evs);
@@ -295,15 +310,22 @@ export function checkSet(dex: DexEssentials, learnset: string[] | null, mon: Bui
   let evTotal = 0;
   for (const stat of STATS) {
     const ev = evs[stat] ?? 0;
-    if (ev < 0 || ev > MAX_EV_PER_STAT) errors.push(`Los EVs de ${STAT_LABELS[stat]} deben estar entre 0 y ${MAX_EV_PER_STAT}.`);
+    if (ev < 0 || ev > MAX_EV_PER_STAT) {
+      add("evs", `ev_range:${stat}`, `Los EVs de ${STAT_LABELS[stat]} deben estar entre 0 y ${MAX_EV_PER_STAT}.`);
+    }
     evTotal += Math.max(0, Math.min(ev, MAX_EV_PER_STAT));
   }
-  if (evTotal > MAX_EVS_TOTAL) errors.push(`El total de EVs no puede pasar de ${MAX_EVS_TOTAL} (tiene ${evTotal}).`);
+  if (evTotal > MAX_EVS_TOTAL) add("evs", "ev_total", `El total de EVs no puede pasar de ${MAX_EVS_TOTAL} (tiene ${evTotal}).`);
 
   for (const stat of STATS) {
     const iv = ivs[stat];
-    if (iv != null && (iv < 0 || iv > 31)) errors.push(`Los IVs de ${STAT_LABELS[stat]} deben estar entre 0 y 31.`);
+    if (iv != null && (iv < 0 || iv > 31)) add("ivs", `iv_range:${stat}`, `Los IVs de ${STAT_LABELS[stat]} deben estar entre 0 y 31.`);
   }
 
-  return errors;
+  return problems;
+}
+
+/** Igual que checkSetProblems, solo los mensajes. */
+export function checkSet(dex: DexEssentials, learnset: string[] | null, mon: BuilderMon): string[] {
+  return checkSetProblems(dex, learnset, mon).map((p) => p.message);
 }

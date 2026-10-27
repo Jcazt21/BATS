@@ -1,16 +1,16 @@
 /* BranchedMenu — React Bits (https://reactbits.dev/micro/branched-menu), variante TS-CSS */
 .branched-menu {
   --bm-w: 240px;
-  --bm-ink: #f5f5f5;
-  --bm-accent: #f5f5f5;
-  --bm-line: #3f3f46;
+  --bm-ink: var(--foreground);
+  --bm-accent: var(--foreground);
+  --bm-line: var(--border);
   --bm-font: 14px;
   --bm-row: 36px;
   --bm-indent: 40px;
   --bm-line-w: 1.5;
   --bm-draw: 400ms;
   --bm-fold: 300ms;
-  --bm-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --bm-ease-out: var(--ease-out);
   --bm-muted: color-mix(in srgb, var(--bm-ink) 55%, transparent);
 
   position: relative;

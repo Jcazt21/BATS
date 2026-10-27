@@ -14,10 +14,10 @@ export function LoginPage() {
   return (
     <main className="min-h-svh flex flex-col items-center justify-center px-4 bg-background">
       <header className="mb-10 text-center">
-        <p className="text-xs font-medium tracking-widest text-muted-foreground uppercase mb-1">
+        <p className="text-caption font-medium tracking-widest text-muted-foreground uppercase mb-1">
           BATS
         </p>
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+        <h1 className="text-title1 font-semibold tracking-tight text-foreground">
           Panel de administración
         </h1>
       </header>

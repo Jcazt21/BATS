@@ -17,13 +17,13 @@ const components: Components = {
   h2: (p) => <h3 {...dom(p)} className="mt-8 text-title3 text-foreground first:mt-0" />,
   h3: (p) => <h4 {...dom(p)} className="mt-6 text-headline text-foreground first:mt-0" />,
   h4: (p) => <h5 {...dom(p)} className="mt-6 text-subhead font-semibold text-foreground first:mt-0" />,
-  p: (p) => <p {...dom(p)} className="mt-4 text-body text-foreground/90 first:mt-0" />,
+  p: (p) => <p {...dom(p)} lang="es" className="mt-5 text-body text-pretty hyphens-auto text-foreground/90 first:mt-0" />,
   a: ({ href = "", children, ...p }) =>
     isInternal(href)
       ? <Link to={href} className="font-medium text-primary underline-offset-4 hover:underline">{children}</Link>
       : <a {...dom(p)} href={href} target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline-offset-4 hover:underline">{children}</a>,
-  ul: (p) => <ul {...dom(p)} className="mt-4 list-disc space-y-1.5 pl-6 text-body marker:text-muted-foreground" />,
-  ol: (p) => <ol {...dom(p)} className="mt-4 list-decimal space-y-1.5 pl-6 text-body marker:text-muted-foreground" />,
+  ul: (p) => <ul {...dom(p)} className="mt-5 list-disc space-y-2 pl-6 text-body marker:text-muted-foreground" />,
+  ol: (p) => <ol {...dom(p)} className="mt-5 list-decimal space-y-2 pl-6 text-body marker:text-muted-foreground" />,
   blockquote: (p) => <blockquote {...dom(p)} className="mt-4 border-l-2 border-primary/40 pl-4 text-muted-foreground" />,
   hr: (p) => <hr {...dom(p)} className="my-8 border-separator" />,
   img: ({ alt = "", ...p }) => <img {...dom(p)} alt={alt} loading="lazy" decoding="async" className="mt-4 max-w-full rounded-2xl" />,
@@ -44,7 +44,7 @@ const components: Components = {
  */
 export function Markdown({ children, className }: { children: string; className?: string }) {
   return (
-    <div className={cn("min-w-0 break-words", className)}>
+    <div className={cn("min-w-0 max-w-prose break-words", className)}>
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components} skipHtml>
         {children}
       </ReactMarkdown>

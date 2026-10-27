@@ -8,10 +8,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { PokemonSprite } from "@/components/app/PokemonSprite";
 import { TypeBadges } from "@/components/app/TypeBadge";
-import { EmptyState } from "@/components/app/States";
+import { Reveal } from "@/components/app/Reveal";
+import { EmptyState, LoadingState } from "@/components/app/States";
 import { SignInCard } from "@/components/SignInCard";
 import { errorMessage } from "@/lib/http";
-import { useEligibility, useSubmitBan } from "@/lib/queries";
+import { useBanRanking, useEligibility, useSubmitBan } from "@/lib/queries";
 import { useSession } from "@/lib/session";
 import { getPokemonDetail, loadAllPokemon, searchPokemon, type PokeResult } from "@/lib/pokeapi";
 import { useToast } from "@/lib/toast";
@@ -19,11 +20,17 @@ import { useToast } from "@/lib/toast";
 const sprite = (id: number) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
 const titleCase = (s: string) => s.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join("-");
 
+/** Esqueleto del flujo mientras se resuelve la sesión o la elegibilidad. */
+function Cargando() {
+  return <div className="overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border"><LoadingState rows={2} /></div>;
+}
+
 /** Tu voto (anónimo): iniciar sesión → comprobar que puedes votar → elegir → confirmar. */
 export function VoteFlow() {
   const { session, loading } = useSession();
   const elig = useEligibility();
   const submit = useSubmitBan();
+  const ranking = useBanRanking();
   const { toast } = useToast();
   const [q, setQ] = useState("");
   const [picked, setPicked] = useState<PokeResult | null>(null);
@@ -35,21 +42,26 @@ export function VoteFlow() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const results = useMemo(() => searchPokemon(q, 12), [q, catalog]);
 
-  if (loading) return null;
+  // Sugerencias: los más votados de la temporada más reciente (solo con id nacional, para poder pedir su ficha).
+  const entries = (ranking.data ?? []).filter((r) => r.national_dex != null);
+  const latest = Math.max(0, ...entries.map((r) => r.season_id));
+  const suggestions = entries.filter((r) => r.season_id === latest).slice(0, 6);
+
+  if (loading) return <Cargando />;
   if (!session) return <div className="flex justify-center"><SignInCard title="Vota en la fase de bans" description="Tu voto es anónimo: el servidor solo guarda que ya votaste, no por quién." /></div>;
 
   if (done) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-2xl bg-card p-8 text-center shadow-sm ring-1 ring-border">
+      <Reveal role="status" className="flex flex-col items-center gap-3 rounded-2xl bg-card p-8 text-center shadow-sm ring-1 ring-border">
         <CheckCircle2 className="size-10 text-success" strokeWidth={1.5} />
         <PokemonSprite species={done.displayName} src={done.sprite} size={96} />
         <h3 className="text-title3">Voto registrado</h3>
         <p className="text-subhead text-muted-foreground">Votaste por banear a {done.displayName}. Solo se permite un voto por jugador.</p>
-      </div>
+      </Reveal>
     );
   }
 
-  if (elig.isPending) return <p className="text-subhead text-muted-foreground" aria-busy>Verificando tu cuenta…</p>;
+  if (elig.isPending) return <Cargando />;
   if (elig.isError) return <EmptyState title="No pudimos verificar tu cuenta" description={errorMessage(elig.error)} action={<Button variant="secondary" onClick={() => elig.refetch()}>Reintentar</Button>} />;
   if (!elig.data.can_vote) {
     return (
@@ -85,6 +97,23 @@ export function VoteFlow() {
         <Search aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Busca el pokémon que quieres banear" aria-label="Buscar pokémon" className="rounded-full pl-10" autoComplete="off" />
       </div>
+      {!q.trim() && suggestions.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="px-1 text-footnote text-muted-foreground">Más votados</p>
+          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3" aria-label="Más votados">
+            {suggestions.map((r) => (
+              <li key={r.pokemon_name}>
+                <button type="button" disabled={loadingPick} onClick={() => void pick({ id: r.national_dex! })}
+                  className="press flex min-h-12 w-full items-center gap-2 rounded-2xl bg-card p-2.5 text-left shadow-sm ring-1 ring-border outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60">
+                  <PokemonSprite species={r.pokemon_name} src={r.sprite_url} size={40} />
+                  <span className="min-w-0 flex-1 truncate text-subhead font-medium">{r.pokemon_name}</span>
+                  <span className="tabular text-caption text-muted-foreground">{r.total_votes}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       {q.trim() && (
         results.length === 0 ? <p className="px-1 text-subhead text-muted-foreground">Sin resultados para “{q}”.</p> : (
           <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3" aria-label="Resultados">

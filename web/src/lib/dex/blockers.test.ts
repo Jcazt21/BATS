@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { saveBlockers } from "./blockers";
+import { saveBlockerItems, saveBlockers } from "./blockers";
 import type { ChecklistRow } from "@/lib/api";
 import type { BuilderMon } from "./validate";
 
@@ -41,5 +41,18 @@ describe("saveBlockers", () => {
   it("reglas que cumplen no aparecen", () => {
     const rows: ChecklistRow[] = [{ rule: "item_clause", label: "Sin objetos repetidos", ok: true, names: [] }];
     expect(saveBlockers({ ...base, rows })).toEqual([]);
+  });
+});
+
+describe("saveBlockerItems", () => {
+  it("un set con problemas apunta a su slot (por posición en el equipo)", () => {
+    const out = saveBlockerItems({ ...base, setErrors: [{ name: "Ok", count: 0 }, { name: "Garchomp", count: 2 }] });
+    expect(out).toEqual([{ message: "Garchomp: 2 problemas en el set", target: { slot: 1 } }]);
+  });
+
+  it("una regla incumplida apunta a la regla; los motivos globales no llevan destino", () => {
+    const rows: ChecklistRow[] = [{ rule: "required_color", label: "Color Red", ok: false, names: [] }];
+    expect(saveBlockerItems({ ...base, rows })).toEqual([{ message: "Color Red", target: { rule: "required_color" } }]);
+    expect(saveBlockerItems({ ...base, team: [] })).toEqual([{ message: "El equipo está vacío" }]);
   });
 });

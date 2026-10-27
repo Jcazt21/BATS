@@ -1,5 +1,5 @@
 /* =============================================================================
-   BATS — Design tokens (Apple HIG)
+   BATS — Design tokens (Apple HIG, paleta cálida "tipo del mes")
    -----------------------------------------------------------------------------
    Una sola fuente de verdad para color, tipografía, radios, materiales y motion.
    Claro y oscuro son temas REALES: `.dark` en <html> (lo pone ThemeProvider según
@@ -13,68 +13,62 @@
   color-scheme: light;
 
   /* Superficies: fondo agrupado gris, tarjetas blancas (como Ajustes en iOS) */
-  --background:           oklch(0.968 0.003 264);
-  --foreground:           oklch(0.2 0.01 264);
-  --card:                 oklch(1 0 0);
-  --card-foreground:      oklch(0.2 0.01 264);
-  --popover:              oklch(1 0 0);
-  --popover-foreground:   oklch(0.2 0.01 264);
+  --background:           oklch(0.962 0.012 85);
+  --foreground:           oklch(0.22 0.03 45);
+  --card:                 oklch(0.985 0.007 85);
+  --card-foreground:      oklch(0.22 0.03 45);
+  --popover:              oklch(0.985 0.007 85);
+  --popover-foreground:   oklch(0.22 0.03 45);
 
-  /* Acento (systemBlue). El texto blanco sobre él cumple AA. */
-  --primary:              oklch(0.55 0.2 258);
-  --primary-foreground:   oklch(1 0 0);
 
-  --secondary:            oklch(0.94 0.004 264);
-  --secondary-foreground: oklch(0.25 0.01 264);
-  --muted:                oklch(0.95 0.004 264);
-  --muted-foreground:     oklch(0.48 0.012 264);
-  --accent:               oklch(0.93 0.005 264);
-  --accent-foreground:    oklch(0.2 0.01 264);
+  --secondary:            oklch(0.935 0.014 82);
+  --secondary-foreground: oklch(0.27 0.03 45);
+  --muted:                oklch(0.945 0.013 83);
+  --muted-foreground:     oklch(0.46 0.02 60);
+  --accent:               oklch(0.92 0.018 80);
+  --accent-foreground:    oklch(0.22 0.03 45);
 
   /* Estados */
-  --success:              oklch(0.5 0.14 150);
-  --success-soft:         oklch(0.94 0.05 150);
-  --warning:              oklch(0.52 0.13 65);
-  --warning-soft:         oklch(0.95 0.06 85);
-  --destructive:          oklch(0.53 0.21 27);
-  --destructive-soft:     oklch(0.95 0.03 25);
-  --info:                 oklch(0.55 0.2 258);
-  --info-soft:            oklch(0.955 0.02 258);
+  --success:              oklch(0.5 0.14 145);
+  --success-soft:         oklch(0.94 0.05 145);
+  --warning:              oklch(0.5 0.12 80);
+  --warning-soft:         oklch(0.94 0.06 85);
+  --destructive:          oklch(0.52 0.2 28);
+  --destructive-soft:     oklch(0.945 0.03 28);
+  --info:                 oklch(0.5 0.08 235);
+  --info-soft:            oklch(0.945 0.02 235);
 
   /* Líneas y foco */
-  --border:               oklch(0.2 0.01 264 / 0.1);
-  --input:                oklch(0.2 0.01 264 / 0.16);
-  --separator:            oklch(0.2 0.01 264 / 0.08);
-  --ring:                 oklch(0.55 0.2 258 / 0.55);
+  --border:               oklch(0.22 0.03 45 / 0.12);
+  --input:                oklch(0.22 0.03 45 / 0.18);
+  --separator:            oklch(0.22 0.03 45 / 0.09);
 
-  /* Series de gráficos: categóricas, distinguibles y legibles sobre `card` */
-  --chart-1: oklch(0.55 0.2 258);
-  --chart-2: oklch(0.6 0.13 190);
-  --chart-3: oklch(0.65 0.17 55);
-  --chart-4: oklch(0.58 0.2 340);
-  --chart-5: oklch(0.55 0.18 295);
-  --chart-6: oklch(0.6 0.15 145);
+  /* Series de gráficos. chart-1 sigue al acento del mes; 2–6 son fijas (oro, brasa, glaciar,
+     uva, verde LCD). El tinte `/15` del avatar exige ≥ 4.5:1 → L ≈ .5 en claro, ≈ .78 en oscuro. */
+  --chart-1: var(--primary);
+  --chart-2: oklch(0.5 0.11 82);
+  --chart-3: oklch(0.5 0.15 45);
+  --chart-4: oklch(0.5 0.09 225);
+  --chart-5: oklch(0.46 0.15 305);
+  --chart-6: oklch(0.47 0.13 148);
 
   /* Barra lateral (admin) */
-  --sidebar:                    oklch(0.985 0.002 264);
-  --sidebar-foreground:         oklch(0.2 0.01 264);
-  --sidebar-primary:            oklch(0.55 0.2 258);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent:             oklch(0.93 0.005 264);
-  --sidebar-accent-foreground:  oklch(0.2 0.01 264);
-  --sidebar-border:             oklch(0.2 0.01 264 / 0.1);
-  --sidebar-ring:               oklch(0.55 0.2 258 / 0.55);
+  --sidebar:                    oklch(0.975 0.009 85);
+  --sidebar-foreground:         oklch(0.22 0.03 45);
+  --sidebar-accent:             oklch(0.92 0.018 80);
+  --sidebar-accent-foreground:  oklch(0.22 0.03 45);
+  --sidebar-border:             oklch(0.22 0.03 45 / 0.12);
 
   /* Materiales translúcidos (ver .material-* más abajo) */
-  --material-thin:    oklch(0.985 0.002 264 / 0.55);
-  --material-regular: oklch(0.985 0.002 264 / 0.72);
-  --material-thick:   oklch(0.985 0.002 264 / 0.86);
+  --material-thin:    oklch(0.985 0.007 85 / 0.55);
+  --material-regular: oklch(0.985 0.007 85 / 0.72);
+  --material-thick:   oklch(0.985 0.007 85 / 0.86);
   --material-edge:    oklch(1 0 0 / 0.6);          /* borde superior: luz sobre el material */
 
   /* Sombras: más profundas cuanto más grande es la superficie */
-  --shadow-sm: 0 1px 2px oklch(0.2 0.01 264 / 0.06), 0 0 0 0.5px oklch(0.2 0.01 264 / 0.04);
-  --shadow-md: 0 4px 12px oklch(0.2 0.01 264 / 0.08), 0 1px 3px oklch(0.2 0.01 264 / 0.06);
-  --shadow-lg: 0 16px 40px oklch(0.2 0.01 264 / 0.14), 0 2px 6px oklch(0.2 0.01 264 / 0.06);
+  --shadow-sm: 0 1px 2px oklch(0.22 0.03 45 / 0.07), 0 0 0 0.5px oklch(0.22 0.03 45 / 0.05);
+  --shadow-md: 0 4px 12px oklch(0.22 0.03 45 / 0.09), 0 1px 3px oklch(0.22 0.03 45 / 0.07);
+  --shadow-lg: 0 16px 40px oklch(0.22 0.03 45 / 0.15), 0 2px 6px oklch(0.22 0.03 45 / 0.07);
 
   /* Radios (esquinas generosas, como iOS) */
   --radius: 0.875rem;
@@ -84,56 +78,49 @@
 .dark {
   color-scheme: dark;
 
-  --background:           oklch(0.13 0.004 264);
-  --foreground:           oklch(0.97 0.003 264);
-  --card:                 oklch(0.185 0.005 264);
-  --card-foreground:      oklch(0.97 0.003 264);
-  --popover:              oklch(0.22 0.006 264);
-  --popover-foreground:   oklch(0.97 0.003 264);
+  --background:           oklch(0.14 0.004 70);
+  --foreground:           oklch(0.95 0.006 85);
+  --card:                 oklch(0.18 0.005 70);
+  --card-foreground:      oklch(0.95 0.006 85);
+  --popover:              oklch(0.21 0.006 70);
+  --popover-foreground:   oklch(0.95 0.006 85);
 
-  --primary:              oklch(0.7 0.16 255);
-  --primary-foreground:   oklch(0.14 0.02 264);
+  --secondary:            oklch(0.24 0.006 70);
+  --secondary-foreground: oklch(0.95 0.006 85);
+  --muted:                oklch(0.23 0.006 70);
+  --muted-foreground:     oklch(0.72 0.01 80);
+  --accent:               oklch(0.28 0.008 70);
+  --accent-foreground:    oklch(0.95 0.006 85);
 
-  --secondary:            oklch(0.25 0.006 264);
-  --secondary-foreground: oklch(0.97 0.003 264);
-  --muted:                oklch(0.24 0.006 264);
-  --muted-foreground:     oklch(0.7 0.01 264);
-  --accent:               oklch(0.29 0.007 264);
-  --accent-foreground:    oklch(0.97 0.003 264);
-
-  --success:              oklch(0.75 0.17 150);
-  --success-soft:         oklch(0.27 0.06 150);
-  --warning:              oklch(0.8 0.15 80);
-  --warning-soft:         oklch(0.29 0.06 80);
-  --destructive:          oklch(0.7 0.19 25);
-  --destructive-soft:     oklch(0.28 0.07 25);
-  --info:                 oklch(0.7 0.16 255);
-  --info-soft:            oklch(0.27 0.06 255);
+  --success:              oklch(0.78 0.16 145);
+  --success-soft:         oklch(0.27 0.06 145);
+  --warning:              oklch(0.82 0.13 85);
+  --warning-soft:         oklch(0.29 0.06 85);
+  --destructive:          oklch(0.72 0.17 28);
+  --destructive-soft:     oklch(0.28 0.07 28);
+  --info:                 oklch(0.74 0.08 235);
+  --info-soft:            oklch(0.27 0.04 235);
 
   --border:               oklch(1 0 0 / 0.1);
   --input:                oklch(1 0 0 / 0.16);
   --separator:            oklch(1 0 0 / 0.08);
-  --ring:                 oklch(0.7 0.16 255 / 0.6);
 
-  --chart-1: oklch(0.7 0.16 255);
-  --chart-2: oklch(0.75 0.12 190);
-  --chart-3: oklch(0.78 0.15 60);
-  --chart-4: oklch(0.72 0.18 340);
-  --chart-5: oklch(0.72 0.16 295);
-  --chart-6: oklch(0.75 0.16 150);
+  --chart-1: var(--primary);
+  --chart-2: oklch(0.82 0.13 85);
+  --chart-3: oklch(0.76 0.15 50);
+  --chart-4: oklch(0.78 0.09 225);
+  --chart-5: oklch(0.76 0.14 305);
+  --chart-6: oklch(0.78 0.16 148);
 
-  --sidebar:                    oklch(0.155 0.004 264);
-  --sidebar-foreground:         oklch(0.97 0.003 264);
-  --sidebar-primary:            oklch(0.7 0.16 255);
-  --sidebar-primary-foreground: oklch(0.14 0.02 264);
-  --sidebar-accent:             oklch(0.25 0.006 264);
-  --sidebar-accent-foreground:  oklch(0.97 0.003 264);
+  --sidebar:                    oklch(0.16 0.004 70);
+  --sidebar-foreground:         oklch(0.95 0.006 85);
+  --sidebar-accent:             oklch(0.24 0.006 70);
+  --sidebar-accent-foreground:  oklch(0.95 0.006 85);
   --sidebar-border:             oklch(1 0 0 / 0.1);
-  --sidebar-ring:               oklch(0.7 0.16 255 / 0.6);
 
-  --material-thin:    oklch(0.185 0.005 264 / 0.5);
-  --material-regular: oklch(0.185 0.005 264 / 0.68);
-  --material-thick:   oklch(0.185 0.005 264 / 0.84);
+  --material-thin:    oklch(0.18 0.005 70 / 0.5);
+  --material-regular: oklch(0.18 0.005 70 / 0.68);
+  --material-thick:   oklch(0.18 0.005 70 / 0.84);
   --material-edge:    oklch(1 0 0 / 0.1);
 
   --shadow-sm: 0 1px 2px oklch(0 0 0 / 0.4);
@@ -165,14 +152,67 @@
   --type-fairy:    oklch(0.8 0.11 350);   --type-fairy-fg:    oklch(0.2 0.01 264);
 }
 
+/* ─── Acento del mes ────────────────────────────────────────────────────────────
+   `MonthTheme` pone `data-month-type="<tipo>"` en <html> según el `type_of_month` de la
+   temporada activa. Sin atributo manda la laca de Pokédex (marca de BATS).
+   Cada tipo da matiz (h), croma (c) y luminosidad por tema; el texto sobre el acento es
+   blanco o tinta. L/C NO son los del --type-*: se ajustan para que el acento cumpla
+   ≥ 4.5:1 con su texto y ≥ 3:1 contra fondo y tarjeta (el foco y los botones se ven).
+   Por eso electric/ground/fairy... son más oscuros aquí que en su etiqueta de tipo.
+   `tokens.test.ts` lo verifica para los 18 tipos × 2 temas. */
+:root {
+  --month-ink: oklch(0.16 0.004 70);
+  --month-h: 27; --month-c: 0.18; --month-l-light: 0.5; --month-l-dark: 0.72;
+  --month-fg-light: oklch(1 0 0);
+  --month-fg-dark: var(--month-ink);
+  --month-l: var(--month-l-light);
+  --month-fg: var(--month-fg-light);
+
+  --primary:                    oklch(var(--month-l) var(--month-c) var(--month-h));
+  --primary-foreground:         var(--month-fg);
+  --ring:                       var(--primary);
+  --sidebar-primary:            var(--primary);
+  --sidebar-primary-foreground: var(--month-fg);
+  --sidebar-ring:               var(--primary);
+}
+.dark {
+  --month-l: var(--month-l-dark);
+  --month-fg: var(--month-fg-dark);
+}
+[data-month-type="normal"] { --month-h: 80; --month-c: 0.03; --month-l-light: 0.56; --month-l-dark: 0.7; }
+[data-month-type="fire"] { --month-h: 40; --month-c: 0.18; --month-l-light: 0.58; --month-l-dark: 0.7; }
+[data-month-type="water"] { --month-h: 250; --month-c: 0.17; --month-l-light: 0.56; --month-l-dark: 0.7; }
+[data-month-type="electric"] { --month-h: 95; --month-c: 0.17; --month-l-light: 0.56; --month-l-dark: 0.8; }
+[data-month-type="grass"] { --month-h: 145; --month-c: 0.17; --month-l-light: 0.54; --month-l-dark: 0.7; }
+[data-month-type="ice"] { --month-h: 210; --month-c: 0.08; --month-l-light: 0.55; --month-l-dark: 0.8; }
+[data-month-type="fighting"] { --month-h: 25; --month-c: 0.18; --month-l-light: 0.5; --month-l-dark: 0.7; }
+[data-month-type="poison"] { --month-h: 320; --month-c: 0.18; --month-l-light: 0.52; --month-l-dark: 0.7; }
+[data-month-type="ground"] { --month-h: 80; --month-c: 0.11; --month-l-light: 0.62; --month-l-dark: 0.7; --month-fg-light: var(--month-ink); }
+[data-month-type="flying"] { --month-h: 265; --month-c: 0.1; --month-l-light: 0.56; --month-l-dark: 0.72; }
+[data-month-type="psychic"] { --month-h: 355; --month-c: 0.18; --month-l-light: 0.58; --month-l-dark: 0.7; }
+[data-month-type="bug"] { --month-h: 125; --month-c: 0.16; --month-l-light: 0.55; --month-l-dark: 0.7; }
+[data-month-type="rock"] { --month-h: 90; --month-c: 0.07; --month-l-light: 0.56; --month-l-dark: 0.7; }
+[data-month-type="ghost"] { --month-h: 300; --month-c: 0.12; --month-l-light: 0.46; --month-l-dark: 0.7; }
+[data-month-type="dragon"] { --month-h: 275; --month-c: 0.18; --month-l-light: 0.48; --month-l-dark: 0.7; }
+[data-month-type="dark"] { --month-h: 50; --month-c: 0.03; --month-l-light: 0.36; --month-l-dark: 0.7; }
+[data-month-type="steel"] { --month-h: 240; --month-c: 0.03; --month-l-light: 0.56; --month-l-dark: 0.72; }
+[data-month-type="fairy"] { --month-h: 350; --month-c: 0.11; --month-l-light: 0.57; --month-l-dark: 0.8; }
+
 /* ─── Mapeo a Tailwind ─────────────────────────────────────────────────────── */
 @theme inline {
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Instrument Sans Variable", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-heading: var(--font-sans);
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Curva de las hojas y popovers de iOS (UISpringTimingParameters críticos ≈ esto) */
   --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
+  /* Desaceleración para entradas y hover (arranca rápido, asienta suave) */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+  /* Duraciones de UI: ≤300ms. Las salidas usan una más corta que la entrada. */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -227,41 +267,47 @@
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
 
+  /* Tracking de utilidad: las mayúsculas pequeñas pierden la silueta de la palabra y
+     piden aire (+0.06em); `tight` queda en -0.02em, por encima del suelo de -0.04em. */
+  --tracking-tight: -0.02em;
+  --tracking-wide: 0.06em;
+  --tracking-widest: 0.1em;
+
   /* ── Escala tipográfica ───────────────────────────────────────────────────
      Tracking y leading dependen del tamaño: el texto grande se aprieta (letras y
      líneas), el pequeño se abre un poco para leerse. Sirve `text-title1` etc. */
   --text-caption: 0.75rem;
   --text-caption--line-height: 1.35;
-  --text-caption--letter-spacing: 0.01em;
+  --text-caption--letter-spacing: 0.02em;
   --text-footnote: 0.8125rem;
   --text-footnote--line-height: 1.4;
-  --text-footnote--letter-spacing: 0.004em;
+  --text-footnote--letter-spacing: 0.01em;
   --text-subhead: 0.9375rem;
   --text-subhead--line-height: 1.45;
   --text-subhead--letter-spacing: 0em;
   --text-body: 1rem;
-  --text-body--line-height: 1.5;
+  --text-body--line-height: 1.55;
   --text-body--letter-spacing: 0em;
-  --text-headline: 1rem;
-  --text-headline--line-height: 1.4;
-  --text-headline--letter-spacing: -0.006em;
+  --text-headline: 1.0625rem;
+  --text-headline--line-height: 1.35;
+  --text-headline--letter-spacing: -0.008em;
   --text-headline--font-weight: 600;
   --text-title3: 1.25rem;
-  --text-title3--line-height: 1.3;
-  --text-title3--letter-spacing: -0.012em;
+  --text-title3--line-height: 1.25;
+  --text-title3--letter-spacing: -0.014em;
   --text-title3--font-weight: 600;
-  --text-title2: 1.5rem;
-  --text-title2--line-height: 1.25;
-  --text-title2--letter-spacing: -0.017em;
+  --text-title2: 1.625rem;
+  --text-title2--line-height: 1.15;
+  --text-title2--letter-spacing: -0.022em;
   --text-title2--font-weight: 650;
-  --text-title1: 1.875rem;
-  --text-title1--line-height: 1.2;
-  --text-title1--letter-spacing: -0.021em;
-  --text-title1--font-weight: 700;
-  --text-display: clamp(2.25rem, 1.6rem + 2.4vw, 3.5rem);
-  --text-display--line-height: 1.05;
-  --text-display--letter-spacing: -0.028em;
-  --text-display--font-weight: 700;
+  --text-title1: 2.125rem;
+  --text-title1--line-height: 1.1;
+  --text-title1--letter-spacing: -0.026em;
+  --text-title1--font-weight: 600;
+  --text-display: clamp(2.5rem, 1.2rem + 5vw, 5rem);
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.03em;
+  --text-display--font-weight: 600;
 }
 
 /* ─── Materiales ───────────────────────────────────────────────────────────────
@@ -324,22 +370,22 @@
 /* Más contraste: bordes definidos y texto secundario más oscuro/claro. */
 @media (prefers-contrast: more) {
   :root {
-    --border: oklch(0.2 0.01 264 / 0.4);
-    --input: oklch(0.2 0.01 264 / 0.55);
-    --separator: oklch(0.2 0.01 264 / 0.3);
-    --muted-foreground: oklch(0.36 0.012 264);
-    --material-thin: oklch(1 0 0);
-    --material-regular: oklch(1 0 0);
-    --material-thick: oklch(1 0 0);
+    --border: oklch(0.22 0.03 45 / 0.45);
+    --input: oklch(0.22 0.03 45 / 0.6);
+    --separator: oklch(0.22 0.03 45 / 0.35);
+    --muted-foreground: oklch(0.36 0.02 60);
+    --material-thin: oklch(0.985 0.007 85);
+    --material-regular: oklch(0.985 0.007 85);
+    --material-thick: oklch(0.985 0.007 85);
   }
   .dark {
     --border: oklch(1 0 0 / 0.4);
     --input: oklch(1 0 0 / 0.55);
     --separator: oklch(1 0 0 / 0.3);
-    --muted-foreground: oklch(0.82 0.01 264);
-    --material-thin: oklch(0.13 0.004 264);
-    --material-regular: oklch(0.13 0.004 264);
-    --material-thick: oklch(0.13 0.004 264);
+    --muted-foreground: oklch(0.84 0.01 80);
+    --material-thin: oklch(0.14 0.004 70);
+    --material-regular: oklch(0.14 0.004 70);
+    --material-thick: oklch(0.14 0.004 70);
   }
 }
 
@@ -352,5 +398,17 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
+  }
+  /* Sin transiciones de movimiento: solo color y opacidad siguen animándose. */
+  .press {
+    transition-property: background-color, opacity;
+  }
+  .press:active {
+    transform: none;
+  }
+  /* Pulso y giro de carga quedan estáticos; el texto/rol del estado sigue informando. */
+  .animate-pulse,
+  .animate-spin {
+    animation: none;
   }
 }

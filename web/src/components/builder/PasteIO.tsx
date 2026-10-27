@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { RuleErrors } from "@/components/team/RuleErrors";
 import { ClipboardCopy, Import } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { DexEssentials } from "@/lib/dex/snapshot";
@@ -128,7 +129,7 @@ export function PasteIO({ dex, team, maxSize, onImport, placeholder }: Props) {
         </div>
       )}
       {notice && <p role="status" className="text-footnote text-muted-foreground">{notice}</p>}
-      {error && <p role="alert" className="text-footnote text-destructive">{error}</p>}
+      {error && <RuleErrors errors={[error]} />}
     </div>
   );
 }

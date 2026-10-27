@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import type { ReactNode } from "react";
 import { toId } from "@/lib/dex/snapshot";
 import { cn } from "@/lib/utils";
 
@@ -34,12 +33,19 @@ interface Props {
   evs: Record<string, number>;
   ivs: Record<string, number>;
   onChange: (next: { evs: Record<string, number>; ivs: Record<string, number> }) => void;
+  /** Se pinta entre los EVs y los IVs (el resumen de stats va pegado a los EVs que lo mueven). */
+  children?: ReactNode;
 }
 
-/** Barras de EVs (tope 510 en total, 252 por stat) e IVs plegados, a 31 por defecto. */
-export function EVEditor({ evs, ivs, onChange }: Props) {
-  const [ivsOpen, setIvsOpen] = useState(false);
+/** Atajos de IVs: bajar Atk y/o Spe a 0 (sets de Trick Room y especiales). */
+const IV_PRESETS: { label: string; zero: string[] }[] = [
+  { label: "0 Atk", zero: ["atk"] },
+  { label: "0 Spe", zero: ["spe"] },
+  { label: "0 Atk / 0 Spe", zero: ["atk", "spe"] },
+];
 
+/** Barras de EVs (tope 510 en total, 252 por stat) e IVs en una fila compacta, a 31 por defecto. */
+export function EVEditor({ evs, ivs, onChange, children }: Props) {
   const total = STAT_META.reduce((sum, s) => sum + Math.min(MAX_EV, Math.max(0, readStat(evs, s.id, 0))), 0);
   const remaining = MAX_TOTAL - total;
 
@@ -69,6 +75,21 @@ export function EVEditor({ evs, ivs, onChange }: Props) {
           {remaining < 0 ? " — pasado del máximo" : remaining > 0 ? ` · quedan ${remaining}` : ""}
         </span>
       </div>
+      <div
+        role="progressbar"
+        aria-label="Total de EVs"
+        aria-valuemin={0}
+        aria-valuemax={MAX_TOTAL}
+        aria-valuenow={Math.min(total, MAX_TOTAL)}
+        className="h-1.5 overflow-hidden rounded-full bg-muted"
+      >
+        <div
+          className={cn("h-full origin-left rounded-full bg-primary transition-transform duration-200 ease-ios motion-reduce:transition-none", remaining < 0 && "bg-destructive")}
+          style={{ transform: `scaleX(${Math.min(total, MAX_TOTAL) / MAX_TOTAL})` }}
+        />
+      </div>
+      {/* Región viva solo para el aviso de pasarse: anunciar cada ajuste sería ruido. */}
+      <p role="status" aria-live="polite" className="sr-only">{remaining < 0 ? `Te pasaste ${-remaining} EVs del máximo` : ""}</p>
 
       <div className="flex flex-wrap gap-1.5">
         {PRESETS.map((p) => (
@@ -119,39 +140,45 @@ export function EVEditor({ evs, ivs, onChange }: Props) {
         );
       })}
 
-      <Collapsible open={ivsOpen} onOpenChange={setIvsOpen}>
-        <CollapsibleTrigger className="text-left text-footnote text-muted-foreground underline-offset-2 hover:underline">
-          {ivsOpen ? "Ocultar IVs" : "Editar IVs (31 por defecto)"}
-        </CollapsibleTrigger>
-        <CollapsibleContent className="mt-2 flex flex-col gap-2">
-          {STAT_META.map((s) => {
-            const value = readStat(ivs, s.id, MAX_IV);
-            return (
-              <div key={s.id} className="flex items-center gap-2">
-                <span className="w-9 shrink-0 text-caption text-muted-foreground">{s.label}</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={MAX_IV}
-                  value={value}
-                  aria-label={`IVs de ${s.label}`}
-                  onChange={(e) => setIv(s.id, s.label, Number(e.target.value))}
-                  className="h-1.5 flex-1 accent-primary"
-                />
-                <input
-                  type="number"
-                  min={0}
-                  max={MAX_IV}
-                  value={value}
-                  aria-label={`IVs de ${s.label} (número)`}
-                  onChange={(e) => setIv(s.id, s.label, Number(e.target.value))}
-                  className="w-14 rounded-lg border border-input bg-card px-1.5 py-0.5 text-right text-caption"
-                />
-              </div>
-            );
-          })}
-        </CollapsibleContent>
-      </Collapsible>
+      {children}
+
+      <div role="group" aria-label="IVs" className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-1.5">
+          <span className="text-footnote font-medium text-foreground">IVs <span className="font-normal text-muted-foreground">(31 por defecto)</span></span>
+          <div className="flex flex-wrap gap-1.5">
+            {IV_PRESETS.map((p) => (
+              <button
+                key={p.label}
+                type="button"
+                onClick={() => {
+                  let next = ivs;
+                  for (const id of p.zero) next = replaceStat(next, id, STAT_META.find((m) => m.id === id)!.label, 0);
+                  onChange({ evs, ivs: next });
+                }}
+                className="rounded-full bg-muted px-2.5 py-1 text-caption text-foreground transition-colors hover:bg-accent"
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-6 gap-1.5">
+          {STAT_META.map((s) => (
+            <label key={s.id} className="flex flex-col items-center gap-0.5 text-caption text-muted-foreground">
+              {s.label}
+              <input
+                type="number"
+                min={0}
+                max={MAX_IV}
+                value={readStat(ivs, s.id, MAX_IV)}
+                aria-label={`IVs de ${s.label}`}
+                onChange={(e) => setIv(s.id, s.label, Number(e.target.value))}
+                className="h-9 w-full min-w-0 rounded-lg border border-input bg-card px-1 text-center text-footnote text-foreground"
+              />
+            </label>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

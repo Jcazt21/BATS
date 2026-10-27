@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeftRight, ClipboardCopy, Loader2, Lock, Pencil, Plus, Trash2 } from "lucide-react";
+import { AnimatePresence } from "motion/react";
+import { ClipboardCopy, Loader2, Lock, Plus } from "lucide-react";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Group, GroupRow } from "@/components/app/Group";
 import { Meter } from "@/components/app/Meter";
 import { ResponsiveSheet } from "@/components/app/ResponsiveSheet";
+import { Reveal } from "@/components/app/Reveal";
 import { EmptyState, ErrorState } from "@/components/app/States";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,21 +15,25 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { SignInCard } from "@/components/SignInCard";
+import { MonActions } from "@/components/team/MonActions";
 import { MonCard } from "@/components/team/MonCard";
+import { RotationRules } from "@/components/team/RotationRules";
+import { RuleErrors } from "@/components/team/RuleErrors";
+import { TeamSummary } from "@/components/team/TeamSummary";
 import { SetEditor } from "@/components/builder/SetEditor";
 import { TeamBuilder } from "@/components/builder/TeamBuilder";
-import type { PokemonPayload, RosterPokemon, RosterValidation } from "@/lib/api";
+import type { PokemonPayload, RosterPokemon } from "@/lib/api";
 import type { DexEssentials } from "@/lib/dex/snapshot";
 import { speciesById } from "@/lib/dex/snapshot";
 import { useLearnset } from "@/lib/dex/useLearnset";
-import { checkSet, type BuilderMon, type RuleSeason } from "@/lib/dex/validate";
+import { checkSetProblems, type BuilderMon, type RuleSeason } from "@/lib/dex/validate";
 import { ApiError } from "@/lib/http";
 import { teamErrorMessage } from "@/lib/dex/ruleMessages";
 import {
   useActiveSeason, useAddPokemon, useDexEssentials, useEditSet, useMe, usePlayerBans, useRegisterTeam, useRemovePokemon,
   useRoster, useRotationHistory, useSwapPokemon,
 } from "@/lib/queries";
-import { draftKey } from "@/lib/draft";
+import { clearDraft, draftKey } from "@/lib/draft";
 import { useSession } from "@/lib/session";
 import { toPaste } from "@/lib/showdown";
 import { useToast } from "@/lib/toast";
@@ -60,13 +66,13 @@ export function TeamPage() {
   const closed = !!season.data?.restrictions?.registration_closed;
 
   let body;
-  if (loading || dex.isPending) body = null;
+  // Nunca en blanco: mientras se resuelve sesión, dex o equipo hay un esqueleto del tamaño de la lista.
+  const cargando = loading || (!!session && (dex.isPending || (!dex.isError && roster.isPending)));
+  if (cargando) body = <Group loading loadingRows={4} />;
   else if (!session) {
     body = <div className="flex justify-center"><SignInCard title="Tu equipo" description="Inicia sesión con el correo con el que te registró el admin." /></div>;
   } else if (dex.isError) {
     body = <ErrorState error={dex.error} onRetry={() => dex.refetch()} />;
-  } else if (roster.isPending) {
-    body = <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-36 rounded-2xl" />)}</div>;
   } else if (roster.isError) {
     const status = roster.error instanceof ApiError ? roster.error.status : 0;
     body =
@@ -86,7 +92,7 @@ export function TeamPage() {
         title="Mi equipo"
         subtitle="Registra tu pool, comprueba las reglas en vivo y consulta tus rotaciones."
       />
-      {body}
+      {cargando ? body : <Reveal>{body}</Reveal>}
     </div>
   );
 }
@@ -101,9 +107,9 @@ function Register({ dex, maxSize }: { dex: DexEssentials; maxSize: number }) {
   const { toast } = useToast();
   const [dirty, setDirty] = useState(false);
   const banned = useMemo(() => new Set((bans.data ?? []).map((b) => b.name.toLowerCase())), [bans.data]);
-  const ruleSeason: RuleSeason = {
+  const ruleSeason: RuleSeason = useMemo(() => ({
     type_of_month: season.data?.type_of_month, max_team_size: maxSize, restrictions: season.data?.restrictions ?? {},
-  };
+  }), [season.data, maxSize]);
   // Sin temporada o sin usuario no hay clave estable: se trabaja sin borrador.
   const key = season.data && me.data ? draftKey(season.data.season_id, me.data.username) : undefined;
   // El borrador se restaura al montar TeamBuilder: hay que esperar a tener la clave (si me falla, sin borrador).
@@ -150,7 +156,12 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
   const remove = useRemovePokemon();
   const swap = useSwapPokemon();
   const add = useAddPokemon();
+  const me = useMe();
   const { toast } = useToast();
+  // Borradores de agregar/reemplazar: clave con contexto, para que descartar la hoja sin querer no pierda trabajo.
+  const baseKey = season.data && me.data ? draftKey(season.data.season_id, me.data.username) : undefined;
+  const addKey = baseKey && `${baseKey}:add`;
+  const swapKey = (id: number) => baseKey && `${baseKey}:swap:${id}`;
   const [removing, setRemoving] = useState<RosterPokemon | null>(null);
   const [swapping, setSwapping] = useState<RosterPokemon | null>(null);
   const [editing, setEditing] = useState<RosterPokemon | null>(null);
@@ -161,8 +172,8 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
   // Cierre pendiente de confirmar porque el sheet tiene cambios sin guardar.
   const [discard, setDiscard] = useState<(() => void) | null>(null);
 
-  const closeAdd = () => { setAdding(false); setAddDirty(false); };
-  const closeSwap = () => { setSwapping(null); setSwapDirty(false); };
+  const closeAdd = () => { setAdding(false); setAddDirty(false); if (addKey) clearDraft(addKey); };
+  const closeSwap = () => { if (swapping) { const k = swapKey(swapping.pokemon_id); if (k) clearDraft(k); } setSwapping(null); setSwapDirty(false); };
   const closeEdit = () => { setEditing(null); setEditDirty(false); };
   /** Cierra ya si no hay cambios; si los hay, pide confirmación primero. */
   const guardClose = (dirty: boolean, close: () => void) => { if (dirty) setDiscard(() => close); else close(); };
@@ -170,14 +181,15 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
   const r = roster.data!;
   const banned = useMemo(() => new Set((bans.data ?? []).map((b) => b.name.toLowerCase())), [bans.data]);
   const room = r.max_team_size - r.pool.length;
-  const ruleSeason: RuleSeason = {
+  const ruleSeason: RuleSeason = useMemo(() => ({
     type_of_month: season.data?.type_of_month, max_team_size: r.max_team_size, restrictions: season.data?.restrictions ?? {},
-  };
+  }), [season.data, r.max_team_size]);
   const contextWithout = (id?: number): BuilderMon[] => r.pool.filter((p) => p.pokemon_id !== id).map(toBuilderMon);
 
-  async function copy() {
-    const paste = r.pool.map((p) => toPaste(p)).join("\n\n");
-    try { await navigator.clipboard.writeText(paste); toast({ title: "Copiado", description: "Tu equipo está en el portapapeles en formato Showdown.", tone: "success" }); }
+  async function copy(mons: RosterPokemon[] = r.pool) {
+    const paste = mons.map((p) => toPaste(p)).join("\n\n");
+    const que = mons.length === 1 ? mons[0].name : "Tu equipo";
+    try { await navigator.clipboard.writeText(paste); toast({ title: "Copiado", description: `${que} está en el portapapeles en formato Showdown.`, tone: "success" }); }
     catch { toast({ title: "No se pudo copiar", tone: "error" }); }
   }
 
@@ -187,41 +199,41 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
         <div className="flex flex-wrap items-center gap-2">
           {closed && <Badge variant="warning"><Lock /> Registro cerrado</Badge>}
           <Badge variant="secondary">{r.pool.length}/{r.max_team_size} pokémon</Badge>
-          <ValidationBadge validation={r.validation} />
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" size="sm" onClick={() => void copy()}><ClipboardCopy /> Copiar paste</Button>
+          <Button variant="secondary" size="sm" onClick={() => void copy()}><ClipboardCopy /> Copiar equipo</Button>
           {!closed && room > 0 && <Button size="sm" onClick={() => setAdding(true)}><Plus /> Agregar</Button>}
         </div>
       </div>
 
+      <TeamSummary mons={r.pool} validation={r.validation} />
+
       {r.validation.state === "errors" && (
-        <div role="alert" className="rounded-2xl border border-destructive/40 bg-destructive-soft p-4 text-footnote text-destructive">
-          <p className="font-medium">Showdown encontró problemas en tu equipo registrado:</p>
-          <ul className="mt-1 list-disc pl-5">{r.validation.errors.map((e) => <li key={e}>{e}</li>)}</ul>
-        </div>
+        <RuleErrors title="Showdown encontró problemas en tu equipo registrado:" errors={r.validation.errors}
+          target={(e) => {
+            if (closed) return undefined;
+            const p = r.pool.find((m) => e.toLowerCase().includes(m.name.toLowerCase()));
+            return p ? () => setEditing(p) : undefined;
+          }} />
       )}
 
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Pokémon de tu equipo">
+        <AnimatePresence initial={false}>
         {r.pool.map((p) => (
           <MonCard key={p.pokemon_id} mon={p} banned={banned.has(p.name.toLowerCase())}
             badge={p.in_lineup ? <Badge variant="info">En el lineup</Badge> : undefined}
             actions={!closed && (
-              <>
-                <Button variant="secondary" size="xs" onClick={() => setEditing(p)}><Pencil /> Editar set</Button>
-                <Button variant="secondary" size="xs" onClick={() => setSwapping(p)}><ArrowLeftRight /> Reemplazar</Button>
-                <Button variant="ghost" size="xs" onClick={() => setRemoving(p)}><Trash2 /> Quitar</Button>
-              </>
+              <MonActions name={p.name} onEdit={() => setEditing(p)} onCopy={() => void copy([p])}
+                onSwap={() => setSwapping(p)} onRemove={() => setRemoving(p)} />
             )} />
         ))}
+        </AnimatePresence>
       </ul>
 
       <div className="grid gap-8 lg:grid-cols-2">
         <section className="flex flex-col gap-3 rounded-2xl bg-card p-5 shadow-sm ring-1 ring-border">
           <h2 className="text-headline">Rotaciones</h2>
-          <p className="text-footnote text-muted-foreground">
-            Cambiar los 6 pokémon que llevas a batalla cuenta como una rotación. Se detectan solas al cargar tus batallas.
-          </p>
+          <RotationRules maxRotations={r.max_rotations} />
           <Meter label="Rotaciones usadas" value={r.rotations_used} max={Math.max(1, r.max_rotations)} tone={r.rotations_remaining === 0 ? "destructive" : "primary"} />
           <p className="tabular text-subhead"><strong>{r.rotations_remaining}</strong> de {r.max_rotations} disponibles</p>
         </section>
@@ -269,7 +281,7 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
       <ResponsiveSheet open={adding} onOpenChange={(o) => (o ? setAdding(true) : guardClose(addDirty, closeAdd))} title="Agregar pokémon" description={`Te caben ${room} más.`}>
         <TeamBuilder
           dex={dex} initial={[]} context={contextWithout()} season={ruleSeason} banned={banned} maxSize={room}
-          saveLabel="Agregar al equipo" onDirtyChange={setAddDirty}
+          saveLabel="Agregar al equipo" inline draftKey={addKey} onDirtyChange={setAddDirty}
           onSave={async (team) => {
             await add.mutateAsync(team.map((m) => toPayload(dex, m)));
             closeAdd();
@@ -287,7 +299,7 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
         {swapping && (
           <TeamBuilder
             dex={dex} initial={[]} context={contextWithout(swapping.pokemon_id)} season={ruleSeason} banned={banned} maxSize={1}
-            saveLabel="Reemplazar" onDirtyChange={setSwapDirty}
+            saveLabel="Reemplazar" inline draftKey={swapKey(swapping.pokemon_id)} onDirtyChange={setSwapDirty}
             onSave={async (team) => {
               await swap.mutateAsync({ removeId: swapping.pokemon_id, add: toPayload(dex, team[0]) });
               closeSwap();
@@ -324,7 +336,7 @@ function EditSetForm({ dex, pokemon, onDone, onDirtyChange }: {
   useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
   const species = speciesById(dex, mon.species);
   const { learnset, error: learnsetError } = useLearnset(species?.id ?? null);
-  const errors = checkSet(dex, learnset, mon);
+  const problems = checkSetProblems(dex, learnset, mon);
   // Sin learnset (cargando o fallido) no se puede garantizar que los movimientos sean legales.
   const learnsetReady = learnset !== null && !learnsetError;
 
@@ -340,16 +352,10 @@ function EditSetForm({ dex, pokemon, onDone, onDirtyChange }: {
 
   return (
     <div className="flex flex-col gap-4">
-      <SetEditor mon={mon} dex={dex} onChange={setMon} errors={errors} />
-      <Button size="lg" disabled={!learnsetReady || errors.length > 0 || editSet.isPending} onClick={() => void save()}>
+      <SetEditor mon={mon} dex={dex} onChange={setMon} problems={problems} />
+      <Button size="lg" disabled={!learnsetReady || problems.length > 0 || editSet.isPending} onClick={() => void save()}>
         {editSet.isPending ? <><Loader2 className="animate-spin" /> Guardando…</> : "Guardar cambios"}
       </Button>
     </div>
   );
-}
-
-function ValidationBadge({ validation }: { validation: RosterValidation }) {
-  if (validation.state === "ok") return <Badge variant="success">Validado por Showdown</Badge>;
-  if (validation.state === "errors") return <Badge variant="destructive">Showdown encontró errores</Badge>;
-  return <Badge variant="secondary">Pendiente de revisión</Badge>;
 }

@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "@fontsource-variable/instrument-sans/wdth.css";
+@import "@fontsource-variable/geist-mono/wght.css";
 @import "./styles/tokens.css";
 
 @custom-variant dark (&:is(.dark *));
@@ -43,8 +45,24 @@
   }
   /* Cifras de ancho fijo en tablas y métricas: las columnas no bailan al actualizar */
   .tabular {
-    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums lining-nums;
   }
+  /* Con tracking negativo el espacio entre palabras también se encoge: se compensa para
+     que "Temporada de Hielo" no se lea como una sola mancha. */
+  .text-display, .text-title1, .text-title2 {
+    word-spacing: 0.05em;
+  }
+  /* Texto claro sobre fondo oscuro "sangra" (irradiación): un poco más de aire entre palabras */
+  .dark body {
+    word-spacing: 0.02em;
+  }
+  /* Títulos: misma familia que el cuerpo, ancho normal, peso 600 y tracking apretado */
+  :where(h1, h2, h3, h4, .font-heading) {
+    font-family: var(--font-heading);
+    font-optical-sizing: auto;
+    text-wrap: balance;
+  }
+
 }
 
 /* Feedback inmediato al pulsar (en pointerdown, no al soltar) */

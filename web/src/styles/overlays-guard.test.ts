@@ -44,6 +44,9 @@ describe("motion de overlays (guarda de fuente)", () => {
       const src = leerFuente(f);
       for (const m of src.matchAll(/fixed[^"`]*?\bz-(\d+)/g)) expect(Number(m[1]), f).toBeGreaterThanOrEqual(40);
     }
+    // Un backdrop-filter/transform en un ancestro convierte al `fixed` en relativo a él: solo con prefijo md:.
+    const tb = leerFuente("components/builder/TeamBuilder.tsx");
+    expect(tb).not.toMatch(/(?<![:\w-])(backdrop-blur|transform)\b/);
     // TeamBuilder en una hoja (agregar/reemplazar) usa la barra en línea.
     const page = leerFuente("pages/TeamPage.tsx");
     expect(page.match(/<TeamBuilder[\s\S]*?\/>/g)!.filter((b) => /context=/.test(b)).every((b) => /\binline\b/.test(b))).toBe(true);

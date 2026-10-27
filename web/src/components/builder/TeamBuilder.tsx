@@ -262,7 +262,8 @@ export function TeamBuilder({ dex, initial, context = NO_CONTEXT, season, banned
 
   return (
     <div className="flex flex-col gap-6 pb-32 md:pb-0">
-      <div className={cn(inline ? "" : "sticky top-14 z-30 -mx-4 bg-background/90 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6", "md:py-2")}>
+      {/* Sin sticky/blur en móvil: un backdrop-filter en un ancestro atrapa al chip `fixed` de RulesBar (queda a media página). */}
+      <div className={cn(!inline && "md:sticky md:top-14 md:z-30 md:-mx-6 md:bg-background/90 md:px-6 md:py-2 md:backdrop-blur")}>
         <RulesBar
           rows={rows}
           season={season}

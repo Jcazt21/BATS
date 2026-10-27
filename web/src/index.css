@@ -21,6 +21,8 @@
     @apply bg-background text-foreground text-body;
     /* Las barras translúcidas dejan pasar el fondo: que nunca sea transparente. */
     min-height: 100svh;
+    /* Red de seguridad: ningún hijo desbordado debe dar scroll horizontal a la página (clip, no hidden: no rompe sticky). */
+    overflow-x: clip;
   }
   ::selection {
     background: color-mix(in oklch, var(--primary) 30%, transparent);

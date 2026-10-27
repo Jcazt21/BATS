@@ -1,4 +1,4 @@
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AlertCircle, CheckCircle2, CircleDashed, Plus } from "lucide-react";
 import { PokemonSprite } from "@/components/app/PokemonSprite";
@@ -81,13 +81,24 @@ export function SlotBoard({ slots, maxSize, selected, onSelect, onAdd, onRemove,
     else onRemove(i);
   }
 
+  // La tira móvil sigue a la selección: al agregar (acción poco frecuente) se desliza; al navegar
+  // con el teclado o tocar, salta sin animar. Se omite el primer render (no mover la página al abrir).
+  const prev = useRef<{ selected: number; count: number } | null>(null);
+  useEffect(() => {
+    const before = prev.current;
+    prev.current = { selected, count: slots.length };
+    if (!before || (before.selected === selected && before.count === slots.length)) return;
+    const added = slots.length > before.count;
+    refs.current[selected]?.scrollIntoView?.({ inline: "center", block: "nearest", behavior: added && !reduce ? "smooth" : "auto" });
+  }, [selected, slots.length, reduce]);
+
   const empties = Math.max(0, maxSize - slots.length);
 
   return (
     <>
       <ul
         aria-label="Pokémon del equipo"
-        className="-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:snap-none md:flex-col md:overflow-visible md:px-0 md:pb-0"
+        className="-mx-4 flex snap-x snap-mandatory scroll-px-4 gap-2 overflow-x-auto overscroll-x-contain px-4 pb-1 [scrollbar-width:none] md:mx-0 md:snap-none md:flex-col md:overflow-visible md:px-0 md:pb-0 [&::-webkit-scrollbar]:hidden"
       >
         <AnimatePresence initial={false}>
           {slots.map((slot, i) => (
@@ -99,7 +110,7 @@ export function SlotBoard({ slots, maxSize, selected, onSelect, onAdd, onRemove,
               exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4 }}
               transition={reduce ? { duration: 0.15 } : spring.snappy}
               className={cn(
-                "relative flex w-32 shrink-0 snap-start items-center rounded-2xl bg-card shadow-sm ring-1 ring-border md:w-auto",
+                "relative flex w-36 shrink-0 snap-start items-center rounded-2xl bg-card shadow-sm ring-1 ring-border md:w-auto",
                 "transition-shadow duration-200 ease-ios motion-reduce:transition-none",
                 slot.banned && "ring-destructive/60",
                 // El anillo de selección transiciona por CSS: un layoutId dentro de un hijo de
@@ -136,7 +147,7 @@ export function SlotBoard({ slots, maxSize, selected, onSelect, onAdd, onRemove,
           ))}
         </AnimatePresence>
         {Array.from({ length: empties }, (_, k) => (
-          <li key={`empty-${k}`} className="w-32 shrink-0 snap-start md:w-auto">
+          <li key={`empty-${k}`} className="w-36 shrink-0 snap-start md:w-auto">
             <button
               type="button"
               aria-label="Agregar Pokémon"

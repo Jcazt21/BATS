@@ -274,8 +274,9 @@ export function TeamBuilder({ dex, initial, context = NO_CONTEXT, season, banned
           sheetExtra={<div className="mt-4 md:hidden"><TypeCoveragePanel rows={coverage} empty={team.length === 0} /></div>}
         />
       </div>
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-        <div className="flex flex-col gap-3">
+      {/* minmax(0,1fr) también en móvil: con una columna `auto`, la tira de slots ensancha toda la página. */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+        <div className="flex min-w-0 flex-col gap-3">
           {restoredAt && !bandHidden && (
             <div role="status" className="flex items-center justify-between gap-2 rounded-xl bg-muted px-3 py-2 text-footnote">
               <span>Recuperamos tu borrador del {fmtDateShort(restoredAt)}</span>

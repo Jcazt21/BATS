@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { leerFuente } from "./source";
@@ -59,5 +59,15 @@ describe("motion de la mesa del entrenador (guarda de fuente)", () => {
     const src = leerFuente("pages/TeamPage.tsx");
     expect(src).toMatch(/draftKey=\{addKey\}/);
     expect(src).toMatch(/draftKey=\{swapKey\(swapping\.pokemon_id\)\}/);
+  });
+
+  it("responsive en móvil: la grilla tiene columna acotada, la tira de slots no ensancha la página y no hay zoom out", () => {
+    const tb = leerFuente("components/builder/TeamBuilder.tsx");
+    expect(tb).toMatch(/grid grid-cols-\[minmax\(0,1fr\)\] gap-6 lg:grid-cols/);
+    const board = leerFuente("components/team/SlotBoard.tsx");
+    expect(board).toMatch(/overflow-x-auto overscroll-x-contain/);
+    expect(board).toMatch(/snap-x snap-mandatory/);
+    expect(leerFuente("index.css")).toMatch(/overflow-x: clip/);
+    expect(readFileSync(resolve(SRC, "../index.html"), "utf8")).toMatch(/minimum-scale=1\.0/);
   });
 });

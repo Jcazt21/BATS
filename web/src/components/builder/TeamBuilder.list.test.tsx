@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { abrirMenu } from "@/lib/test-utils";
 import { TeamBuilder } from "./TeamBuilder";
 import type { DexEssentials, Species } from "@/lib/dex/snapshot";
@@ -43,7 +43,44 @@ function renderBuilder(onSave = vi.fn()) {
     banned={new Set()} maxSize={6} onSave={onSave} />);
 }
 
+/** Simula una pantalla ancha (≥768px) o angosta; devuelve cómo deshacerlo. */
+function viewport(wide: boolean) {
+  const original = window.matchMedia;
+  window.matchMedia = ((query: string) => ({
+    matches: wide && query.includes("min-width: 768px"), media: query, onchange: null,
+    addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, dispatchEvent: () => false,
+  })) as typeof window.matchMedia;
+  return () => { window.matchMedia = original; };
+}
+
+describe("TeamBuilder: editor según el ancho", () => {
+  it("escritorio: el editor ocupa la columna derecha y cambiar de slot cambia el editor", async () => {
+    const restore = viewport(true);
+    const user = userEvent.setup();
+    renderBuilder();
+    expect(screen.getByTestId("editor")).toHaveTextContent("Dragonite");
+    await user.click(screen.getByRole("button", { name: /^Garchomp/ }));
+    expect(screen.getByTestId("editor")).toHaveTextContent("Garchomp");
+    restore();
+  });
+
+  it("móvil: el editor no se pinta hasta tocar un slot y entonces abre en una hoja", async () => {
+    const restore = viewport(false);
+    const user = userEvent.setup();
+    renderBuilder();
+    expect(screen.queryByTestId("editor")).toBeNull();
+    await user.click(screen.getByRole("button", { name: /^Garchomp/ }));
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByTestId("editor")).toHaveTextContent("Garchomp");
+    restore();
+  });
+});
+
 describe("TeamBuilder: lista del equipo", () => {
+  let restore: () => void;
+  beforeEach(() => { restore = viewport(true); });
+  afterEach(() => restore());
+
   it("no hay botones anidados ni listas dentro de listas", () => {
     renderBuilder();
     const list = screen.getByRole("list", { name: "Pokémon del equipo" });

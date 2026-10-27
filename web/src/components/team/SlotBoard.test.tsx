@@ -57,7 +57,7 @@ describe("SlotBoard", () => {
     expect(b).toBeDefined();
   });
 
-  it("Enter abre el editor", async () => {
+  it("tocar o pulsar Enter abre el editor", async () => {
     const onOpen = vi.fn();
     renderWithProviders(<Harness initial={[slot("Garchomp")]} spies={{ onOpen }} />);
     screen.getByRole("button", { name: /^Garchomp/ }).focus();

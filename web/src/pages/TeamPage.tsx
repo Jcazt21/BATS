@@ -26,7 +26,7 @@ import type { PokemonPayload, RosterPokemon } from "@/lib/api";
 import type { DexEssentials } from "@/lib/dex/snapshot";
 import { speciesById } from "@/lib/dex/snapshot";
 import { useLearnset } from "@/lib/dex/useLearnset";
-import { checkSet, type BuilderMon, type RuleSeason } from "@/lib/dex/validate";
+import { checkSetProblems, type BuilderMon, type RuleSeason } from "@/lib/dex/validate";
 import { ApiError } from "@/lib/http";
 import { teamErrorMessage } from "@/lib/dex/ruleMessages";
 import {
@@ -331,7 +331,7 @@ function EditSetForm({ dex, pokemon, onDone, onDirtyChange }: {
   useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
   const species = speciesById(dex, mon.species);
   const { learnset, error: learnsetError } = useLearnset(species?.id ?? null);
-  const errors = checkSet(dex, learnset, mon);
+  const problems = checkSetProblems(dex, learnset, mon);
   // Sin learnset (cargando o fallido) no se puede garantizar que los movimientos sean legales.
   const learnsetReady = learnset !== null && !learnsetError;
 
@@ -347,8 +347,8 @@ function EditSetForm({ dex, pokemon, onDone, onDirtyChange }: {
 
   return (
     <div className="flex flex-col gap-4">
-      <SetEditor mon={mon} dex={dex} onChange={setMon} errors={errors} />
-      <Button size="lg" disabled={!learnsetReady || errors.length > 0 || editSet.isPending} onClick={() => void save()}>
+      <SetEditor mon={mon} dex={dex} onChange={setMon} problems={problems} />
+      <Button size="lg" disabled={!learnsetReady || problems.length > 0 || editSet.isPending} onClick={() => void save()}>
         {editSet.isPending ? <><Loader2 className="animate-spin" /> Guardando…</> : "Guardar cambios"}
       </Button>
     </div>

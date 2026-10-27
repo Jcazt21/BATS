@@ -5,6 +5,7 @@ import { RulesBar } from "@/components/team/RulesBar";
 import { RuleErrors } from "@/components/team/RuleErrors";
 import { TypeCoveragePanel } from "@/components/team/TypeCoveragePanel";
 import { PasteIO, type ImportMode } from "@/components/builder/PasteIO";
+import { ResponsiveSheet } from "@/components/app/ResponsiveSheet";
 import { SetEditor } from "@/components/builder/SetEditor";
 import { SpeciesPicker } from "@/components/builder/SpeciesPicker";
 import { saveBlockers } from "@/lib/dex/blockers";
@@ -17,6 +18,7 @@ import { useLearnset, useLearnsets } from "@/lib/dex/useLearnset";
 import { checkSetProblems, checkTeam, type BuilderMon, type RuleSeason } from "@/lib/dex/validate";
 import { computeTypeCoverage } from "@/lib/dex/coverage";
 import { teamErrorMessage } from "@/lib/dex/ruleMessages";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 import { toPaste } from "@/lib/showdown";
 import { useToast } from "@/lib/toast";
@@ -88,6 +90,9 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
   const [swapIndex, setSwapIndex] = useState<number | null>(null);
   const [pickerFilters, setPickerFilters] = useState<SpeciesFilters | undefined>(undefined);
   const { toast } = useToast();
+  const wide = useMediaQuery("(min-width: 768px)");
+  // En móvil el editor vive en una hoja que se abre al tocar un slot.
+  const [editorOpen, setEditorOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -132,7 +137,7 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
   const selectedMon = team[selected] ?? null;
   const selectedSpecies = selectedMon ? speciesById(dex, selectedMon.species) : null;
   const { learnset: selectedLearnset } = useLearnset(selectedSpecies?.id ?? null);
-  const selectedErrors = selectedMon ? checkSetProblems(dex, selectedLearnset, selectedMon).map((p) => p.message) : [];
+  const selectedProblems = selectedMon ? checkSetProblems(dex, selectedLearnset, selectedMon) : [];
 
   function updateSelected(mon: BuilderMon) {
     setItems((cur) => cur.map((it, i) => (i === selected ? { ...it, mon } : it)));
@@ -208,6 +213,12 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
     }
   }
 
+  const editor = selectedMon ? (
+    <SetEditor mon={selectedMon} dex={dex} onChange={updateSelected} problems={selectedProblems} />
+  ) : (
+    <p className="text-footnote text-muted-foreground">Agrega un pokémon para editar su set.</p>
+  );
+
   return (
     <div className="flex flex-col gap-6 pb-32 md:pb-0">
       <div className={cn(inline ? "" : "sticky top-14 z-30 -mx-4 bg-background/90 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6", "md:py-2")}>
@@ -233,6 +244,7 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
             maxSize={maxSize}
             selected={selected}
             onSelect={setSelected}
+            onOpen={() => { if (!wide) setEditorOpen(true); }}
             onAdd={() => openPicker()}
             onRemove={removeAt}
             onSwap={(i) => openPicker(undefined, i)}
@@ -243,13 +255,7 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
           <PasteIO dex={dex} team={team} maxSize={maxSize} onImport={importMons} />
         </div>
 
-        <div className="rounded-2xl bg-card p-5 shadow-sm ring-1 ring-border">
-          {selectedMon ? (
-            <SetEditor mon={selectedMon} dex={dex} onChange={updateSelected} errors={selectedErrors} />
-          ) : (
-            <p className="text-footnote text-muted-foreground">Agrega un pokémon para editar su set.</p>
-          )}
-        </div>
+        {wide && <div className="rounded-2xl bg-card p-5 shadow-sm ring-1 ring-border">{editor}</div>}
       </div>
 
       {/* Escritorio: cobertura siempre visible; las reglas van en la barra de arriba. */}
@@ -274,6 +280,17 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
           {blockers.slice(0, 3).map((b) => <li key={b}>{b}</li>)}
           {blockers.length > 3 && <li>y {blockers.length - 3} más</li>}
         </ul>
+      )}
+
+      {!wide && (
+        <ResponsiveSheet
+          open={editorOpen && !!selectedMon}
+          onOpenChange={setEditorOpen}
+          title={selectedMon ? speciesById(dex, selectedMon.species)?.name ?? selectedMon.species : "Set"}
+          description="Edita el set de este pokémon."
+        >
+          {editor}
+        </ResponsiveSheet>
       )}
 
       <SpeciesPicker

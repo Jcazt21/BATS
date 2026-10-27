@@ -8,7 +8,7 @@ import { useLearnset } from "@/lib/dex/useLearnset";
 import { useDexDetails } from "@/lib/queries";
 import type { DexEssentials } from "@/lib/dex/snapshot";
 import { speciesById, toId } from "@/lib/dex/snapshot";
-import type { BuilderMon } from "@/lib/dex/validate";
+import type { BuilderMon, SetProblem } from "@/lib/dex/validate";
 import { POKEMON_TYPES, typeLabel, type PokemonType } from "@/lib/pokemon-types";
 import { cn } from "@/lib/utils";
 
@@ -16,10 +16,13 @@ interface Props {
   mon: BuilderMon;
   dex: DexEssentials;
   onChange: (mon: BuilderMon) => void;
-  errors?: string[];
+  /** Problemas del set por campo (checkSetProblems): cada uno se pinta junto a su control. */
+  problems?: SetProblem[];
 }
 
 const MOVE_SLOTS = [0, 1, 2, 3];
+/** Valor explícito de "sin Tera elegido": el tipo primario de la especie. */
+const DEFAULT_TERA = "__primary";
 const STAT_IDS = ["hp", "atk", "def", "spa", "spd", "spe"] as const;
 const STAT_LABELS: Record<string, string> = { hp: "HP", atk: "Atk", def: "Def", spa: "SpA", spd: "SpD", spe: "Spe" };
 /** Resumen de stats a nivel 100 (estándar competitivo): BuilderMon no guarda nivel. */
@@ -57,9 +60,9 @@ function typeName(id: string): string {
 /**
  * Editor de un set: objeto, habilidad (solo las de la especie), naturaleza, tera type,
  * cuatro movimientos restringidos al learnset de la especie, y EVs/IVs (EVEditor).
- * Cada error de `errors` (viene de checkSet, Task 11) se pinta junto al campo que lo causa.
+ * Cada problema de `problems` (checkSetProblems) se pinta junto al campo que lo causa, por `field`.
  */
-export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
+export function SetEditor({ mon, dex, onChange, problems = [] }: Props) {
   const species = speciesById(dex, mon.species);
   const { learnset, error: learnsetError, retry: retryLearnset } = useLearnset(species?.id ?? null);
   const details = useDexDetails();
@@ -95,6 +98,17 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
     () => (species?.abilities ?? []).map((a) => ({ id: toId(a), label: a })),
     [species],
   );
+
+  const teraItems: ComboboxItem[] = useMemo(() => {
+    const primary = species?.types[0];
+    return [
+      { id: DEFAULT_TERA, label: `Tipo primario (${primary ? typeLabel(toId(primary) as PokemonType) : "—"})` },
+      ...POKEMON_TYPES.map((t) => ({
+        id: t, label: typeLabel(t),
+        icon: <span className={`type-${t} shrink-0 rounded-full px-1.5 py-0.5 text-caption`}>{typeLabel(t)}</span>,
+      })),
+    ];
+  }, [species]);
 
   if (!species) {
     return <p className="text-footnote text-muted-foreground">Elige una especie para editar su set.</p>;
@@ -141,18 +155,21 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
     return { id, label: STAT_LABELS[id], value, boost };
   });
 
-  const pick = (pattern: RegExp) => errors.filter((e) => pattern.test(e));
-  const moveErrors = pick(/no aprende|repetido|4 movimientos/i);
-  const abilityErrors = pick(/habilidad/i);
-  const itemErrors = pick(/objeto válido/i);
-  const evIvErrors = pick(/\bEVs\b|\bIVs\b/);
-  const placed = new Set([...moveErrors, ...abilityErrors, ...itemErrors, ...evIvErrors]);
-  const otherErrors = errors.filter((e) => !placed.has(e));
+  const forField = (...fields: SetProblem["field"][]) => problems.filter((p) => fields.includes(p.field)).map((p) => p.message);
+  const moveErrors = forField("moves");
+  const abilityErrors = forField("ability");
+  const itemErrors = forField("item");
+  const natureErrors = forField("nature");
+  const teraErrors = forField("tera");
+  const evIvErrors = forField("evs", "ivs");
+  const otherErrors = forField("species");
 
   return (
     <div className="flex flex-col gap-4">
       {otherErrors.length > 0 && <ErrorList items={otherErrors} />}
 
+      <SectionTitle>Básico</SectionTitle>
+      <div className="grid gap-4 sm:grid-cols-2">
       <Field label="Objeto">
         <Combobox
           items={itemItems}
@@ -186,24 +203,22 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
           clearLabel="Quitar naturaleza"
           placeholder={mon.nature ?? "Elegir naturaleza"}
         />
+        <ErrorList items={natureErrors} />
       </Field>
 
       <Field label="Tera Type">
-        <select
-          value={mon.tera_type ? toId(mon.tera_type) : ""}
-          onChange={(e) => patch({ tera_type: e.target.value ? typeName(e.target.value) : null })}
-          className="h-10 w-full rounded-xl border border-input bg-card px-3 text-body"
-        >
-          <option value="">{species.types[0]} (tipo primario)</option>
-          {POKEMON_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {typeLabel(t)}
-            </option>
-          ))}
-        </select>
+        <Combobox
+          items={teraItems}
+          value={mon.tera_type ? toId(mon.tera_type) : DEFAULT_TERA}
+          onChange={(id) => patch({ tera_type: id === DEFAULT_TERA ? null : typeName(id) })}
+          placeholder={mon.tera_type ?? teraItems[0].label}
+        />
+        <ErrorList items={teraErrors} />
       </Field>
+      </div>
 
-      <Field label="Movimientos">
+      <SectionTitle>Movimientos</SectionTitle>
+      <Field label="Movimientos" as="div">
         <div className="flex flex-col gap-2">
           {MOVE_SLOTS.map((i) => {
             const current = mon.moves[i] ? toId(mon.moves[i]) : null;
@@ -219,7 +234,7 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
                   onClear={() => clearMove(i)}
                   clearLabel={`Quitar movimiento ${i + 1}`}
                   // Si el valor no está en la lista (ilegal, o aún cargando), se ve tal cual.
-                  placeholder={mon.moves[i] ?? (learnsetLoading ? "Cargando movimientos…" : `Movimiento ${i + 1}`)}
+                  placeholder={mon.moves[i] ?? (learnsetLoading ? "Cargando movimientos…" : `+ Movimiento ${i + 1}`)}
                   disabled={learnset === null && !mon.moves[i]}
                   emptyText="Sin movimientos legales que coincidan"
                 />
@@ -239,6 +254,8 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
         <ErrorList items={moveErrors} />
       </Field>
 
+      <SectionTitle>Entrenamiento</SectionTitle>
+      <EVEditor evs={mon.evs} ivs={mon.ivs} onChange={({ evs, ivs }) => patch({ evs, ivs })}>
       <div aria-label="Resumen de stats" className="grid grid-cols-3 gap-2 rounded-xl border border-border bg-muted/30 p-3 text-caption sm:grid-cols-6">
         {stats.map((s) => (
           <div
@@ -255,20 +272,23 @@ export function SetEditor({ mon, dex, onChange, errors = [] }: Props) {
           </div>
         ))}
       </div>
-
-      <EVEditor evs={mon.evs} ivs={mon.ivs} onChange={({ evs, ivs }) => patch({ evs, ivs })} />
+      </EVEditor>
       <ErrorList items={evIvErrors} />
     </div>
   );
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({ label, children, as: Tag = "label" }: { label: string; children: ReactNode; as?: "label" | "div" }) {
   return (
-    <label className="flex flex-col gap-1.5 text-footnote">
+    <Tag className="flex flex-col gap-1.5 text-footnote">
       <span className="font-medium text-foreground">{label}</span>
       {children}
-    </label>
+    </Tag>
   );
+}
+
+function SectionTitle({ children }: { children: ReactNode }) {
+  return <h3 className="border-b border-separator pb-1 text-footnote font-medium uppercase tracking-wide text-muted-foreground">{children}</h3>;
 }
 
 function ErrorList({ items }: { items: string[] }) {

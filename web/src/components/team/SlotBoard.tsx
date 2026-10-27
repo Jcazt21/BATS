@@ -31,7 +31,7 @@ interface Props {
   onCopy: (index: number) => void;
   /** Mueve el slot `index` una posición (-1 arriba/izquierda, +1 abajo/derecha). */
   onMove: (index: number, delta: -1 | 1) => void;
-  /** Enter sobre un slot (en móvil abre el editor). */
+  /** Tocar o pulsar Enter en un slot (en móvil abre el editor). Las flechas solo mueven la selección. */
   onOpen?: (index: number) => void;
 }
 
@@ -61,10 +61,7 @@ export function SlotBoard({ slots, maxSize, selected, onSelect, onAdd, onRemove,
   function onKeyDown(e: KeyboardEvent, i: number) {
     const prev = e.key === "ArrowUp" || e.key === "ArrowLeft";
     const next = e.key === "ArrowDown" || e.key === "ArrowRight";
-    if (!prev && !next) {
-      if (e.key === "Enter") onOpen?.(i);
-      return;
-    }
+    if (!prev && !next) return;
     e.preventDefault();
     const delta = prev ? -1 : 1;
     const target = i + delta;
@@ -112,7 +109,7 @@ export function SlotBoard({ slots, maxSize, selected, onSelect, onAdd, onRemove,
                 type="button"
                 aria-pressed={i === selected}
                 tabIndex={i === selected ? 0 : -1}
-                onClick={() => onSelect(i)}
+                onClick={() => { onSelect(i); onOpen?.(i); }}
                 onKeyDown={(e) => onKeyDown(e, i)}
                 className="press flex min-h-14 min-w-0 flex-1 flex-col items-center gap-1 rounded-2xl p-2 text-center outline-none focus-visible:ring-2 focus-visible:ring-ring md:flex-row md:gap-3 md:text-left"
               >

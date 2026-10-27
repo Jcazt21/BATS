@@ -81,7 +81,7 @@ describe("SetEditor", () => {
         mon={baseMon({ evs: { HP: 252, Atk: 252, Def: 252 } })}
         dex={DEX}
         onChange={vi.fn()}
-        errors={["El total de EVs no puede pasar de 510 (tiene 756)."]}
+        problems={[{ field: "evs", code: "ev_total", message: "El total de EVs no puede pasar de 510 (tiene 756)." }]}
       />,
     );
     expect(await screen.findByText(/no puede pasar de 510/)).toBeInTheDocument();
@@ -123,7 +123,7 @@ describe("SetEditor", () => {
   it("no ofrece en otro slot un movimiento ya elegido", async () => {
     const user = userEvent.setup();
     renderWithClient(<SetEditor mon={baseMon({ moves: ["Earthquake"] })} dex={DEX} onChange={vi.fn()} />);
-    const secondSlot = await screen.findByPlaceholderText("Movimiento 2");
+    const secondSlot = await screen.findByPlaceholderText(/Movimiento 2/);
     await user.type(secondSlot, "Earth");
     expect(await screen.findByText("Sin movimientos legales que coincidan")).toBeInTheDocument();
   });
@@ -131,7 +131,7 @@ describe("SetEditor", () => {
   it("marca STAB solo en los movimientos del tipo de la especie", async () => {
     const user = userEvent.setup();
     renderWithClient(<SetEditor mon={baseMon()} dex={DEX} onChange={vi.fn()} />);
-    await user.click(await screen.findByPlaceholderText("Movimiento 1"));
+    await user.click(await screen.findByPlaceholderText(/Movimiento 1/));
     expect(await screen.findByRole("option", { name: /Earthquake.*STAB/ })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: /Fire Fang/ }).textContent).not.toMatch(/STAB/);
   });
@@ -140,7 +140,7 @@ describe("SetEditor", () => {
     const user = userEvent.setup();
     renderWithClient(<SetEditor mon={baseMon({ moves: ["Fire Fang"] })} dex={DEX} onChange={vi.fn()} />);
     expect(await screen.findByText(/10% chance to burn/)).toBeInTheDocument();
-    await user.type(screen.getByPlaceholderText("Movimiento 2"), "ground");
+    await user.type(screen.getByPlaceholderText(/Movimiento 2/), "ground");
     expect(await screen.findByRole("option", { name: /Earthquake/ })).toBeInTheDocument();
   });
 
@@ -148,7 +148,7 @@ describe("SetEditor", () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
     renderWithClient(<SetEditor mon={baseMon({ moves: ["Earthquake"] })} dex={DEX} onChange={onChange} />);
-    await user.click(await screen.findByPlaceholderText("Movimiento 4"));
+    await user.click(await screen.findByPlaceholderText(/Movimiento 4/));
     await user.click(await screen.findByRole("option", { name: /Fire Fang/ }));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ moves: ["Earthquake", "Fire Fang"] }));
   });
@@ -213,5 +213,54 @@ describe("SetEditor", () => {
     renderWithClient(<SetEditor mon={baseMon({ ability: "Levitate" })} dex={DEX} onChange={onChange} />);
     await user.click(await screen.findByRole("button", { name: "Quitar habilidad" }));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ability: null }));
+  });
+});
+
+describe("SetEditor: secciones y errores por campo", () => {
+  beforeEach(() => { installLearnsetFetch(); __resetDexForTests(); __resetLearnsetsForTests(); });
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it("tiene las secciones Básico, Movimientos y Entrenamiento", async () => {
+    renderWithClient(<SetEditor mon={baseMon()} dex={DEX} onChange={vi.fn()} />);
+    for (const name of ["Básico", "Movimientos", "Entrenamiento"]) {
+      expect(await screen.findByRole("heading", { name })).toBeInTheDocument();
+    }
+  });
+
+  it("un problema de naturaleza o de tera se pinta en su campo (sin regex)", async () => {
+    renderWithClient(
+      <SetEditor
+        mon={baseMon()} dex={DEX} onChange={vi.fn()}
+        problems={[
+          { field: "nature", code: "bad_nature", message: "Naturaleza inventada." },
+          { field: "tera", code: "bad_tera:x", message: "Tera inventado." },
+        ]}
+      />,
+    );
+    const nature = (await screen.findByText("Naturaleza inventada.")).closest("label")!;
+    expect(within(nature).getByText("Naturaleza")).toBeInTheDocument();
+    const tera = screen.getByText("Tera inventado.").closest("label")!;
+    expect(within(tera).getByText("Tera Type")).toBeInTheDocument();
+  });
+
+  it("Tera es un Combobox, sin <select> nativos, y el valor por defecto es explícito", async () => {
+    const { container } = renderWithClient(<SetEditor mon={baseMon()} dex={DEX} onChange={vi.fn()} />);
+    expect(await screen.findByPlaceholderText("Tipo primario (Dragón)")).toBeInTheDocument();
+    expect(container.querySelector("select")).toBeNull();
+  });
+
+  it("elegir un Tera guarda el tipo en inglés; volver al primario lo deja en null", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    renderWithClient(<SetEditor mon={baseMon()} dex={DEX} onChange={onChange} />);
+    await user.click(await screen.findByPlaceholderText("Tipo primario (Dragón)"));
+    await user.click(await screen.findByRole("option", { name: /Fuego/ }));
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ tera_type: "Fire" }));
+  });
+
+  it("el resumen de stats está dentro de la sección de entrenamiento", async () => {
+    renderWithClient(<SetEditor mon={baseMon()} dex={DEX} onChange={vi.fn()} />);
+    const summary = await screen.findByLabelText("Resumen de stats");
+    expect(summary.parentElement).toContainElement(screen.getByRole("progressbar", { name: "Total de EVs" }));
   });
 });

@@ -34,7 +34,7 @@ vi.mock("@/components/builder/SetEditor", () => ({
   ),
 }));
 vi.mock("@/lib/dex/useLearnset", () => ({ useLearnset: () => ({ learnset: {}, error: null }) }));
-vi.mock("@/lib/dex/validate", () => ({ checkSet: () => [] }));
+vi.mock("@/lib/dex/validate", () => ({ checkSet: () => [], checkSetProblems: () => [] }));
 
 const mon = (id: number, name: string) => ({
   pokemon_id: id, name, held_item: null, ability: null, nature: null, tera_type: null, moves: [], evs: {}, ivs: {},

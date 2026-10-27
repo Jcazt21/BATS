@@ -67,6 +67,12 @@ async function quitarPrimero() {
   await userEvent.click(screen.getByRole("menuitem", { name: /Quitar/ }));
 }
 
+/** Abre la hoja de importar desde el menú de la barra de acción. */
+async function abrirImportar() {
+  await abrirMenu(screen.getByRole("button", { name: "Importar o copiar equipo" }));
+  await userEvent.click(screen.getByRole("menuitem", { name: /Importar/ }));
+}
+
 describe("TeamBuilder: borrador", () => {
   it("restaura el borrador si initial está vacío y avisa", () => {
     saveDraft(KEY, [mon("Garchomp")]);
@@ -149,13 +155,27 @@ describe("TeamBuilder: importar", () => {
   it("append suma al final; replace sustituye", async () => {
     const user = userEvent.setup();
     renderBuilder({ initial: [mon("Garchomp")] });
-    await user.click(screen.getByRole("button", { name: "importar-agregar" }));
-    const list = screen.getByRole("list", { name: "Pokémon del equipo" });
+    await abrirImportar();
+    await user.click(await screen.findByRole("button", { name: "importar-agregar" }));
+    const list = await screen.findByRole("list", { name: "Pokémon del equipo" });
     expect(list).toHaveTextContent("Garchomp");
     expect(list).toHaveTextContent("Gengar");
-    await user.click(screen.getByRole("button", { name: "importar-reemplazar" }));
+    await abrirImportar();
+    await user.click(await screen.findByRole("button", { name: "importar-reemplazar" }));
     await waitFor(() => expect(list).not.toHaveTextContent("Garchomp"));
     expect(list).toHaveTextContent("Gengar");
+  });
+});
+
+describe("TeamBuilder: aviso de borrador", () => {
+  it("el aviso se puede ocultar sin descartar el borrador", async () => {
+    const user = userEvent.setup();
+    saveDraft(KEY, [mon("Garchomp")]);
+    renderBuilder({ draftKey: KEY });
+    await user.click(screen.getByRole("button", { name: "Ocultar aviso" }));
+    expect(screen.queryByText(/Recuperamos tu borrador/)).toBeNull();
+    expect(screen.getByRole("list", { name: "Pokémon del equipo" })).toHaveTextContent("Garchomp");
+    expect(loadDraft(KEY)).not.toBeNull();
   });
 });
 

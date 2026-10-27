@@ -65,6 +65,17 @@ describe("TeamBuilder", () => {
     expect(screen.getByTestId("save-blockers")).toHaveTextContent(/color Red/);
   });
 
+  it("tocar un motivo de bloqueo selecciona el slot culpable", async () => {
+    const user = userEvent.setup();
+    render(<TeamBuilder dex={dex} initial={[mon("Dragonite"), mon("Missingno")]} season={{ restrictions: {} }}
+      banned={new Set()} maxSize={6} onSave={vi.fn()} />);
+    expect(screen.getByRole("button", { name: /^Dragonite/ })).toHaveAttribute("aria-pressed", "true");
+    await user.click(within(screen.getByTestId("save-blockers")).getByRole("button", { name: /Missingno: 1 problema/ }));
+    // En móvil, además, se abre el editor de ese slot en una hoja (deja el resto aria-hidden).
+    expect(screen.getByRole("button", { name: /^MissingnoCon problemas/, hidden: true })).toHaveAttribute("aria-pressed", "true");
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+  });
+
   it("el tipo del mes no apaga el botón", () => {
     render(<TeamBuilder dex={dex} initial={[mon("Dragonite")]} season={{ restrictions: {}, type_of_month: "Ice" }}
       banned={new Set()} maxSize={6} onSave={vi.fn()} />);

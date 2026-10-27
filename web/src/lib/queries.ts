@@ -107,18 +107,6 @@ export function useRotationHistory(enabled = true) {
   return useQuery({ queryKey: keys.rotations, queryFn: api.getRotationHistory, enabled: !!session && enabled });
 }
 
-/** Checklist en vivo: se recalcula al cambiar el equipo y conserva el resultado anterior mientras tanto. */
-export function useTeamChecklist(pokemon: api.PokemonPayload[]) {
-  const { session } = useSession();
-  return useQuery({
-    queryKey: ["team", "validate", JSON.stringify(pokemon.map((p) => [p.name, p.held_item, p.color, p.generation, p.egg_groups, p.types]))],
-    queryFn: ({ signal }) => api.validateTeam(pokemon, signal),
-    enabled: !!session && pokemon.length > 0,
-    placeholderData: keepPreviousData,
-    staleTime: 30_000,
-  });
-}
-
 export function useRegisterTeam() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: api.registerTeam, onSuccess: () => qc.invalidateQueries({ queryKey: ["team"] }) });

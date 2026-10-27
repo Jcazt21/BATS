@@ -100,7 +100,10 @@ export function SlotBoard({ slots, maxSize, selected, onSelect, onAdd, onRemove,
               transition={reduce ? { duration: 0.15 } : spring.snappy}
               className={cn(
                 "relative flex w-32 shrink-0 snap-start items-center rounded-2xl bg-card shadow-sm ring-1 ring-border md:w-auto",
+                "transition-shadow duration-200 ease-ios motion-reduce:transition-none",
                 slot.banned && "ring-destructive/60",
+                // El anillo de selección transiciona por CSS: un layoutId dentro de un hijo de
+                // AnimatePresence frena la salida del slot (el slot quitado no se desmonta).
                 i === selected && "ring-2 ring-primary",
               )}
             >

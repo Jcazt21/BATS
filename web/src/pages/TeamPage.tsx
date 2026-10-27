@@ -33,7 +33,7 @@ import {
   useActiveSeason, useAddPokemon, useDexEssentials, useEditSet, useMe, usePlayerBans, useRegisterTeam, useRemovePokemon,
   useRoster, useRotationHistory, useSwapPokemon,
 } from "@/lib/queries";
-import { draftKey } from "@/lib/draft";
+import { clearDraft, draftKey } from "@/lib/draft";
 import { useSession } from "@/lib/session";
 import { toPaste } from "@/lib/showdown";
 import { useToast } from "@/lib/toast";
@@ -156,7 +156,12 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
   const remove = useRemovePokemon();
   const swap = useSwapPokemon();
   const add = useAddPokemon();
+  const me = useMe();
   const { toast } = useToast();
+  // Borradores de agregar/reemplazar: clave con contexto, para que descartar la hoja sin querer no pierda trabajo.
+  const baseKey = season.data && me.data ? draftKey(season.data.season_id, me.data.username) : undefined;
+  const addKey = baseKey && `${baseKey}:add`;
+  const swapKey = (id: number) => baseKey && `${baseKey}:swap:${id}`;
   const [removing, setRemoving] = useState<RosterPokemon | null>(null);
   const [swapping, setSwapping] = useState<RosterPokemon | null>(null);
   const [editing, setEditing] = useState<RosterPokemon | null>(null);
@@ -167,8 +172,8 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
   // Cierre pendiente de confirmar porque el sheet tiene cambios sin guardar.
   const [discard, setDiscard] = useState<(() => void) | null>(null);
 
-  const closeAdd = () => { setAdding(false); setAddDirty(false); };
-  const closeSwap = () => { setSwapping(null); setSwapDirty(false); };
+  const closeAdd = () => { setAdding(false); setAddDirty(false); if (addKey) clearDraft(addKey); };
+  const closeSwap = () => { if (swapping) { const k = swapKey(swapping.pokemon_id); if (k) clearDraft(k); } setSwapping(null); setSwapDirty(false); };
   const closeEdit = () => { setEditing(null); setEditDirty(false); };
   /** Cierra ya si no hay cambios; si los hay, pide confirmación primero. */
   const guardClose = (dirty: boolean, close: () => void) => { if (dirty) setDiscard(() => close); else close(); };
@@ -276,7 +281,7 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
       <ResponsiveSheet open={adding} onOpenChange={(o) => (o ? setAdding(true) : guardClose(addDirty, closeAdd))} title="Agregar pokémon" description={`Te caben ${room} más.`}>
         <TeamBuilder
           dex={dex} initial={[]} context={contextWithout()} season={ruleSeason} banned={banned} maxSize={room}
-          saveLabel="Agregar al equipo" inline onDirtyChange={setAddDirty}
+          saveLabel="Agregar al equipo" inline draftKey={addKey} onDirtyChange={setAddDirty}
           onSave={async (team) => {
             await add.mutateAsync(team.map((m) => toPayload(dex, m)));
             closeAdd();
@@ -294,7 +299,7 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
         {swapping && (
           <TeamBuilder
             dex={dex} initial={[]} context={contextWithout(swapping.pokemon_id)} season={ruleSeason} banned={banned} maxSize={1}
-            saveLabel="Reemplazar" inline onDirtyChange={setSwapDirty}
+            saveLabel="Reemplazar" inline draftKey={swapKey(swapping.pokemon_id)} onDirtyChange={setSwapDirty}
             onSave={async (team) => {
               await swap.mutateAsync({ removeId: swapping.pokemon_id, add: toPayload(dex, team[0]) });
               closeSwap();

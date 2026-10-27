@@ -3,7 +3,7 @@ import { X } from "lucide-react";
 import { SlotBoard, type Slot } from "@/components/team/SlotBoard";
 import { RulesBar } from "@/components/team/RulesBar";
 import { ActionBar } from "@/components/builder/ActionBar";
-import { TypeCoveragePanel, coverageSummary } from "@/components/team/TypeCoveragePanel";
+import { TypeCoveragePanel } from "@/components/team/TypeCoveragePanel";
 import { PasteIO, type ImportMode } from "@/components/builder/PasteIO";
 import { ResponsiveSheet } from "@/components/app/ResponsiveSheet";
 import { SetEditor } from "@/components/builder/SetEditor";
@@ -17,7 +17,7 @@ import type { DexEssentials, SpeciesFilters } from "@/lib/dex/snapshot";
 import { speciesById } from "@/lib/dex/snapshot";
 import { useLearnset, useLearnsets } from "@/lib/dex/useLearnset";
 import { checkSetProblems, checkTeam, type BuilderMon, type RuleSeason } from "@/lib/dex/validate";
-import { computeTypeCoverage } from "@/lib/dex/coverage";
+import { computeTypeCoverage, coverageSummary } from "@/lib/dex/coverage";
 import { teamErrorMessage } from "@/lib/dex/ruleMessages";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
@@ -58,8 +58,8 @@ function withUid(mon: BuilderMon): TeamItem {
 
 /**
  * Teambuilder completo: hasta `maxSize` pokémon (izquierda), el set del seleccionado
- * (derecha, SetEditor), reglas de la temporada en vivo (ChecklistPanel) y paste
- * import/export (PasteIO). `onSave` decide qué hace el llamador con el pool final
+ * (derecha, SetEditor), reglas de la temporada en vivo (RulesBar), cobertura y la barra
+ * de acción (guardar, importar/copiar). `onSave` decide qué hace el llamador con el pool final
  * (registrar, agregar, reemplazar): TeamBuilder no conoce la API.
  */
 export function TeamBuilder({ dex, initial, context = [], season, banned, maxSize, onSave, saveLabel = "Guardar", draftKey, onDirtyChange, inline }: Props) {

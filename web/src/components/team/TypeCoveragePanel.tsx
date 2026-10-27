@@ -1,18 +1,9 @@
 import { useId, useState } from "react";
 import { TypeBadge } from "@/components/app/TypeBadge";
 import { EmptyState } from "@/components/app/States";
-import type { CoverageRow } from "@/lib/dex/coverage";
+import { unanswered, type CoverageRow } from "@/lib/dex/coverage";
 import { typeLabel } from "@/lib/pokemon-types";
 import { cn } from "@/lib/utils";
-
-/** Un tipo sin respuesta: golpea a 2+ integrantes y nadie lo resiste ni es inmune. */
-export const unanswered = (row: CoverageRow) => row.weak.length >= 2 && row.resist.length + row.immune.length === 0;
-
-/** Resumen de una línea ("2 débiles a Tierra") para la barra móvil; null si no hay nada que señalar. */
-export function coverageSummary(rows: CoverageRow[]): string | null {
-  const worst = rows.filter((r) => r.sharedWeakness).sort((a, b) => b.weak.length - a.weak.length)[0];
-  return worst ? `${worst.weak.length} débiles a ${typeLabel(worst.type)}` : null;
-}
 
 function names(list: string[]) {
   return list.length ? list.join(", ") : "nadie";

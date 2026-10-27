@@ -1,7 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import { coverageSummary, TypeCoveragePanel } from "./TypeCoveragePanel";
+import { TypeCoveragePanel } from "./TypeCoveragePanel";
+import { coverageSummary } from "@/lib/dex/coverage";
 import { POKEMON_TYPES } from "@/lib/pokemon-types";
 import type { CoverageRow } from "@/lib/dex/coverage";
 

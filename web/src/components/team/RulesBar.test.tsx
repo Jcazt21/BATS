@@ -66,4 +66,14 @@ describe("RulesBar", () => {
     rerender(<RulesBar rows={rows()} season={season} inline />);
     expect(container.querySelector(".md\\:hidden")!.className).not.toMatch(/fixed/);
   });
+
+  it("al pasar de falla a cumple el icono se remonta y se funde (150ms) en vez de saltar", () => {
+    const fila = (ok: boolean): ChecklistRow[] => [{ rule: "item_clause", label: "Sin objetos repetidos", ok, names: [] }];
+    const { rerender, container } = renderWithProviders(<RulesBar rows={fila(false)} season={season} />);
+    const antes = container.querySelector("[data-status-icon]")!;
+    rerender(<RulesBar rows={fila(true)} season={season} />);
+    const despues = container.querySelector("[data-status-icon]")!;
+    expect(despues).not.toBe(antes);
+    expect(despues).toHaveClass("animate-in", "fade-in-0", "duration-150", "motion-reduce:animate-none");
+  });
 });

@@ -3,7 +3,7 @@ import { Loader2 } from "lucide-react";
 import { SlotBoard, type Slot } from "@/components/team/SlotBoard";
 import { RulesBar } from "@/components/team/RulesBar";
 import { RuleErrors } from "@/components/team/RuleErrors";
-import { TypeCoveragePanel } from "@/components/team/TypeCoveragePanel";
+import { TypeCoveragePanel, coverageSummary } from "@/components/team/TypeCoveragePanel";
 import { PasteIO, type ImportMode } from "@/components/builder/PasteIO";
 import { ResponsiveSheet } from "@/components/app/ResponsiveSheet";
 import { SetEditor } from "@/components/builder/SetEditor";
@@ -227,6 +227,7 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
           season={season}
           empty={team.length === 0}
           onAction={openPicker}
+          summary={coverageSummary(coverage)}
           inline={inline}
           sheetExtra={<div className="mt-4 md:hidden"><TypeCoveragePanel rows={coverage} empty={team.length === 0} /></div>}
         />
@@ -252,15 +253,15 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
             onMove={moveSlot}
           />
 
+          {/* Escritorio: la cobertura queda bajo los slots; en móvil va dentro de la hoja de reglas. */}
+          <div className="hidden md:block">
+            <TypeCoveragePanel rows={coverage} empty={team.length === 0} />
+          </div>
+
           <PasteIO dex={dex} team={team} maxSize={maxSize} onImport={importMons} />
         </div>
 
         {wide && <div className="rounded-2xl bg-card p-5 shadow-sm ring-1 ring-border">{editor}</div>}
-      </div>
-
-      {/* Escritorio: cobertura siempre visible; las reglas van en la barra de arriba. */}
-      <div className="hidden md:block">
-        <TypeCoveragePanel rows={coverage} empty={team.length === 0} />
       </div>
 
       {learnsets.error && (

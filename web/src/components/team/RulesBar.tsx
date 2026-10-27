@@ -17,6 +17,8 @@ interface Props {
   onAction?: (filters: SpeciesFilters) => void;
   /** Contenido extra de la hoja móvil (p. ej. la cobertura de tipos). */
   sheetExtra?: React.ReactNode;
+  /** Línea de cobertura para la barra móvil ("2 débiles a Tierra"). */
+  summary?: string | null;
   /** Dentro de una hoja el `fixed` queda atrapado por el transform: la barra va en línea. */
   inline?: boolean;
 }
@@ -44,7 +46,7 @@ function ordered(statuses: RuleStatus[]): RuleStatus[] {
  * color) y, si falta algo que un pokémon nuevo resuelve, la chip es un botón que abre el
  * buscador con el filtro. En móvil se reduce a un chip "N/M reglas" que abre una hoja.
  */
-export function RulesBar({ rows, season, empty, onAction, sheetExtra, inline }: Props) {
+export function RulesBar({ rows, season, empty, onAction, sheetExtra, summary, inline }: Props) {
   const [open, setOpen] = useState(false);
   const statuses = ordered(rows.map((r) => ruleStatus(r, season)));
   const passed = statuses.filter((s) => s.state === "pass").length;
@@ -104,8 +106,8 @@ export function RulesBar({ rows, season, empty, onAction, sheetExtra, inline }: 
       >
         <button type="button" onClick={() => setOpen(true)}
           className="press flex min-h-11 w-full max-w-md items-center justify-between gap-2 rounded-full bg-card px-4 text-subhead ring-1 ring-border outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          <span>Reglas</span>
-          <span className="flex items-center gap-2">{counter}<ChevronUp className="size-4" aria-hidden /></span>
+          <span className="min-w-0 truncate">Reglas{summary && <span className="text-footnote text-muted-foreground"> · {summary}</span>}</span>
+          <span className="flex shrink-0 items-center gap-2">{counter}<ChevronUp className="size-4" aria-hidden /></span>
         </button>
       </div>
 

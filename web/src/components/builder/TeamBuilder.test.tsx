@@ -38,11 +38,17 @@ describe("TeamBuilder", () => {
     render(<TeamBuilder dex={dex} initial={[mon("Dragonite"), mon("Garchomp")]} season={{ restrictions: {} }}
       banned={new Set()} maxSize={6} onSave={vi.fn()} />);
     const desktop = screen.getByRole("region", { name: "Cobertura de tipos" });
-    expect(within(desktop).getByText("Hielo")).toBeInTheDocument();
+    expect(within(desktop).getAllByText("Hielo").length).toBeGreaterThan(0);
     expect(within(desktop).getAllByText(/Dragonite, Garchomp/).length).toBeGreaterThan(0);
     await user.click(screen.getByRole("button", { name: /^Reglas/ }));
     const sheet = await screen.findByRole("dialog");
     expect(within(sheet).getByRole("region", { name: "Cobertura de tipos" })).toBeInTheDocument();
+  });
+
+  it("la barra móvil resume la peor debilidad en una línea", () => {
+    render(<TeamBuilder dex={dex} initial={[mon("Dragonite"), mon("Garchomp")]} season={{ restrictions: {} }}
+      banned={new Set()} maxSize={6} onSave={vi.fn()} />);
+    expect(screen.getByRole("button", { name: /^Reglas/ })).toHaveTextContent("2 débiles a Hielo");
   });
 
   it("con el equipo vacío el botón queda apagado y explica por qué", () => {

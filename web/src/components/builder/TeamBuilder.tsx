@@ -49,6 +49,8 @@ interface Props {
 }
 
 const DRAFT_DEBOUNCE_MS = 500;
+/** Referencia estable: un `[]` por defecto nuevo en cada render invalidaría los useMemo. */
+const NO_CONTEXT: BuilderMon[] = [];
 
 interface TeamItem { uid: string; mon: BuilderMon }
 
@@ -62,7 +64,7 @@ function withUid(mon: BuilderMon): TeamItem {
  * de acción (guardar, importar/copiar). `onSave` decide qué hace el llamador con el pool final
  * (registrar, agregar, reemplazar): TeamBuilder no conoce la API.
  */
-export function TeamBuilder({ dex, initial, context = [], season, banned, maxSize, onSave, saveLabel = "Guardar", draftKey, onDirtyChange, inline }: Props) {
+export function TeamBuilder({ dex, initial, context = NO_CONTEXT, season, banned, maxSize, onSave, saveLabel = "Guardar", draftKey, onDirtyChange, inline }: Props) {
   // Cada pokémon lleva un uid estable para que React no mezcle tarjetas al quitar o reordenar.
   // El borrador solo se restaura en un registro nuevo (`initial` vacío).
   const [restored] = useState(() => (draftKey && initial.length === 0 ? loadDraft(draftKey) : null));
@@ -72,7 +74,7 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
   const team = useMemo(() => items.map((it) => it.mon), [items]);
   // Último equipo (JSON) que ya está reflejado en el borrador: evita reescribirlo sin cambios.
   const draftedRef = useRef(JSON.stringify(restored ? restored.team : initial));
-  const dirty = JSON.stringify(team) !== JSON.stringify(initial);
+  const dirty = useMemo(() => JSON.stringify(team) !== JSON.stringify(initial), [team, initial]);
 
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
 
@@ -99,20 +101,23 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const combined = [...context, ...team];
-  const { rows } = checkTeam(dex, combined, season, banned, false);
+  const combined = useMemo(() => [...context, ...team], [context, team]);
+  const rows = useMemo(() => checkTeam(dex, combined, season, banned, false).rows, [dex, combined, season, banned]);
   const coverage = useMemo(() => computeTypeCoverage(dex, team), [dex, team]);
-  const hints = buildHints(rows, season);
+  const hints = useMemo(() => buildHints(rows, season), [rows, season]);
 
-  const speciesIds = team.map((m) => speciesById(dex, m.species)?.id).filter((id): id is string => !!id);
+  const speciesIds = useMemo(
+    () => team.map((m) => speciesById(dex, m.species)?.id).filter((id): id is string => !!id),
+    [dex, team],
+  );
   const learnsets = useLearnsets(speciesIds);
   // Problemas de cada set; una especie desconocida cuenta como 1 (no se puede validar).
-  const setProblems = team.map((m) => {
+  const setProblems = useMemo(() => team.map((m) => {
     const id = speciesById(dex, m.species)?.id;
     const problems = checkSetProblems(dex, id ? learnsets.map[id] ?? null : null, m);
     return { name: m.species, count: id ? problems.length : 1, problems };
-  });
-  const slots: Slot[] = items.map(({ uid, mon: m }, i) => {
+  }), [dex, team, learnsets.map]);
+  const slots: Slot[] = useMemo(() => items.map(({ uid, mon: m }, i) => {
     const sp = speciesById(dex, m.species);
     return {
       uid,
@@ -122,24 +127,29 @@ export function TeamBuilder({ dex, initial, context = [], season, banned, maxSiz
       status: slotStatus(m, setProblems[i].problems, learnsets.pending),
       hasContent: !!(m.held_item || m.ability || m.moves.length),
     };
-  });
+  }), [items, dex, banned, setProblems, learnsets.pending]);
   // Con learnsets pendientes o fallidos no se puede dar el equipo por válido.
   // Con contexto (agregar/reemplazar) el servidor no corre check_team: solo rechaza baneados
   // entre los pokémon NUEVOS y el desborde de tamaño. Las demás reglas son solo informativas.
-  const blockingRows = context.length === 0
-    ? rows
-    : [
-      ...rows.filter((r) => r.rule === "team_size"),
-      ...checkTeam(dex, team, season, banned, false).rows.filter((r) => r.rule === "banned"),
-    ];
-  const blockers = saveBlockerItems({
-    team, rows: blockingRows, setErrors: setProblems, learnsetsPending: learnsets.pending, learnsetsError: !!learnsets.error,
-  });
+  const blockers = useMemo(() => {
+    const blockingRows = context.length === 0
+      ? rows
+      : [
+        ...rows.filter((r) => r.rule === "team_size"),
+        ...checkTeam(dex, team, season, banned, false).rows.filter((r) => r.rule === "banned"),
+      ];
+    return saveBlockerItems({
+      team, rows: blockingRows, setErrors: setProblems, learnsetsPending: learnsets.pending, learnsetsError: !!learnsets.error,
+    });
+  }, [context, rows, dex, team, season, banned, setProblems, learnsets.pending, learnsets.error]);
 
   const selectedMon = team[selected] ?? null;
   const selectedSpecies = selectedMon ? speciesById(dex, selectedMon.species) : null;
   const { learnset: selectedLearnset } = useLearnset(selectedSpecies?.id ?? null);
-  const selectedProblems = selectedMon ? checkSetProblems(dex, selectedLearnset, selectedMon) : [];
+  const selectedProblems = useMemo(
+    () => (selectedMon ? checkSetProblems(dex, selectedLearnset, selectedMon) : []),
+    [dex, selectedMon, selectedLearnset],
+  );
 
   function updateSelected(mon: BuilderMon) {
     setItems((cur) => cur.map((it, i) => (i === selected ? { ...it, mon } : it)));

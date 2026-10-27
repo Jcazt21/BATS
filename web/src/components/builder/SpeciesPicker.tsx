@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Check, ChevronDown, X } from "lucide-react";
 import { PokemonSprite } from "@/components/app/PokemonSprite";
 import { ResponsiveSheet } from "@/components/app/ResponsiveSheet";
@@ -107,7 +107,9 @@ export function SpeciesPicker({
     [team, dex],
   );
 
-  const matches = useMemo(() => searchSpecies(dex, query, filters, sort), [dex, query, filters, sort]);
+  // La caja de texto responde al instante; la búsqueda sobre todo el dex va un paso detrás.
+  const deferredQuery = useDeferredValue(query);
+  const matches = useMemo(() => searchSpecies(dex, deferredQuery, filters, sort), [dex, deferredQuery, filters, sort]);
   const results = matches.slice(0, limit);
   const active = [
     filters.type && { key: "type" as const, label: `Tipo ${filters.type}` },
@@ -136,6 +138,11 @@ export function SpeciesPicker({
     setLastAdded(sp.name);
     if (progress && progress.count + 1 >= progress.max) onOpenChange(false);
   }
+
+  // `pick` cambia en cada render; las filas memoizadas reciben una versión estable.
+  const pickRef = useRef(pick);
+  pickRef.current = pick;
+  const stablePick = useCallback((sp: Species) => pickRef.current(sp), []);
 
   function onSearchKey(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -298,39 +305,16 @@ export function SpeciesPicker({
         )}
 
         <ul className="flex flex-col divide-y divide-border overflow-y-auto">
-          {results.map((sp, i) => {
-            const used = usedIds.has(sp.id);
-            const isBanned = banned.has(sp.name.toLowerCase());
-            return (
-              <li key={sp.id}>
-                <button
-                  type="button"
-                  disabled={used || isBanned}
-                  data-active={i === cursor || undefined}
-                  onClick={() => pick(sp)}
-                  className="flex min-h-14 w-full items-center gap-3 px-1 py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40 data-[active]:bg-muted"
-                >
-                  <PokemonSprite species={sp.name} size={40} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="truncate font-medium">{sp.name}</span>
-                      {used && <Badge variant="secondary">En el equipo</Badge>}
-                      {sp.paradox && <Badge variant="warning">Paradox</Badge>}
-                      {sp.pseudo && <Badge variant="info">Pseudo</Badge>}
-                      {sp.restricted && <Badge variant="destructive">Restringido</Badge>}
-                      {sp.ultraBeast && <Badge variant="destructive">Ultra Beast</Badge>}
-                      {!sp.leagueLegal && <Badge variant="destructive">No legal</Badge>}
-                      {isBanned && <Badge variant="destructive">Baneado esta temporada</Badge>}
-                    </div>
-                    <div className="flex items-center gap-2 text-caption text-muted-foreground">
-                      <TypeBadges types={sp.types.join(" / ")} />
-                      <span>BST {sp.bst}</span>
-                    </div>
-                  </div>
-                </button>
-              </li>
-            );
-          })}
+          {results.map((sp, i) => (
+            <SpeciesRow
+              key={sp.id}
+              sp={sp}
+              used={usedIds.has(sp.id)}
+              banned={banned.has(sp.name.toLowerCase())}
+              active={i === cursor}
+              onPick={stablePick}
+            />
+          ))}
           {results.length === 0 && (
             <li className="px-1 py-6 text-center text-footnote text-muted-foreground">Sin resultados.</li>
           )}
@@ -339,3 +323,39 @@ export function SpeciesPicker({
     </ResponsiveSheet>
   );
 }
+
+interface RowProps { sp: Species; used: boolean; banned: boolean; active: boolean; onPick: (sp: Species) => void }
+
+/** Fila del buscador: memoizada, así teclear o mover el cursor no repinta cientos de filas. */
+const SpeciesRow = memo(function SpeciesRow({ sp, used, banned, active, onPick }: RowProps) {
+  return (
+    // content-visibility: el navegador omite el layout/pintado de las filas fuera de pantalla.
+    <li className="[contain-intrinsic-size:auto_3.5rem] [content-visibility:auto]">
+      <button
+        type="button"
+        disabled={used || banned}
+        data-active={active || undefined}
+        onClick={() => onPick(sp)}
+        className="flex min-h-14 w-full items-center gap-3 px-1 py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40 data-[active]:bg-muted"
+      >
+        <PokemonSprite species={sp.name} size={40} />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="truncate font-medium">{sp.name}</span>
+            {used && <Badge variant="secondary">En el equipo</Badge>}
+            {sp.paradox && <Badge variant="warning">Paradox</Badge>}
+            {sp.pseudo && <Badge variant="info">Pseudo</Badge>}
+            {sp.restricted && <Badge variant="destructive">Restringido</Badge>}
+            {sp.ultraBeast && <Badge variant="destructive">Ultra Beast</Badge>}
+            {!sp.leagueLegal && <Badge variant="destructive">No legal</Badge>}
+            {banned && <Badge variant="destructive">Baneado esta temporada</Badge>}
+          </div>
+          <div className="flex items-center gap-2 text-caption text-muted-foreground">
+            <TypeBadges types={sp.types.join(" / ")} />
+            <span>BST {sp.bst}</span>
+          </div>
+        </div>
+      </button>
+    </li>
+  );
+});

@@ -107,9 +107,9 @@ function Register({ dex, maxSize }: { dex: DexEssentials; maxSize: number }) {
   const { toast } = useToast();
   const [dirty, setDirty] = useState(false);
   const banned = useMemo(() => new Set((bans.data ?? []).map((b) => b.name.toLowerCase())), [bans.data]);
-  const ruleSeason: RuleSeason = {
+  const ruleSeason: RuleSeason = useMemo(() => ({
     type_of_month: season.data?.type_of_month, max_team_size: maxSize, restrictions: season.data?.restrictions ?? {},
-  };
+  }), [season.data, maxSize]);
   // Sin temporada o sin usuario no hay clave estable: se trabaja sin borrador.
   const key = season.data && me.data ? draftKey(season.data.season_id, me.data.username) : undefined;
   // El borrador se restaura al montar TeamBuilder: hay que esperar a tener la clave (si me falla, sin borrador).
@@ -181,9 +181,9 @@ function RosterView({ closed, dex }: { closed: boolean; dex: DexEssentials }) {
   const r = roster.data!;
   const banned = useMemo(() => new Set((bans.data ?? []).map((b) => b.name.toLowerCase())), [bans.data]);
   const room = r.max_team_size - r.pool.length;
-  const ruleSeason: RuleSeason = {
+  const ruleSeason: RuleSeason = useMemo(() => ({
     type_of_month: season.data?.type_of_month, max_team_size: r.max_team_size, restrictions: season.data?.restrictions ?? {},
-  };
+  }), [season.data, r.max_team_size]);
   const contextWithout = (id?: number): BuilderMon[] => r.pool.filter((p) => p.pokemon_id !== id).map(toBuilderMon);
 
   async function copy(mons: RosterPokemon[] = r.pool) {

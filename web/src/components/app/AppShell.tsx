@@ -84,7 +84,7 @@ function TopBar({ scrolled }: { scrolled: boolean }) {
         <NavLink to="/" className="press flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="BATS, inicio">
           <span className="font-heading text-title3 tracking-tight">BATS</span>
           <span className="rounded-full bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase leading-none tracking-wider text-muted-foreground">
-            Beta
+            Beta · V 0.1
           </span>
         </NavLink>
 

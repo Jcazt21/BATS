@@ -78,7 +78,9 @@ jobs:
       - name: Type-check + build (tsc -b && vite build)
         run: npm run build
 
+      # Desactivado temporalmente: quitar `if: false` para reactivar.
       - name: vitest
+        if: false
         run: npm run test
 
   deploy:

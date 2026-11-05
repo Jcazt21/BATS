@@ -32,7 +32,7 @@ export function HomePage() {
       <HomePillar />
       <PageHeader
         eyebrow={season.data ? `${season.data.season_name} · Tipo del mes` : "PinchesGueys League"}
-        title={tipoDelMes ? `Temporada de ${tipoDelMes}` : "PinchesGueys League"}
+        title={`${tipoDelMes ? `Temporada de ${tipoDelMes}` : "PinchesGueys League"} (prueba)`}
         subtitle={season.data?.type_of_month ? <TypeBadges types={season.data.type_of_month} /> : undefined}
       />
 

@@ -196,6 +196,27 @@ class TestStatsDesdeVistas(unittest.TestCase):
                 got = self.client.get("/api/stats/summary", params={"season_id": sid} if sid else {}).json()["top_win_rate"]
                 self.assertTrue(abs(got - round(best, 1)) < 0.06, (got, best))
 
+    def test_recent_battles(self):
+        """Feed del inicio: de más reciente a más antigua, con ganador y perdedor, filtrable por temporada."""
+        rows = self.client.get("/api/stats/recent-battles",
+                               params={"season_id": self.season_ids[1], "limit": 10}).json()
+        self.assertEqual(len(rows), 4)
+        self.assertEqual([r["date"][:10] for r in rows], ["2031-02-08", "2031-02-07", "2031-02-06", "2031-02-05"])
+        for r in rows:
+            self.assertIn(r["winner"], ("Ash", "Gary"))
+            self.assertNotEqual(r["winner"], r["loser"])
+            self.assertEqual(sorted(r["players"]), sorted([r["winner"], r["loser"]]))
+        self.assertEqual(len(self.client.get("/api/stats/recent-battles", params={"limit": 2}).json()), 2)
+        self.assertEqual(self.client.get("/api/stats/recent-battles", params={"limit": 0}).status_code, 422)
+
+    def test_perfil_trae_insignias(self):
+        """Ash gana 5 de 8: ya tiene la primera victoria; ninguna racha de 5."""
+        prof = self.client.get("/api/players/Ash").json()
+        badges = {b["id"]: b for b in prof["badges"]}
+        self.assertEqual([b["id"] for b in prof["badges"]], ["first_win", "streak_3", "mvp", "streak_5"])
+        self.assertTrue(badges["first_win"]["earned"])
+        self.assertFalse(badges["streak_5"]["earned"])
+
     def test_ya_no_recalcula_sobre_tablas_base(self):
         """Las rutas de métricas leen la vista: ninguna query nombra fact_pokemon_performance."""
         import inspect

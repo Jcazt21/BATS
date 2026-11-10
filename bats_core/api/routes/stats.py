@@ -191,6 +191,42 @@ def get_leaderboard(season_id: Optional[int] = Query(None)):
     return rows
 
 
+# ── Actividad reciente ────────────────────────────────────────────────────────
+
+@router.get("/recent-battles")
+def get_recent_battles(season_id: Optional[int] = Query(None), limit: int = Query(8, ge=1, le=50)):
+    """Últimas batallas entre jugadores (sin bots) para el feed del inicio. Opcional: ?season_id=X"""
+    sf, sp = _season_filter(season_id)
+    with get_db() as db:
+        rows = db.fetchall(
+            f"""
+            SELECT fb.battle_id, fb.battle_date, fb.total_turns, fb.end_type, fb.logged_at,
+                   p1.username AS p1, p2.username AS p2, w.username AS winner
+            FROM battle.fact_battles fb
+            JOIN battle.dim_players p1 ON p1.player_id = fb.p1_id
+            JOIN battle.dim_players p2 ON p2.player_id = fb.p2_id
+            LEFT JOIN battle.dim_players w ON w.player_id = fb.winner_id
+            WHERE NOT fb.is_bot_battle AND NOT p1.is_bot AND NOT p2.is_bot {sf}
+            ORDER BY fb.battle_date DESC, fb.logged_at DESC
+            LIMIT %s
+            """,
+            sp + (limit,),
+        )
+    return [
+        {
+            "battle_id": r["battle_id"],
+            "date": iso(r["battle_date"]),
+            "winner": r["winner"],
+            # Empate: sin ganador, `loser` también va vacío.
+            "loser": None if r["winner"] is None else (r["p2"] if r["winner"] == r["p1"] else r["p1"]),
+            "players": [r["p1"], r["p2"]],
+            "turns": r["total_turns"],
+            "end_type": r["end_type"],
+        }
+        for r in rows
+    ]
+
+
 # ── Bot Battle Endpoints ───────────────────────────────────────────────────────
 
 @router.get("/bot/summary")

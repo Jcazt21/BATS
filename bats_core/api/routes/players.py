@@ -35,6 +35,26 @@ def _streak(results: list[bool]) -> dict:
     return {"type": "win" if first else "loss", "length": n}
 
 
+def _best_win_streak(results: list[bool]) -> int:
+    """Mejor racha de victorias seguidas. `results` en cualquier orden cronológico (True = victoria)."""
+    best = run = 0
+    for r in results:
+        run = run + 1 if r else 0
+        best = max(best, run)
+    return best
+
+
+def _badges(wins: int, best_streak: int, is_mvp_leader: bool) -> list[dict]:
+    """Insignias del carnet. Todas salen siempre (`earned` dice si se ganó) para que el
+    front pinte las bloqueadas sin saber las reglas."""
+    return [
+        {"id": "first_win", "glyph": "★", "label": "Primera victoria", "earned": wins >= 1},
+        {"id": "streak_3", "glyph": "3×", "label": "Racha de 3 victorias", "earned": best_streak >= 3},
+        {"id": "mvp", "glyph": "M", "label": "MVP de la liga", "earned": is_mvp_leader},
+        {"id": "streak_5", "glyph": "5×", "label": "Racha de 5 victorias", "earned": best_streak >= 5},
+    ]
+
+
 @router.get("/{username}")
 def get_player(username: str, season_id: Optional[int] = Query(None)):
     key = username.strip().lower()
@@ -75,6 +95,15 @@ def get_player(username: str, season_id: Optional[int] = Query(None)):
             (name,) + mvp,
         )
 
+        mvp_leader = db.fetchone(
+            f"""
+            SELECT username FROM battle.mv_mvp_leaderboard
+            WHERE TRUE {mvf}
+            ORDER BY total_mvp_score DESC LIMIT 1
+            """,
+            mvp,
+        )
+
         sf = "AND fb.season_id = %s" if season_id is not None else ""
         sp = (season_id,) if season_id is not None else ()
         games = db.fetchall(
@@ -110,6 +139,11 @@ def get_player(username: str, season_id: Optional[int] = Query(None)):
         },
         "mvp": {"total": float(mvp_row["mvp"]), "kills": int(mvp_row["kills"])},
         "streak": _streak([bool(g["won"]) for g in games]),
+        "badges": _badges(
+            wins,
+            _best_win_streak([bool(g["won"]) for g in reversed(games)]),
+            bool(mvp_leader and mvp_leader["username"] == name),
+        ),
         "top_pokemon": [
             {"species": t["species"], "uses": int(t["uses"]), "kills": int(t["kills"]),
              "mvp": float(t["mvp"]), "avg_mvp": float(t["avg_mvp"] or 0)}

@@ -15,14 +15,14 @@ web/                  frontend React + Vite (SPA)
 tests/                pytest
 tools/                export_dex.js, check_dex_export.js, roster_parity.js
 vercel.json           SPA estática + función Python
-MIGRACION_VERCEL_SUPABASE.md   plan y estado de la migración
+docs/                 planes, MIGRACION_VERCEL_SUPABASE.md, BATS_DOCS.md, postman
 ```
 
 ## Documentación — léela antes de tocar BATS
 
-- `MIGRACION_VERCEL_SUPABASE.md`: empieza por "Estado de la ejecución".
-- `BATS_DOCS.md`: módulos, rutas, esquema de DB, fórmulas. **Parcialmente desactualizado** (watcher, Docker, endpoints de carpetas del ETL Cleaner); si choca con el código, manda el código.
-- `PLAN_TEAMBUILDER.md`: orden de despliegue del dex.
+- `docs/MIGRACION_VERCEL_SUPABASE.md`: empieza por "Estado de la ejecución".
+- `docs/BATS_DOCS.md`: módulos, rutas, esquema de DB, fórmulas. **Parcialmente desactualizado** (watcher, Docker, endpoints de carpetas del ETL Cleaner); si choca con el código, manda el código.
+- `docs/planes/PLAN_TEAMBUILDER.md`: orden de despliegue del dex.
 
 ## Comandos
 

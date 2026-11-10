@@ -1,6 +1,6 @@
 # Evidencia — paleta "Tipo del mes vivo"
 
-Plan: [PLAN_PALETA.md](../../PLAN_PALETA.md). Lecturas hechas con `getComputedStyle` en Claude in Chrome (localhost:5173).
+Plan: [PLAN_PALETA.md](../planes/PLAN_PALETA.md). Lecturas hechas con `getComputedStyle` en Claude in Chrome (localhost:5173).
 
 ## Antes (F0) — paleta Apple HIG, commit 5c5a029
 

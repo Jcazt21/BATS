@@ -637,7 +637,7 @@ API resuelve identidad y rol en `tournament.player_accounts`.
 **⚠️ Sección reescrita** (la versión anterior describía rutas por `{username}` en la URL; la
 identidad sale siempre de la sesión, nunca de la URL ni del body — ver "Seguridad" en
 `CLAUDE.md`). Detalle completo del diseño en
-[PLAN_TEAMBUILDER.md](PLAN_TEAMBUILDER.md).
+[PLAN_TEAMBUILDER.md](planes/PLAN_TEAMBUILDER.md).
 
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|

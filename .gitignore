@@ -10,7 +10,7 @@ __pycache__/
 pyproject.toml
 
 # Secretos y config local (bats/.env y bats/web/.env)
-.env
+.env*
 *.local
 
 # Cache de PokéAPI y bans locales (los bans reales viven en pokemon-showdown/)
@@ -22,14 +22,21 @@ web/node_modules/
 web/dist/
 web/dist-ssr/
 
+# Residuo de npm en la raíz (el frontend vive en web/)
+/package-lock.json
+/package.json
+/node_modules/
+
 # Editor / OS
 .vscode/*
 !.vscode/extensions.json
 .idea
 .DS_Store
 *.log
-.env.*
+
+# Herramientas locales
 .vercel
-.env*
-propuestas/
 .worktrees/
+.superpowers/
+.claude/settings.local.json
+propuestas/

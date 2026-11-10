@@ -15,6 +15,17 @@
   font-display: swap;
 }
 
+/* La versión gratuita de Nofex (Free Personal Use) cambia los dígitos 0-9 por un anuncio de
+   Ronny Studio. Mismo nombre de familia y solo para dígitos: el navegador usa este archivo
+   para los números y Nofex para el resto. Se declara con peso 400 aunque el archivo es el 700. */
+@font-face {
+  font-family: "Nofex";
+  src: url("@fontsource/space-grotesk/files/space-grotesk-latin-700-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+  unicode-range: U+0030-0039;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @layer base {

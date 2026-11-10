@@ -417,6 +417,8 @@ export interface PlayerProfile {
   };
   mvp:    { total: number; kills: number };
   streak: { type: "win" | "loss" | null; length: number };
+  /** Calculadas en el servidor; `earned: false` = bloqueada. */
+  badges: { id: string; glyph: string; label: string; earned: boolean }[];
   top_pokemon: { species: string; uses: number; kills: number; mvp: number; avg_mvp: number }[];
   recent: { battle_id: string; date: string | null; opponent: string; won: boolean; turns: number; end_type: string }[];
   roster: {
@@ -517,6 +519,13 @@ export const getLeagueSummary = (seasonId?: number) => request<LeagueSummary>("/
 export const getMvpTop5 = (seasonId?: number) => request<MvpEntry[]>("/api/stats/mvp", { params: { season_id: seasonId } });
 export const getPickRate = (seasonId?: number) => request<PickRateEntry[]>("/api/stats/pickrate", { params: { season_id: seasonId } });
 export const getLeaderboard = (seasonId?: number) => request<LeaderboardEntry[]>("/api/stats/leaderboard", { params: { season_id: seasonId } });
+/** Batalla del feed de actividad. Empate: `winner` y `loser` son null. */
+export interface RecentBattle {
+  battle_id: string; date: string | null; winner: string | null; loser: string | null;
+  players: [string, string]; turns: number; end_type: string;
+}
+export const getRecentBattles = (limit = 8, seasonId?: number) =>
+  request<RecentBattle[]>("/api/stats/recent-battles", { params: { limit, season_id: seasonId } });
 export const getBattleDetails = (battleId: string) => request<BattleDetailEntry[]>(`/api/stats/battles/${encodeURIComponent(battleId)}`);
 
 export const getBotSummary = () => request<BotSummaryEntry[]>("/api/stats/bot/summary");

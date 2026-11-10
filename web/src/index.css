@@ -1,9 +1,19 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-@import "@fontsource-variable/instrument-sans/wdth.css";
+@import "@fontsource-variable/geist/wght.css";
 @import "@fontsource-variable/geist-mono/wght.css";
+@import "@fontsource/space-grotesk/500.css";
+@import "@fontsource/space-grotesk/700.css";
+@import "@fontsource/jetbrains-mono/500.css";
 @import "./styles/tokens.css";
+
+@font-face {
+  font-family: "Nofex";
+  src: url("/fonts/nofex.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
 
 @custom-variant dark (&:is(.dark *));
 
@@ -92,4 +102,13 @@ html.theme-transition *,
 html.theme-transition *::before,
 html.theme-transition *::after {
   transition: background-color 250ms ease, color 250ms ease, border-color 250ms ease, fill 250ms ease !important;
+}
+
+/* Lo grande va en Nofex (una sola fuente de peso 400: sin negrita sintética y sin tracking apretado,
+   que ya es una fuente expandida). Lo pequeño (headline, cuerpo, h3/h4) se queda en Geist Sans */
+:where(h1, h2, .text-display, .text-title1, .text-title2, .text-title3) {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: 0;
 }

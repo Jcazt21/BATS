@@ -27,3 +27,14 @@ export function hueIndex(name: string, buckets = 6): number {
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
   return h % buckets;
 }
+
+/** "hoy", "ayer" o la fecha corta. `now` se inyecta para poder probarlo. */
+export function haceCuanto(iso: string | null, now: Date = new Date()): string {
+  if (!iso) return "—";
+  const day = (d: Date) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  const then = new Date(iso);
+  const diff = Math.round((day(now) - Date.UTC(then.getUTCFullYear(), then.getUTCMonth(), then.getUTCDate())) / 86_400_000);
+  if (diff <= 0) return "hoy";
+  if (diff === 1) return "ayer";
+  return fmtDateShort(iso);
+}

@@ -71,8 +71,11 @@ export const usePokedexEntry = (species: string, s?: number) =>
 /** Detalle pokémon a pokémon de una batalla; solo se pide cuando hay una elegida. */
 export const useBattleDetails = (battleId: string | null) =>
   useQuery({ queryKey: ["stats", "battle", battleId], queryFn: () => api.getBattleDetails(battleId!), enabled: !!battleId });
+/** Con `username` vacío no pide nada (p. ej. mientras aún no se sabe quién soy). */
 export const usePlayerProfile = (username: string, s?: number) =>
-  useQuery({ queryKey: keys.player(username, s), queryFn: () => api.getPlayerProfile(username, s) });
+  useQuery({ queryKey: keys.player(username, s), queryFn: () => api.getPlayerProfile(username, s), enabled: !!username });
+export const useRecentBattles = (limit = 8, s?: number) =>
+  useQuery({ queryKey: ["stats", "recent", limit, s ?? "all"], queryFn: () => api.getRecentBattles(limit, s), refetchInterval: 60_000 });
 
 /** La votación se mira en vivo: refresco cada 10 s mientras la pestaña esté visible. */
 export const useBanRanking = () =>

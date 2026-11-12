@@ -1,8 +1,11 @@
 import { getAccessToken, signOut } from "@/lib/session";
 
 // En Vercel el SPA y la API comparten origen (VITE_API_URL vacío → rutas relativas).
-// En desarrollo, Vite hace proxy de /api hacia localhost:8001.
+// En desarrollo, Vite hace proxy de /api hacia 127.0.0.1:8011.
 const BASE = import.meta.env.VITE_API_URL || "";
+
+/** URL absoluta (o relativa en Vercel) de una ruta del API, para usarla en `<img src>`. */
+export const apiUrl = (path: string): string => `${BASE}${path}`;
 
 /** Error de la API: `status` HTTP y `detail` tal como lo devolvió el servidor. */
 export class ApiError extends Error {

@@ -13,6 +13,9 @@ interface Props {
 /** Sprite con reserva de espacio (sin saltos de layout), fundido al cargar y silueta si la imagen falla. */
 export function PokemonSprite({ species, src, size = 48, className }: Props) {
   const [failed, setFailed] = useState(false);
+  // pokemondb no tiene sprite HOME para las formas Gigantamax: se reintenta con la forma base.
+  const [fallback, setFallback] = useState(false);
+  const url = src || spriteUrl(fallback ? species.replace(/-gmax$/i, "") : species);
   return (
     <span
       className={cn("inline-flex shrink-0 items-center justify-center", className)}
@@ -22,13 +25,13 @@ export function PokemonSprite({ species, src, size = 48, className }: Props) {
         <span aria-hidden className="size-2/3 rounded-full bg-muted" />
       ) : (
         <img
-          src={src || spriteUrl(species)}
+          src={url}
           alt=""
           width={size}
           height={size}
           loading="lazy"
           decoding="async"
-          onError={() => setFailed(true)}
+          onError={() => (!fallback && !src && /-gmax$/i.test(species) ? setFallback(true) : setFailed(true))}
           // Aparece con un fundido al terminar de descargar, no a trozos ni de golpe.
           onLoad={(e) => e.currentTarget.setAttribute("data-loaded", "")}
           className="object-contain opacity-0 transition-opacity duration-300 data-loaded:opacity-100"

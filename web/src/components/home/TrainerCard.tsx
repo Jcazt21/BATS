@@ -1,3 +1,5 @@
+import { useState } from "react";
+import { ReflectiveCard } from "@/components/ui/reflective-card";
 import { initials, num, pct } from "@/lib/format";
 import type { PlayerProfile } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -12,23 +14,67 @@ export interface TrainerCardProps {
   className?: string;
 }
 
+/** oklch (L, C, h°) → "rgb(r, g, b)" sRGB, para teñir el metal con el tipo del mes. */
+function oklchToRgb(l: number, c: number, hDeg: number): [number, number, number] {
+  const h = (hDeg * Math.PI) / 180;
+  const a = c * Math.cos(h);
+  const b = c * Math.sin(h);
+  const l_ = (l + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+  const m_ = (l - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+  const s_ = (l - 0.0894841775 * a - 1.291485548 * b) ** 3;
+  const lin = [
+    4.0767416621 * l_ - 3.3077115913 * m_ + 0.2309699292 * s_,
+    -1.2684380046 * l_ + 2.6097574011 * m_ - 0.3413193965 * s_,
+    -0.0041960863 * l_ - 0.7034186147 * m_ + 1.707614701 * s_,
+  ];
+  const [r, g, bl] = lin.map((v) => {
+    const x = Math.min(1, Math.max(0, v));
+    return Math.round(255 * (x <= 0.0031308 ? 12.92 * x : 1.055 * x ** (1 / 2.4) - 0.055));
+  });
+  return [r, g, bl];
+}
+
+/** Tinte del metal (`--month-h`) y radio (`--radius-card`), leídos una vez al montar; el tipo del mes casi no cambia. */
+function useMonthLook(): { tint: [number, number, number]; radius: number } {
+  const [look] = useState(() => {
+    const css = getComputedStyle(document.documentElement);
+    const h = parseFloat(css.getPropertyValue("--month-h"));
+    const radius = parseFloat(css.getPropertyValue("--radius-card"));
+    return {
+      tint: Number.isFinite(h) ? oklchToRgb(0.82, 0.07, h) : ([255, 255, 255] as [number, number, number]),
+      radius: Number.isFinite(radius) ? radius : 28,
+    };
+  });
+  return look;
+}
+
+const MONTH_FALLBACK = "linear-gradient(165deg,oklch(0.5 0.09 var(--month-h,210)),oklch(0.27 0.05 var(--month-h,210)))";
+
 /**
- * Carnet del entrenador: 380×485, degradado del tipo del mes y el puesto como marca de agua.
+ * Carnet del entrenador sobre una placa metálica reflectante teñida con el tipo del mes (ancho el de su columna, 380–480 px, ver STATE_GRID en HomePage;
+ * alto mínimo 485 y se estira a la altura del equipo)
+ * y el puesto como marca de agua. Sin WebGL2 se ve el degradado del mes.
  * Los datos ya vienen calculados (récord, racha e insignias salen del servidor).
  */
 export function TrainerCard({ username, season, rank, totalPlayers, profile, className }: TrainerCardProps) {
   const streak = profile?.streak;
+  const { tint, radius } = useMonthLook();
   return (
+    <ReflectiveCard
+      width="100%"
+      height="100%"
+      radius={radius}
+      tint={tint}
+      tiltStrength={10}
+      className={cn("min-h-[485px] rounded-[var(--radius-card)]", className)}
+      style={{ "--rc-base": MONTH_FALLBACK, "--rc-pad": "24px" } as React.CSSProperties}
+    >
     <section
       aria-label="Tu carnet"
-      className={cn(
-        "relative flex h-[485px] w-full flex-col justify-between overflow-hidden rounded-[var(--radius-card)] p-6 font-card text-white lg:w-[380px] [container-type:inline-size]",
-        "bg-[linear-gradient(165deg,oklch(0.5_0.09_var(--month-h,210)),oklch(0.27_0.05_var(--month-h,210)))]",
-        className,
-      )}
+      className="relative flex h-full w-full flex-col justify-between font-card text-white [container-type:inline-size]"
     >
       {rank != null && (
-        <span aria-hidden="true" className="pointer-events-none absolute -bottom-[70px] -left-3.5 select-none text-[420px] font-bold leading-none tracking-[-0.07em] text-white/[.08]">
+        <span aria-hidden="true" className="pointer-events-none absolute -bottom-[70px] -left-3.5 select-none text-[420px] font-bold leading-none tracking-[-0.07em] text-white/[.12]">
           #{rank}
         </span>
       )}
@@ -76,6 +122,7 @@ export function TrainerCard({ username, season, rank, totalPlayers, profile, cla
         ))}
       </ul>
     </section>
+    </ReflectiveCard>
   );
 }
 

@@ -12,15 +12,19 @@ import { TrainerCard } from "@/components/home/TrainerCard";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { checkTeam, type BuilderMon } from "@/lib/dex/validate";
-import { speciesById } from "@/lib/dex/snapshot";
+import { speciesById, toId } from "@/lib/dex/snapshot";
 import { ApiError } from "@/lib/http";
 import {
-  useActiveSeason, useBanStatus, useDexEssentials, useEligibility, useLeaderboard, useMe, useMvp,
+  useActiveSeason, useBanStatus, useDexDetails, useDexEssentials, useEligibility, useLeaderboard, useMe, useMvp,
   usePlayerProfile, useRecentBattles, useRoster, useSummary,
 } from "@/lib/queries";
 import { useSession } from "@/lib/session";
 
-const CARD_SKELETON = "h-[485px] rounded-[var(--radius-card)]";
+/** Carnet | equipo. El carnet era de 380×485 (≈0,78 de ancho/alto); al crecer la fila con las cartas grandes (~590 px) crece también el ancho (26 %, entre 380 y 480 px) para mantener esa proporción. */
+const STATE_GRID = "lg:grid-cols-[clamp(380px,26%,480px)_minmax(0,1fr)]";
+const CARD_SKELETON = "min-h-[485px] rounded-[var(--radius-card)]";
+/** Toda la Home: en escritorio rompe el ancho de la página (max-w-6xl) hasta 1760px, centrada, para que carnet, equipo y secciones de abajo compartan borde izquierdo. */
+const WIDE_ROW = "lg:w-[min(calc(100vw_-_3rem),1760px)] lg:ml-[calc(50%_-_min(calc(50vw_-_1.5rem),880px))]";
 
 export function HomePage() {
   const { session, loading: sessionLoading } = useSession();
@@ -31,6 +35,7 @@ export function HomePage() {
   const ban = useBanStatus();
   const recent = useRecentBattles(8);
   const dex = useDexEssentials();
+  const dexDetails = useDexDetails();
   const me = useMe();
   const profile = usePlayerProfile(me.data?.username ?? "");
   const roster = useRoster();
@@ -40,6 +45,18 @@ export function HomePage() {
   const dexNum = useCallback(
     (species: string) => (dex.data ? speciesById(dex.data, species)?.num : undefined),
     [dex.data],
+  );
+
+  // Sprite Gen 5 de la forma exacta: el dex trae el `spriteid` de Showdown de cada especie.
+  const spriteId = useCallback(
+    (species: string) => (dex.data ? speciesById(dex.data, species)?.spriteid : undefined),
+    [dex.data],
+  );
+
+  // Tipo de un movimiento (para el punto de color de la carta); sin dex cargado, sin color.
+  const moveType = useCallback(
+    (move: string) => dexDetails.data?.moves[toId(move)]?.type,
+    [dexDetails.data],
   );
 
   const username = me.data?.username;
@@ -65,18 +82,18 @@ export function HomePage() {
   const showTop = !sessionLoading && !!session;
 
   return (
-    <div className="flex flex-col gap-10">
+    <div className={`flex flex-col gap-10 ${WIDE_ROW}`}>
       <h1 className="sr-only">Inicio · PinchesGueys League</h1>
 
       {sessionLoading ? (
-        <div className="grid gap-3 lg:grid-cols-[380px_minmax(0,1fr)]" role="status">
+        <div className={`grid gap-3 ${STATE_GRID}`} role="status">
           <span className="sr-only">Cargando</span>
           <Skeleton className={CARD_SKELETON} /><Skeleton className={`${CARD_SKELETON} hidden lg:block`} />
         </div>
       ) : !session ? (
         <GuestHero season={seasonName} />
       ) : (
-        <section aria-label="Tu estado" className="grid gap-3 lg:grid-cols-[380px_minmax(0,1fr)]">
+        <section aria-label="Tu estado" className={`grid gap-3 ${STATE_GRID}`}>
           {me.isError ? (
             <div className="rounded-[var(--radius-card)] border border-border lg:col-span-2"><ErrorState error={me.error} onRetry={() => me.refetch()} /></div>
           ) : !username ? (
@@ -88,14 +105,14 @@ export function HomePage() {
               <TrainerCard username={username} season={seasonName} rank={rank} totalPlayers={leaderboard.data?.length} profile={profile.data} />
               {roster.isPending ? <Skeleton className={CARD_SKELETON} /> :
                 noTeam ? (
-                  <div className="flex flex-col items-center justify-center rounded-[var(--radius-card)] border border-border lg:h-[485px]">
+                  <div className="flex flex-col items-center justify-center rounded-[var(--radius-card)] border border-border lg:min-h-[485px]">
                     <EmptyState title="Aún no registras tu equipo" description="Importa tu paste y comprueba las reglas en vivo."
                       action={<Link to="/equipo" className={buttonVariants()}>Registrar equipo</Link>} />
                   </div>
                 ) : roster.isError ? (
-                  <div className="rounded-[var(--radius-card)] border border-border lg:h-[485px]"><ErrorState error={roster.error} onRetry={() => roster.refetch()} /></div>
+                  <div className="rounded-[var(--radius-card)] border border-border lg:min-h-[485px]"><ErrorState error={roster.error} onRetry={() => roster.refetch()} /></div>
                 ) : roster.data && (
-                  <TeamCard pool={roster.data.pool} lineupSet={roster.data.lineup_set} maxTeamSize={roster.data.max_team_size} season={seasonName} dexNum={dexNum} />
+                  <TeamCard pool={roster.data.pool} lineupSet={roster.data.lineup_set} maxTeamSize={roster.data.max_team_size} season={seasonName} dexNum={dexNum} moveType={moveType} spriteId={spriteId} />
                 )}
             </>
           )}

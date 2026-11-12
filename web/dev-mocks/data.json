@@ -1,0 +1,183 @@
+{
+  "me": {
+    "username": "jazar",
+    "email": "dev@bats.local",
+    "is_admin": false
+  },
+  "season": {
+    "season_id": 1,
+    "season_name": "Temporada Dev",
+    "type_of_month": "ice",
+    "max_team_size": 6,
+    "max_team_changes": 2,
+    "restrictions": {}
+  },
+  "roster": {
+    "username": "jazar",
+    "season_id": 1,
+    "season_name": "Temporada Dev",
+    "rotations_used": 0,
+    "rotations_remaining": 2,
+    "max_team_size": 6,
+    "max_rotations": 2,
+    "is_locked": false,
+    "registered_at": "2026-11-01T12:00:00Z",
+    "lineup_set": true,
+    "pool": [
+      {
+        "pokemon_id": 1,
+        "name": "Scizor-Mega",
+        "types": "Bug / Steel",
+        "sprite_url": null,
+        "held_item": "Scizorite",
+        "ability": "Technician",
+        "nature": "Adamant",
+        "tera_type": null,
+        "moves": [
+          "Swords Dance",
+          "U-turn",
+          "Bullet Punch",
+          "Roost"
+        ],
+        "evs": {
+          "hp": 240,
+          "atk": 252,
+          "spe": 16
+        },
+        "ivs": {},
+        "added_at": "2026-11-01T12:00:00Z",
+        "in_lineup": true
+      },
+      {
+        "pokemon_id": 2,
+        "name": "Kyurem-Black",
+        "types": "Dragon / Ice",
+        "sprite_url": null,
+        "held_item": "Icium Z",
+        "ability": "Teravolt",
+        "nature": "Hasty",
+        "tera_type": null,
+        "moves": [
+          "Freeze Shock",
+          "Ice Beam",
+          "Fusion Bolt",
+          "Hone Claws"
+        ],
+        "evs": {
+          "atk": 252,
+          "spd": 4,
+          "spe": 252
+        },
+        "ivs": {},
+        "added_at": "2026-11-01T12:00:00Z",
+        "in_lineup": true
+      },
+      {
+        "pokemon_id": 3,
+        "name": "Tapu Fini",
+        "types": "Water / Fairy",
+        "sprite_url": null,
+        "held_item": "Leftovers",
+        "ability": "Misty Surge",
+        "nature": "Bold",
+        "tera_type": null,
+        "moves": [
+          "Moonblast",
+          "Surf",
+          "Defog",
+          "Taunt"
+        ],
+        "evs": {
+          "hp": 252,
+          "def": 252,
+          "spd": 4
+        },
+        "ivs": {
+          "atk": 0
+        },
+        "added_at": "2026-11-01T12:00:00Z",
+        "in_lineup": true
+      },
+      {
+        "pokemon_id": 4,
+        "name": "Weavile",
+        "types": "Dark / Ice",
+        "sprite_url": null,
+        "held_item": "Choice Band",
+        "ability": "Pressure",
+        "nature": "Jolly",
+        "tera_type": null,
+        "moves": [
+          "Knock Off",
+          "Pursuit",
+          "Icicle Crash",
+          "Beat Up"
+        ],
+        "evs": {
+          "atk": 252,
+          "spd": 4,
+          "spe": 252
+        },
+        "ivs": {},
+        "added_at": "2026-11-01T12:00:00Z",
+        "in_lineup": true
+      },
+      {
+        "pokemon_id": 5,
+        "name": "Heatran",
+        "types": "Fire / Steel",
+        "sprite_url": null,
+        "held_item": "Leftovers",
+        "ability": "Flash Fire",
+        "nature": "Timid",
+        "tera_type": null,
+        "moves": [
+          "Stealth Rock",
+          "Lava Plume",
+          "Earth Power",
+          "Taunt"
+        ],
+        "evs": {
+          "spa": 252,
+          "spd": 4,
+          "spe": 252
+        },
+        "ivs": {
+          "atk": 0
+        },
+        "added_at": "2026-11-01T12:00:00Z",
+        "in_lineup": true
+      },
+      {
+        "pokemon_id": 6,
+        "name": "Tauros",
+        "types": "Normal",
+        "sprite_url": null,
+        "held_item": "Eviolite",
+        "ability": "Intimidate",
+        "nature": "Adamant",
+        "tera_type": "Fire",
+        "moves": [
+          "Assurance",
+          "Attract",
+          "Bide",
+          "Blizzard"
+        ],
+        "evs": {
+          "hp": 252,
+          "atk": 252,
+          "def": 4,
+          "spa": 2
+        },
+        "ivs": {},
+        "added_at": "2026-11-01T12:00:00Z",
+        "in_lineup": true
+      }
+    ],
+    "validation": {
+      "state": "pending",
+      "errors": [],
+      "checked_at": null
+    }
+  }
+}

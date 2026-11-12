@@ -16,7 +16,7 @@ const st = vi.hoisted(() => ({
 vi.mock("@/lib/session", () => ({ useSession: () => ({ session: st.session, loading: st.sessionLoading }) }));
 vi.mock("@/lib/queries", () => ({
   useActiveSeason: () => st.season, useSummary: () => st.summary, useLeaderboard: () => st.leaderboard,
-  useMvp: () => st.mvp, useBanStatus: () => st.ban, useRecentBattles: () => st.recent, useDexEssentials: () => st.dex,
+  useMvp: () => st.mvp, useBanStatus: () => st.ban, useRecentBattles: () => st.recent, useDexEssentials: () => st.dex, useDexDetails: () => ({ data: undefined }),
   useMe: () => st.me, usePlayerProfile: () => st.profile, useRoster: () => st.roster, useEligibility: () => st.elig,
 }));
 
@@ -104,7 +104,7 @@ describe("HomePage · con sesión", () => {
     expect(equipo).toHaveTextContent("Gengar");
     expect(equipo).toHaveTextContent("Fantasma");
     expect(equipo).toHaveTextContent("Dragón");
-    expect(within(equipo).getByRole("link", { name: "Editar" })).toHaveAttribute("href", "/equipo");
+    expect(within(equipo).queryByRole("link", { name: "Editar" })).not.toBeInTheDocument();
   });
 
   it("pendientes: voto, validez del equipo y rotaciones", () => {
@@ -187,9 +187,17 @@ describe("HomePage · listas", () => {
 
 describe("HomePage · guardas de fuente", () => {
   it("el movimiento en hover solo aplica con puntero fino", () => {
-    const src = leerFuente("components/home/TeamCard.tsx");
-    expect(src).not.toMatch(/(?<!\)\]:)group-hover:-?translate/);
-    expect(src).toMatch(/\[@media\(hover:hover\)_and_\(pointer:fine\)\]:group-hover:-translate-y-2/);
+    // El abanico reacciona al puntero por JS: el táctil no cuenta como hover.
+    const src = leerFuente("components/home/CardFan.tsx");
+    expect(src).toMatch(/pointerType === "touch"/);
+  });
+
+  it("la Home solo se ensancha en escritorio", () => {
+    const src = leerFuente("pages/HomePage.tsx");
+    const clases = src.match(/const WIDE_ROW = "([^"]+)"/)?.[1] ?? "";
+    expect(clases).not.toBe("");
+    for (const c of clases.split(" ")) expect(c, c).toMatch(/^lg:/);
+    expect(src).toMatch(/className=\{`flex flex-col gap-10 \$\{WIDE_ROW\}`\}/);
   });
 
   it("las secciones comparten gap-10", () => {
@@ -199,7 +207,7 @@ describe("HomePage · guardas de fuente", () => {
   });
 
   it("las tarjetas grandes usan el radio único del token", () => {
-    for (const f of ["components/home/TrainerCard.tsx", "components/home/TeamCard.tsx", "components/home/GuestHero.tsx"]) {
+    for (const f of ["components/home/TrainerCard.tsx", "components/home/GuestHero.tsx"]) {
       expect(leerFuente(f), f).toMatch(/rounded-\[var\(--radius-card\)\]/);
     }
   });

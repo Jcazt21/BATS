@@ -14,7 +14,7 @@ const pokemon = (id: number, name: string, types: string | null) => ({
 describe("TrainerCard", () => {
   it("la marca de agua del puesto no se lee con lector de pantalla", () => {
     const { container } = render(<TrainerCard username="jazar" rank={2} totalPlayers={12} />);
-    const wm = container.querySelector('[aria-hidden="true"]:not(span.grid)');
+    const wm = container.querySelector('span[aria-hidden="true"]:not(.grid)');
     expect(wm).toHaveTextContent("#2");
   });
 

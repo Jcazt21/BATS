@@ -179,5 +179,2125 @@
       "errors": [],
       "checked_at": null
     }
+  },
+  "pokedex": {
+    "total_slots": 120,
+    "species": [
+      {
+        "species": "Scizor-Mega",
+        "used": 42,
+        "pick_pct": 35.0,
+        "brought": 48,
+        "bring_pct": 40.0,
+        "win_rate_pct": 61.9,
+        "avg_mvp": 1.4,
+        "avg_kills": 1.3
+      },
+      {
+        "species": "Landorus-Therian",
+        "used": 38,
+        "pick_pct": 31.7,
+        "brought": 45,
+        "bring_pct": 37.5,
+        "win_rate_pct": 57.9,
+        "avg_mvp": 1.1,
+        "avg_kills": 1.0
+      },
+      {
+        "species": "Heatran",
+        "used": 31,
+        "pick_pct": 25.8,
+        "brought": 40,
+        "bring_pct": 33.3,
+        "win_rate_pct": 54.8,
+        "avg_mvp": 0.9,
+        "avg_kills": 0.8
+      },
+      {
+        "species": "Tapu Fini",
+        "used": 27,
+        "pick_pct": 22.5,
+        "brought": 36,
+        "bring_pct": 30.0,
+        "win_rate_pct": 51.9,
+        "avg_mvp": 0.8,
+        "avg_kills": 0.6
+      },
+      {
+        "species": "Kyurem-Black",
+        "used": 24,
+        "pick_pct": 20.0,
+        "brought": 29,
+        "bring_pct": 24.2,
+        "win_rate_pct": 58.3,
+        "avg_mvp": 1.5,
+        "avg_kills": 1.6
+      },
+      {
+        "species": "Weavile",
+        "used": 22,
+        "pick_pct": 18.3,
+        "brought": 30,
+        "bring_pct": 25.0,
+        "win_rate_pct": 45.5,
+        "avg_mvp": 1.2,
+        "avg_kills": 1.1
+      },
+      {
+        "species": "Garchomp",
+        "used": 19,
+        "pick_pct": 15.8,
+        "brought": 25,
+        "bring_pct": 20.8,
+        "win_rate_pct": 47.4,
+        "avg_mvp": 1.0,
+        "avg_kills": 1.0
+      },
+      {
+        "species": "Tauros",
+        "used": 6,
+        "pick_pct": 5.0,
+        "brought": 11,
+        "bring_pct": 9.2,
+        "win_rate_pct": 33.3,
+        "avg_mvp": 0.5,
+        "avg_kills": 0.3
+      }
+    ]
+  },
+  "pokedex_entries": {
+    "Scizor-Mega": {
+      "types": "Bug / Steel",
+      "national_dex": 212,
+      "sprite_url": null,
+      "users": [
+        {
+          "username": "jazar",
+          "uses": 12,
+          "kills": 15,
+          "mvp": 4
+        },
+        {
+          "username": "ronny",
+          "uses": 8,
+          "kills": 9,
+          "mvp": 2
+        }
+      ],
+      "sets": {
+        "players": 3,
+        "moves": [
+          {
+            "name": "Swords Dance",
+            "count": 3
+          },
+          {
+            "name": "U-turn",
+            "count": 2
+          },
+          {
+            "name": "Bullet Punch",
+            "count": 3
+          },
+          {
+            "name": "Roost",
+            "count": 2
+          }
+        ],
+        "items": [
+          {
+            "name": "Scizorite",
+            "count": 2
+          }
+        ],
+        "abilities": [
+          {
+            "name": "Technician",
+            "count": 3
+          }
+        ],
+        "natures": [
+          {
+            "name": "Adamant",
+            "count": 2
+          }
+        ],
+        "tera_types": []
+      }
+    },
+    "Landorus-Therian": {
+      "types": "Ground / Flying",
+      "national_dex": 645,
+      "sprite_url": null,
+      "users": [
+        {
+          "username": "jazar",
+          "uses": 12,
+          "kills": 15,
+          "mvp": 4
+        },
+        {
+          "username": "ronny",
+          "uses": 8,
+          "kills": 9,
+          "mvp": 2
+        }
+      ],
+      "sets": {
+        "players": 0,
+        "moves": [],
+        "items": [],
+        "abilities": [],
+        "natures": [],
+        "tera_types": []
+      }
+    },
+    "Heatran": {
+      "types": "Fire / Steel",
+      "national_dex": 485,
+      "sprite_url": null,
+      "users": [
+        {
+          "username": "jazar",
+          "uses": 12,
+          "kills": 15,
+          "mvp": 4
+        },
+        {
+          "username": "ronny",
+          "uses": 8,
+          "kills": 9,
+          "mvp": 2
+        }
+      ],
+      "sets": {
+        "players": 3,
+        "moves": [
+          {
+            "name": "Stealth Rock",
+            "count": 3
+          },
+          {
+            "name": "Lava Plume",
+            "count": 2
+          },
+          {
+            "name": "Earth Power",
+            "count": 3
+          },
+          {
+            "name": "Taunt",
+            "count": 2
+          }
+        ],
+        "items": [
+          {
+            "name": "Leftovers",
+            "count": 2
+          }
+        ],
+        "abilities": [
+          {
+            "name": "Flash Fire",
+            "count": 3
+          }
+        ],
+        "natures": [
+          {
+            "name": "Timid",
+            "count": 2
+          }
+        ],
+        "tera_types": []
+      }
+    },
+    "Tapu Fini": {
+      "types": "Water / Fairy",
+      "national_dex": 788,
+      "sprite_url": null,
+      "users": [
+        {
+          "username": "jazar",
+          "uses": 12,
+          "kills": 15,
+          "mvp": 4
+        },
+        {
+          "username": "ronny",
+          "uses": 8,
+          "kills": 9,
+          "mvp": 2
+        }
+      ],
+      "sets": {
+        "players": 3,
+        "moves": [
+          {
+            "name": "Moonblast",
+            "count": 3
+          },
+          {
+            "name": "Surf",
+            "count": 2
+          },
+          {
+            "name": "Defog",
+            "count": 3
+          },
+          {
+            "name": "Taunt",
+            "count": 2
+          }
+        ],
+        "items": [
+          {
+            "name": "Leftovers",
+            "count": 2
+          }
+        ],
+        "abilities": [
+          {
+            "name": "Misty Surge",
+            "count": 3
+          }
+        ],
+        "natures": [
+          {
+            "name": "Bold",
+            "count": 2
+          }
+        ],
+        "tera_types": []
+      }
+    },
+    "Kyurem-Black": {
+      "types": "Dragon / Ice",
+      "national_dex": 646,
+      "sprite_url": null,
+      "users": [
+        {
+          "username": "jazar",
+          "uses": 12,
+          "kills": 15,
+          "mvp": 4
+        },
+        {
+          "username": "ronny",
+          "uses": 8,
+          "kills": 9,
+          "mvp": 2
+        }
+      ],
+      "sets": {
+        "players": 3,
+        "moves": [
+          {
+            "name": "Freeze Shock",
+            "count": 3
+          },
+          {
+            "name": "Ice Beam",
+            "count": 2
+          },
+          {
+            "name": "Fusion Bolt",
+            "count": 3
+          },
+          {
+            "name": "Hone Claws",
+            "count": 2
+          }
+        ],
+        "items": [
+          {
+            "name": "Icium Z",
+            "count": 2
+          }
+        ],
+        "abilities": [
+          {
+            "name": "Teravolt",
+            "count": 3
+          }
+        ],
+        "natures": [
+          {
+            "name": "Hasty",
+            "count": 2
+          }
+        ],
+        "tera_types": []
+      }
+    },
+    "Weavile": {
+      "types": "Dark / Ice",
+      "national_dex": 461,
+      "sprite_url": null,
+      "users": [
+        {
+          "username": "jazar",
+          "uses": 12,
+          "kills": 15,
+          "mvp": 4
+        },
+        {
+          "username": "ronny",
+          "uses": 8,
+          "kills": 9,
+          "mvp": 2
+        }
+      ],
+      "sets": {
+        "players": 3,
+        "moves": [
+          {
+            "name": "Knock Off",
+            "count": 3
+          },
+          {
+            "name": "Pursuit",
+            "count": 2
+          },
+          {
+            "name": "Icicle Crash",
+            "count": 3
+          },
+          {
+            "name": "Beat Up",
+            "count": 2
+          }
+        ],
+        "items": [
+          {
+            "name": "Choice Band",
+            "count": 2
+          }
+        ],
+        "abilities": [
+          {
+            "name": "Pressure",
+            "count": 3
+          }
+        ],
+        "natures": [
+          {
+            "name": "Jolly",
+            "count": 2
+          }
+        ],
+        "tera_types": []
+      }
+    },
+    "Garchomp": {
+      "types": "Dragon / Ground",
+      "national_dex": 445,
+      "sprite_url": null,
+      "users": [
+        {
+          "username": "jazar",
+          "uses": 12,
+          "kills": 15,
+          "mvp": 4
+        },
+        {
+          "username": "ronny",
+          "uses": 8,
+          "kills": 9,
+          "mvp": 2
+        }
+      ],
+      "sets": {
+        "players": 0,
+        "moves": [],
+        "items": [],
+        "abilities": [],
+        "natures": [],
+        "tera_types": []
+      }
+    },
+    "Tauros": {
+      "types": "Normal",
+      "national_dex": 128,
+      "sprite_url": null,
+      "users": [
+        {
+          "username": "jazar",
+          "uses": 12,
+          "kills": 15,
+          "mvp": 4
+        },
+        {
+          "username": "ronny",
+          "uses": 8,
+          "kills": 9,
+          "mvp": 2
+        }
+      ],
+      "sets": {
+        "players": 3,
+        "moves": [
+          {
+            "name": "Assurance",
+            "count": 3
+          },
+          {
+            "name": "Attract",
+            "count": 2
+          },
+          {
+            "name": "Bide",
+            "count": 3
+          },
+          {
+            "name": "Blizzard",
+            "count": 2
+          }
+        ],
+        "items": [
+          {
+            "name": "Eviolite",
+            "count": 2
+          }
+        ],
+        "abilities": [
+          {
+            "name": "Intimidate",
+            "count": 3
+          }
+        ],
+        "natures": [
+          {
+            "name": "Adamant",
+            "count": 2
+          }
+        ],
+        "tera_types": [
+          {
+            "name": "Fire",
+            "count": 1
+          }
+        ]
+      }
+    }
+  },
+  "seasons": [
+    {
+      "season_id": 1,
+      "season_name": "Temporada Dev",
+      "type_of_month": "ice",
+      "is_active": true,
+      "start_date": "2026-11-01",
+      "end_date": null
+    },
+    {
+      "season_id": 0,
+      "season_name": "Pretemporada",
+      "type_of_month": "fire",
+      "is_active": false,
+      "start_date": "2026-10-01",
+      "end_date": "2026-10-31"
+    }
+  ],
+  "summary": {
+    "total_battles": 60,
+    "total_players": 5,
+    "avg_turns": 24.6,
+    "top_win_rate": 66.7
+  },
+  "leaderboard": [
+    {
+      "username": "jazar",
+      "total_battles": 24,
+      "wins": 16,
+      "losses": 8,
+      "win_rate_pct": 66.7,
+      "total_survivors": 41
+    },
+    {
+      "username": "ronny",
+      "total_battles": 22,
+      "wins": 13,
+      "losses": 9,
+      "win_rate_pct": 59.1,
+      "total_survivors": 33
+    },
+    {
+      "username": "kael",
+      "total_battles": 20,
+      "wins": 10,
+      "losses": 10,
+      "win_rate_pct": 50.0,
+      "total_survivors": 28
+    },
+    {
+      "username": "mili",
+      "total_battles": 18,
+      "wins": 8,
+      "losses": 10,
+      "win_rate_pct": 44.4,
+      "total_survivors": 22
+    },
+    {
+      "username": "tono",
+      "total_battles": 16,
+      "wins": 3,
+      "losses": 13,
+      "win_rate_pct": 18.8,
+      "total_survivors": 12
+    }
+  ],
+  "mvp": [
+    {
+      "species": "Scizor-Mega",
+      "player": "jazar",
+      "total_mvp_score": 33.6,
+      "total_kills": 31,
+      "final_hits": 9,
+      "battles_played": 24,
+      "avg_mvp_per_battle": 1.4
+    },
+    {
+      "species": "Kyurem-Black",
+      "player": "jazar",
+      "total_mvp_score": 28.8,
+      "total_kills": 27,
+      "final_hits": 7,
+      "battles_played": 18,
+      "avg_mvp_per_battle": 1.6
+    },
+    {
+      "species": "Landorus-Therian",
+      "player": "ronny",
+      "total_mvp_score": 24.2,
+      "total_kills": 22,
+      "final_hits": 6,
+      "battles_played": 22,
+      "avg_mvp_per_battle": 1.1
+    },
+    {
+      "species": "Weavile",
+      "player": "kael",
+      "total_mvp_score": 19.8,
+      "total_kills": 20,
+      "final_hits": 5,
+      "battles_played": 17,
+      "avg_mvp_per_battle": 1.2
+    },
+    {
+      "species": "Garchomp",
+      "player": "mili",
+      "total_mvp_score": 15.0,
+      "total_kills": 15,
+      "final_hits": 4,
+      "battles_played": 15,
+      "avg_mvp_per_battle": 1.0
+    }
+  ],
+  "recent_battles": [
+    {
+      "battle_id": "gen9pinchesgueysleague-1008",
+      "date": "2026-11-12T01:40:00Z",
+      "winner": "jazar",
+      "loser": "ronny",
+      "players": [
+        "jazar",
+        "ronny"
+      ],
+      "turns": 27,
+      "end_type": "normal"
+    },
+    {
+      "battle_id": "gen9pinchesgueysleague-1007",
+      "date": "2026-11-11T23:05:00Z",
+      "winner": "kael",
+      "loser": "mili",
+      "players": [
+        "kael",
+        "mili"
+      ],
+      "turns": 19,
+      "end_type": "normal"
+    },
+    {
+      "battle_id": "gen9pinchesgueysleague-1006",
+      "date": "2026-11-11T21:30:00Z",
+      "winner": "jazar",
+      "loser": "tono",
+      "players": [
+        "jazar",
+        "tono"
+      ],
+      "turns": 11,
+      "end_type": "forfeit"
+    },
+    {
+      "battle_id": "gen9pinchesgueysleague-1005",
+      "date": "2026-11-10T22:15:00Z",
+      "winner": "ronny",
+      "loser": "kael",
+      "players": [
+        "ronny",
+        "kael"
+      ],
+      "turns": 31,
+      "end_type": "normal"
+    },
+    {
+      "battle_id": "gen9pinchesgueysleague-1004",
+      "date": "2026-11-10T20:00:00Z",
+      "winner": "mili",
+      "loser": "jazar",
+      "players": [
+        "mili",
+        "jazar"
+      ],
+      "turns": 24,
+      "end_type": "normal"
+    },
+    {
+      "battle_id": "gen9pinchesgueysleague-1003",
+      "date": "2026-11-09T19:45:00Z",
+      "winner": null,
+      "loser": null,
+      "players": [
+        "tono",
+        "ronny"
+      ],
+      "turns": 40,
+      "end_type": "tie"
+    },
+    {
+      "battle_id": "gen9pinchesgueysleague-1002",
+      "date": "2026-11-08T18:20:00Z",
+      "winner": "jazar",
+      "loser": "kael",
+      "players": [
+        "kael",
+        "jazar"
+      ],
+      "turns": 22,
+      "end_type": "normal"
+    },
+    {
+      "battle_id": "gen9pinchesgueysleague-1001",
+      "date": "2026-11-07T17:00:00Z",
+      "winner": "mili",
+      "loser": "tono",
+      "players": [
+        "mili",
+        "tono"
+      ],
+      "turns": 18,
+      "end_type": "normal"
+    }
+  ],
+  "battle_details": {
+    "gen9pinchesgueysleague-1008": [
+      {
+        "player": "jazar",
+        "species": "Scizor-Mega",
+        "kills": 3,
+        "survived": true,
+        "final_hit": true,
+        "mvp_score": 3.2
+      },
+      {
+        "player": "jazar",
+        "species": "Kyurem-Black",
+        "kills": 2,
+        "survived": true,
+        "final_hit": false,
+        "mvp_score": 2.3
+      },
+      {
+        "player": "jazar",
+        "species": "Tapu Fini",
+        "kills": 1,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.9
+      },
+      {
+        "player": "jazar",
+        "species": "Weavile",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "jazar",
+        "species": "Heatran",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "jazar",
+        "species": "Tauros",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "ronny",
+        "species": "Landorus-Therian",
+        "kills": 1,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.9
+      },
+      {
+        "player": "ronny",
+        "species": "Heatran",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "ronny",
+        "species": "Tapu Fini",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "ronny",
+        "species": "Garchomp",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "ronny",
+        "species": "Weavile",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "ronny",
+        "species": "Scizor-Mega",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      }
+    ],
+    "gen9pinchesgueysleague-1007": [
+      {
+        "player": "kael",
+        "species": "Weavile",
+        "kills": 3,
+        "survived": true,
+        "final_hit": true,
+        "mvp_score": 3.2
+      },
+      {
+        "player": "kael",
+        "species": "Garchomp",
+        "kills": 2,
+        "survived": true,
+        "final_hit": false,
+        "mvp_score": 2.3
+      },
+      {
+        "player": "kael",
+        "species": "Heatran",
+        "kills": 1,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.9
+      },
+      {
+        "player": "kael",
+        "species": "Scizor-Mega",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "kael",
+        "species": "Tapu Fini",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "kael",
+        "species": "Kyurem-Black",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "mili",
+        "species": "Garchomp",
+        "kills": 1,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.9
+      },
+      {
+        "player": "mili",
+        "species": "Tapu Fini",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "mili",
+        "species": "Landorus-Therian",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "mili",
+        "species": "Heatran",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "mili",
+        "species": "Weavile",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "mili",
+        "species": "Tauros",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      }
+    ],
+    "gen9pinchesgueysleague-1006": [
+      {
+        "player": "jazar",
+        "species": "Scizor-Mega",
+        "kills": 3,
+        "survived": true,
+        "final_hit": true,
+        "mvp_score": 3.2
+      },
+      {
+        "player": "jazar",
+        "species": "Kyurem-Black",
+        "kills": 2,
+        "survived": true,
+        "final_hit": false,
+        "mvp_score": 2.3
+      },
+      {
+        "player": "jazar",
+        "species": "Tapu Fini",
+        "kills": 1,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.9
+      },
+      {
+        "player": "jazar",
+        "species": "Weavile",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "jazar",
+        "species": "Heatran",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "jazar",
+        "species": "Tauros",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "tono",
+        "species": "Tauros",
+        "kills": 1,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.9
+      },
+      {
+        "player": "tono",
+        "species": "Heatran",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "tono",
+        "species": "Garchomp",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "tono",
+        "species": "Landorus-Therian",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "tono",
+        "species": "Tapu Fini",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "tono",
+        "species": "Weavile",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      }
+    ],
+    "gen9pinchesgueysleague-1005": [
+      {
+        "player": "ronny",
+        "species": "Landorus-Therian",
+        "kills": 3,
+        "survived": true,
+        "final_hit": true,
+        "mvp_score": 3.2
+      },
+      {
+        "player": "ronny",
+        "species": "Heatran",
+        "kills": 2,
+        "survived": true,
+        "final_hit": false,
+        "mvp_score": 2.3
+      },
+      {
+        "player": "ronny",
+        "species": "Tapu Fini",
+        "kills": 1,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.9
+      },
+      {
+        "player": "ronny",
+        "species": "Garchomp",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "ronny",
+        "species": "Weavile",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "ronny",
+        "species": "Scizor-Mega",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "kael",
+        "species": "Weavile",
+        "kills": 1,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.9
+      },
+      {
+        "player": "kael",
+        "species": "Garchomp",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "kael",
+        "species": "Heatran",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "kael",
+        "species": "Scizor-Mega",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "kael",
+        "species": "Tapu Fini",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "kael",
+        "species": "Kyurem-Black",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      }
+    ],
+    "gen9pinchesgueysleague-1004": [
+      {
+        "player": "mili",
+        "species": "Garchomp",
+        "kills": 3,
+        "survived": true,
+        "final_hit": true,
+        "mvp_score": 3.2
+      },
+      {
+        "player": "mili",
+        "species": "Tapu Fini",
+        "kills": 2,
+        "survived": true,
+        "final_hit": false,
+        "mvp_score": 2.3
+      },
+      {
+        "player": "mili",
+        "species": "Landorus-Therian",
+        "kills": 1,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.9
+      },
+      {
+        "player": "mili",
+        "species": "Heatran",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "mili",
+        "species": "Weavile",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "mili",
+        "species": "Tauros",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "jazar",
+        "species": "Scizor-Mega",
+        "kills": 1,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.9
+      },
+      {
+        "player": "jazar",
+        "species": "Kyurem-Black",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "jazar",
+        "species": "Tapu Fini",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "jazar",
+        "species": "Weavile",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "jazar",
+        "species": "Heatran",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "jazar",
+        "species": "Tauros",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      }
+    ],
+    "gen9pinchesgueysleague-1003": [
+      {
+        "player": "tono",
+        "species": "Tauros",
+        "kills": 1,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.9
+      },
+      {
+        "player": "tono",
+        "species": "Heatran",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "tono",
+        "species": "Garchomp",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "tono",
+        "species": "Landorus-Therian",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "tono",
+        "species": "Tapu Fini",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "tono",
+        "species": "Weavile",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "ronny",
+        "species": "Landorus-Therian",
+        "kills": 1,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.9
+      },
+      {
+        "player": "ronny",
+        "species": "Heatran",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "ronny",
+        "species": "Tapu Fini",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "ronny",
+        "species": "Garchomp",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "ronny",
+        "species": "Weavile",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "ronny",
+        "species": "Scizor-Mega",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      }
+    ],
+    "gen9pinchesgueysleague-1002": [
+      {
+        "player": "kael",
+        "species": "Weavile",
+        "kills": 1,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.9
+      },
+      {
+        "player": "kael",
+        "species": "Garchomp",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "kael",
+        "species": "Heatran",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "kael",
+        "species": "Scizor-Mega",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "kael",
+        "species": "Tapu Fini",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "kael",
+        "species": "Kyurem-Black",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "jazar",
+        "species": "Scizor-Mega",
+        "kills": 3,
+        "survived": true,
+        "final_hit": true,
+        "mvp_score": 3.2
+      },
+      {
+        "player": "jazar",
+        "species": "Kyurem-Black",
+        "kills": 2,
+        "survived": true,
+        "final_hit": false,
+        "mvp_score": 2.3
+      },
+      {
+        "player": "jazar",
+        "species": "Tapu Fini",
+        "kills": 1,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.9
+      },
+      {
+        "player": "jazar",
+        "species": "Weavile",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "jazar",
+        "species": "Heatran",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "jazar",
+        "species": "Tauros",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      }
+    ],
+    "gen9pinchesgueysleague-1001": [
+      {
+        "player": "mili",
+        "species": "Garchomp",
+        "kills": 3,
+        "survived": true,
+        "final_hit": true,
+        "mvp_score": 3.2
+      },
+      {
+        "player": "mili",
+        "species": "Tapu Fini",
+        "kills": 2,
+        "survived": true,
+        "final_hit": false,
+        "mvp_score": 2.3
+      },
+      {
+        "player": "mili",
+        "species": "Landorus-Therian",
+        "kills": 1,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.9
+      },
+      {
+        "player": "mili",
+        "species": "Heatran",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "mili",
+        "species": "Weavile",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "mili",
+        "species": "Tauros",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "tono",
+        "species": "Tauros",
+        "kills": 1,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.9
+      },
+      {
+        "player": "tono",
+        "species": "Heatran",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "tono",
+        "species": "Garchomp",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "tono",
+        "species": "Landorus-Therian",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "tono",
+        "species": "Tapu Fini",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      },
+      {
+        "player": "tono",
+        "species": "Weavile",
+        "kills": 0,
+        "survived": false,
+        "final_hit": false,
+        "mvp_score": 0.0
+      }
+    ]
+  },
+  "players": {
+    "jazar": {
+      "username": "jazar",
+      "first_seen": "2026-10-03T20:00:00Z",
+      "last_seen": "2026-11-12T01:40:00Z",
+      "record": {
+        "battles": 24,
+        "wins": 16,
+        "losses": 8,
+        "win_rate_pct": 66.7,
+        "forfeits": 0,
+        "survivors": 41
+      },
+      "mvp": {
+        "total": 20.8,
+        "kills": 32
+      },
+      "streak": {
+        "type": "win",
+        "length": 2
+      },
+      "badges": [
+        {
+          "id": "first_win",
+          "glyph": "★",
+          "label": "Primera victoria",
+          "earned": true
+        },
+        {
+          "id": "streak_3",
+          "glyph": "3×",
+          "label": "Racha de 3 victorias",
+          "earned": true
+        },
+        {
+          "id": "mvp",
+          "glyph": "M",
+          "label": "MVP de la liga",
+          "earned": true
+        },
+        {
+          "id": "streak_5",
+          "glyph": "5×",
+          "label": "Racha de 5 victorias",
+          "earned": true
+        }
+      ],
+      "top_pokemon": [
+        {
+          "species": "Scizor-Mega",
+          "uses": 12,
+          "kills": 14,
+          "mvp": 5,
+          "avg_mvp": 0.42
+        },
+        {
+          "species": "Kyurem-Black",
+          "uses": 10,
+          "kills": 11,
+          "mvp": 4,
+          "avg_mvp": 0.4
+        },
+        {
+          "species": "Tapu Fini",
+          "uses": 8,
+          "kills": 8,
+          "mvp": 3,
+          "avg_mvp": 0.38
+        }
+      ],
+      "recent": [
+        {
+          "battle_id": "gen9pinchesgueysleague-1008",
+          "date": "2026-11-12T01:40:00Z",
+          "opponent": "ronny",
+          "won": true,
+          "turns": 27,
+          "end_type": "normal"
+        },
+        {
+          "battle_id": "gen9pinchesgueysleague-1006",
+          "date": "2026-11-11T21:30:00Z",
+          "opponent": "tono",
+          "won": true,
+          "turns": 11,
+          "end_type": "forfeit"
+        },
+        {
+          "battle_id": "gen9pinchesgueysleague-1004",
+          "date": "2026-11-10T20:00:00Z",
+          "opponent": "mili",
+          "won": false,
+          "turns": 24,
+          "end_type": "normal"
+        },
+        {
+          "battle_id": "gen9pinchesgueysleague-1002",
+          "date": "2026-11-08T18:20:00Z",
+          "opponent": "kael",
+          "won": true,
+          "turns": 22,
+          "end_type": "normal"
+        }
+      ],
+      "roster": {
+        "season_name": "Temporada Dev",
+        "pool": [
+          {
+            "name": "Scizor-Mega",
+            "types": "Bug / Steel",
+            "sprite_url": null,
+            "held_item": "Scizorite",
+            "ability": "Technician",
+            "nature": "Adamant",
+            "tera_type": null,
+            "moves": [
+              "Swords Dance",
+              "U-turn",
+              "Bullet Punch",
+              "Roost"
+            ],
+            "in_lineup": true
+          },
+          {
+            "name": "Kyurem-Black",
+            "types": "Dragon / Ice",
+            "sprite_url": null,
+            "held_item": "Icium Z",
+            "ability": "Teravolt",
+            "nature": "Hasty",
+            "tera_type": null,
+            "moves": [
+              "Freeze Shock",
+              "Ice Beam",
+              "Fusion Bolt",
+              "Hone Claws"
+            ],
+            "in_lineup": true
+          },
+          {
+            "name": "Tapu Fini",
+            "types": "Water / Fairy",
+            "sprite_url": null,
+            "held_item": "Leftovers",
+            "ability": "Misty Surge",
+            "nature": "Bold",
+            "tera_type": null,
+            "moves": [
+              "Moonblast",
+              "Surf",
+              "Defog",
+              "Taunt"
+            ],
+            "in_lineup": true
+          },
+          {
+            "name": "Weavile",
+            "types": "Dark / Ice",
+            "sprite_url": null,
+            "held_item": "Choice Band",
+            "ability": "Pressure",
+            "nature": "Jolly",
+            "tera_type": null,
+            "moves": [
+              "Knock Off",
+              "Pursuit",
+              "Icicle Crash",
+              "Beat Up"
+            ],
+            "in_lineup": true
+          },
+          {
+            "name": "Heatran",
+            "types": "Fire / Steel",
+            "sprite_url": null,
+            "held_item": "Leftovers",
+            "ability": "Flash Fire",
+            "nature": "Timid",
+            "tera_type": null,
+            "moves": [
+              "Stealth Rock",
+              "Lava Plume",
+              "Earth Power",
+              "Taunt"
+            ],
+            "in_lineup": true
+          },
+          {
+            "name": "Tauros",
+            "types": "Normal",
+            "sprite_url": null,
+            "held_item": "Eviolite",
+            "ability": "Intimidate",
+            "nature": "Adamant",
+            "tera_type": "Fire",
+            "moves": [
+              "Assurance",
+              "Attract",
+              "Bide",
+              "Blizzard"
+            ],
+            "in_lineup": true
+          }
+        ]
+      }
+    },
+    "ronny": {
+      "username": "ronny",
+      "first_seen": "2026-10-03T20:00:00Z",
+      "last_seen": "2026-11-12T01:40:00Z",
+      "record": {
+        "battles": 22,
+        "wins": 13,
+        "losses": 9,
+        "win_rate_pct": 59.1,
+        "forfeits": 0,
+        "survivors": 33
+      },
+      "mvp": {
+        "total": 16.9,
+        "kills": 26
+      },
+      "streak": {
+        "type": "win",
+        "length": 2
+      },
+      "badges": [
+        {
+          "id": "first_win",
+          "glyph": "★",
+          "label": "Primera victoria",
+          "earned": true
+        },
+        {
+          "id": "streak_3",
+          "glyph": "3×",
+          "label": "Racha de 3 victorias",
+          "earned": true
+        },
+        {
+          "id": "mvp",
+          "glyph": "M",
+          "label": "MVP de la liga",
+          "earned": false
+        },
+        {
+          "id": "streak_5",
+          "glyph": "5×",
+          "label": "Racha de 5 victorias",
+          "earned": false
+        }
+      ],
+      "top_pokemon": [
+        {
+          "species": "Landorus-Therian",
+          "uses": 12,
+          "kills": 14,
+          "mvp": 5,
+          "avg_mvp": 0.42
+        },
+        {
+          "species": "Heatran",
+          "uses": 10,
+          "kills": 11,
+          "mvp": 4,
+          "avg_mvp": 0.4
+        },
+        {
+          "species": "Tapu Fini",
+          "uses": 8,
+          "kills": 8,
+          "mvp": 3,
+          "avg_mvp": 0.38
+        }
+      ],
+      "recent": [
+        {
+          "battle_id": "gen9pinchesgueysleague-1008",
+          "date": "2026-11-12T01:40:00Z",
+          "opponent": "jazar",
+          "won": false,
+          "turns": 27,
+          "end_type": "normal"
+        },
+        {
+          "battle_id": "gen9pinchesgueysleague-1005",
+          "date": "2026-11-10T22:15:00Z",
+          "opponent": "kael",
+          "won": true,
+          "turns": 31,
+          "end_type": "normal"
+        },
+        {
+          "battle_id": "gen9pinchesgueysleague-1003",
+          "date": "2026-11-09T19:45:00Z",
+          "opponent": "tono",
+          "won": false,
+          "turns": 40,
+          "end_type": "tie"
+        }
+      ],
+      "roster": null
+    },
+    "kael": {
+      "username": "kael",
+      "first_seen": "2026-10-03T20:00:00Z",
+      "last_seen": "2026-11-11T23:05:00Z",
+      "record": {
+        "battles": 20,
+        "wins": 10,
+        "losses": 10,
+        "win_rate_pct": 50.0,
+        "forfeits": 0,
+        "survivors": 28
+      },
+      "mvp": {
+        "total": 13.0,
+        "kills": 20
+      },
+      "streak": {
+        "type": "loss",
+        "length": 1
+      },
+      "badges": [
+        {
+          "id": "first_win",
+          "glyph": "★",
+          "label": "Primera victoria",
+          "earned": true
+        },
+        {
+          "id": "streak_3",
+          "glyph": "3×",
+          "label": "Racha de 3 victorias",
+          "earned": true
+        },
+        {
+          "id": "mvp",
+          "glyph": "M",
+          "label": "MVP de la liga",
+          "earned": false
+        },
+        {
+          "id": "streak_5",
+          "glyph": "5×",
+          "label": "Racha de 5 victorias",
+          "earned": false
+        }
+      ],
+      "top_pokemon": [
+        {
+          "species": "Weavile",
+          "uses": 12,
+          "kills": 14,
+          "mvp": 5,
+          "avg_mvp": 0.42
+        },
+        {
+          "species": "Garchomp",
+          "uses": 10,
+          "kills": 11,
+          "mvp": 4,
+          "avg_mvp": 0.4
+        },
+        {
+          "species": "Heatran",
+          "uses": 8,
+          "kills": 8,
+          "mvp": 3,
+          "avg_mvp": 0.38
+        }
+      ],
+      "recent": [
+        {
+          "battle_id": "gen9pinchesgueysleague-1007",
+          "date": "2026-11-11T23:05:00Z",
+          "opponent": "mili",
+          "won": true,
+          "turns": 19,
+          "end_type": "normal"
+        },
+        {
+          "battle_id": "gen9pinchesgueysleague-1005",
+          "date": "2026-11-10T22:15:00Z",
+          "opponent": "ronny",
+          "won": false,
+          "turns": 31,
+          "end_type": "normal"
+        },
+        {
+          "battle_id": "gen9pinchesgueysleague-1002",
+          "date": "2026-11-08T18:20:00Z",
+          "opponent": "jazar",
+          "won": false,
+          "turns": 22,
+          "end_type": "normal"
+        }
+      ],
+      "roster": null
+    },
+    "mili": {
+      "username": "mili",
+      "first_seen": "2026-10-03T20:00:00Z",
+      "last_seen": "2026-11-11T23:05:00Z",
+      "record": {
+        "battles": 18,
+        "wins": 8,
+        "losses": 10,
+        "win_rate_pct": 44.4,
+        "forfeits": 0,
+        "survivors": 22
+      },
+      "mvp": {
+        "total": 10.4,
+        "kills": 16
+      },
+      "streak": {
+        "type": "loss",
+        "length": 1
+      },
+      "badges": [
+        {
+          "id": "first_win",
+          "glyph": "★",
+          "label": "Primera victoria",
+          "earned": true
+        },
+        {
+          "id": "streak_3",
+          "glyph": "3×",
+          "label": "Racha de 3 victorias",
+          "earned": false
+        },
+        {
+          "id": "mvp",
+          "glyph": "M",
+          "label": "MVP de la liga",
+          "earned": false
+        },
+        {
+          "id": "streak_5",
+          "glyph": "5×",
+          "label": "Racha de 5 victorias",
+          "earned": false
+        }
+      ],
+      "top_pokemon": [
+        {
+          "species": "Garchomp",
+          "uses": 12,
+          "kills": 14,
+          "mvp": 5,
+          "avg_mvp": 0.42
+        },
+        {
+          "species": "Tapu Fini",
+          "uses": 10,
+          "kills": 11,
+          "mvp": 4,
+          "avg_mvp": 0.4
+        },
+        {
+          "species": "Landorus-Therian",
+          "uses": 8,
+          "kills": 8,
+          "mvp": 3,
+          "avg_mvp": 0.38
+        }
+      ],
+      "recent": [
+        {
+          "battle_id": "gen9pinchesgueysleague-1007",
+          "date": "2026-11-11T23:05:00Z",
+          "opponent": "kael",
+          "won": false,
+          "turns": 19,
+          "end_type": "normal"
+        },
+        {
+          "battle_id": "gen9pinchesgueysleague-1004",
+          "date": "2026-11-10T20:00:00Z",
+          "opponent": "jazar",
+          "won": true,
+          "turns": 24,
+          "end_type": "normal"
+        },
+        {
+          "battle_id": "gen9pinchesgueysleague-1001",
+          "date": "2026-11-07T17:00:00Z",
+          "opponent": "tono",
+          "won": true,
+          "turns": 18,
+          "end_type": "normal"
+        }
+      ],
+      "roster": null
+    },
+    "tono": {
+      "username": "tono",
+      "first_seen": "2026-10-03T20:00:00Z",
+      "last_seen": "2026-11-11T21:30:00Z",
+      "record": {
+        "battles": 16,
+        "wins": 3,
+        "losses": 13,
+        "win_rate_pct": 18.8,
+        "forfeits": 1,
+        "survivors": 12
+      },
+      "mvp": {
+        "total": 3.9,
+        "kills": 6
+      },
+      "streak": {
+        "type": "loss",
+        "length": 1
+      },
+      "badges": [
+        {
+          "id": "first_win",
+          "glyph": "★",
+          "label": "Primera victoria",
+          "earned": true
+        },
+        {
+          "id": "streak_3",
+          "glyph": "3×",
+          "label": "Racha de 3 victorias",
+          "earned": false
+        },
+        {
+          "id": "mvp",
+          "glyph": "M",
+          "label": "MVP de la liga",
+          "earned": false
+        },
+        {
+          "id": "streak_5",
+          "glyph": "5×",
+          "label": "Racha de 5 victorias",
+          "earned": false
+        }
+      ],
+      "top_pokemon": [
+        {
+          "species": "Tauros",
+          "uses": 12,
+          "kills": 14,
+          "mvp": 5,
+          "avg_mvp": 0.42
+        },
+        {
+          "species": "Heatran",
+          "uses": 10,
+          "kills": 11,
+          "mvp": 4,
+          "avg_mvp": 0.4
+        },
+        {
+          "species": "Garchomp",
+          "uses": 8,
+          "kills": 8,
+          "mvp": 3,
+          "avg_mvp": 0.38
+        }
+      ],
+      "recent": [
+        {
+          "battle_id": "gen9pinchesgueysleague-1006",
+          "date": "2026-11-11T21:30:00Z",
+          "opponent": "jazar",
+          "won": false,
+          "turns": 11,
+          "end_type": "forfeit"
+        },
+        {
+          "battle_id": "gen9pinchesgueysleague-1003",
+          "date": "2026-11-09T19:45:00Z",
+          "opponent": "ronny",
+          "won": false,
+          "turns": 40,
+          "end_type": "tie"
+        },
+        {
+          "battle_id": "gen9pinchesgueysleague-1001",
+          "date": "2026-11-07T17:00:00Z",
+          "opponent": "mili",
+          "won": false,
+          "turns": 18,
+          "end_type": "normal"
+        }
+      ],
+      "roster": null
+    }
+  },
+  "banned": [
+    {
+      "pokemon_id": 101,
+      "name": "Zacian-Crowned",
+      "types": "Fairy / Steel",
+      "sprite_url": null
+    },
+    {
+      "pokemon_id": 102,
+      "name": "Kingambit",
+      "types": "Dark / Steel",
+      "sprite_url": null
+    }
+  ],
+  "rotation_history": {
+    "max_rotations": 2,
+    "rotations": []
+  },
+  "ban_status": {
+    "total_authorized": 5,
+    "total_voted": 3,
+    "total_votes_cast": 9,
+    "voting_open": true
+  },
+  "ban_eligibility": {
+    "can_vote": true,
+    "reason": null
   }
 }

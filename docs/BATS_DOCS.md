@@ -192,7 +192,7 @@ Rutas opcionales para ubicar el server de PS (defaults entre paréntesis): `BATS
 BATS_DB_DSN=postgresql://postgres:password@localhost:5432/bats-pkmn
 BATS_VOTER_SALT=un-salt-secreto-minimo-32-chars
 BATS_API_HOST=0.0.0.0
-BATS_API_PORT=8001
+BATS_API_PORT=8011
 ```
 
 ### Inicializar la base de datos
@@ -211,7 +211,7 @@ python3 -m bats_core db --etl
 
 ```bash
 python3 -m bats_core api
-# → Uvicorn en http://0.0.0.0:8001
+# → Uvicorn en http://0.0.0.0:8011
 # → BATSWatcher se inicia como hilo daemon (escucha ../logs/)
 ```
 
@@ -506,8 +506,8 @@ mvp_score = (kills × 2) + turns_active + (1 if final_hit else 0)
 
 ```bash
 python3 -m bats_core api
-# Disponible en: http://localhost:8001
-# Docs interactivos: http://localhost:8001/docs
+# Disponible en: http://localhost:8011
+# Docs interactivos: http://localhost:8011/docs
 ```
 
 ### Autenticación Admin
@@ -516,13 +516,13 @@ Las rutas admin requieren un JWT Bearer token:
 
 ```bash
 # Login
-curl -X POST http://localhost:8001/api/admin/login \
+curl -X POST http://localhost:8011/api/admin/login \
   -H "Content-Type: application/json" \
   -d '{"password": "tu-BATS_VOTER_SALT"}'
 # → {"access_token": "eyJ...", "token_type": "bearer"}
 
 # Usar en rutas protegidas
-curl http://localhost:8001/api/admin/bans \
+curl http://localhost:8011/api/admin/bans \
   -H "Authorization: Bearer eyJ..."
 ```
 
@@ -959,7 +959,7 @@ python3 -m bats_core bot
 | `BATS_DB_DSN` | PostgreSQL connection string completo | `postgresql://localhost/bats-pkmn` |
 | `BATS_VOTER_SALT` | Salt para hashing de usernames y secret JWT | `bats-default-salt-changeme` |
 | `BATS_API_HOST` | Host en que escucha la API | `0.0.0.0` |
-| `BATS_API_PORT` | Puerto de la API | `8001` |
+| `BATS_API_PORT` | Puerto de la API | `8011` |
 
 > ⚠️ **Seguridad:** `BATS_VOTER_SALT` es el único secreto del sistema. Es simultáneamente el salt del hash de usernames Y la contraseña del admin. Asignar un valor largo y aleatorio en producción.
 

@@ -28,10 +28,10 @@ docs/        documentación, migración y planes (docs/planes/)
 python -m venv venv && source venv/bin/activate
 pip install -r requirements-dev.txt
 python -m bats_core db --apply-schema      # schema + migraciones (DB local)
-python -m bats_core api                    # API en :8001
+python -m bats_core api                    # API en :8011
 
 # Frontend
-cd web && npm ci && npm run dev            # :5173, proxya /api a :8001
+cd web && npm ci && npm run dev            # :5173, proxya /api a :8011
 ```
 
 Variables en `.env` (nunca se commitea): `BATS_DB_DSN`, `BATS_VOTER_SALT`, `BATS_SUPABASE_URL`, etc. Detalle en [CLAUDE.md](CLAUDE.md).

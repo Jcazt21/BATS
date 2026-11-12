@@ -28,7 +28,7 @@ docs/                 planes, MIGRACION_VERCEL_SUPABASE.md, BATS_DOCS.md, postma
 
 ### Backend (desde la raíz, con `source venv/bin/activate`)
 ```bash
-python -m bats_core api                    # FastAPI :8001 (dev)
+python -m bats_core api                    # FastAPI :8011 (dev)
 python -m bats_core db --apply-schema      # schema.sql + migraciones + vistas. Idempotente
 python -m bats_core backfill               # reenvía logs de PS a la API (BATS_API_URL + BATS_INGEST_TOKEN). Idempotente
 python -m bats_core db --etl               # carga logs directo a la DB
@@ -51,7 +51,7 @@ node tools/roster_parity.js       # canonicalSet (TS) vs canonical_set (Python)
 
 ### Frontend (desde `web/`)
 ```bash
-npm run dev      # :5173, proxya /api -> localhost:8001 (BATS_API_URL lo cambia)
+npm run dev      # :5173, proxya /api -> 127.0.0.1:8011 (BATS_API_URL lo cambia)
 npm run build    # tsc -b && vite build
 npm run lint     # 4 errores preexistentes en ETLCleanerPage
 npx vitest run

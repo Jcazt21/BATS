@@ -14,7 +14,7 @@
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
-  touch-action: pan-y;
+  touch-action: pan-x pan-y;
 }
 
 .holo-card[data-flippable] {

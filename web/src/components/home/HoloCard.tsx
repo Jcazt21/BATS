@@ -633,7 +633,8 @@ export default function HoloCard({
   }, []);
 
   const track = (e: PointerEvent<HTMLDivElement>) => {
-    if (e.pointerType === "touch" && e.type === "pointermove" && !e.buttons) return;
+    // En táctil no hay "hover": inclinar al tocar deja la carta pegada con el efecto y compite con el scroll del carrusel.
+    if (e.pointerType === "touch") return;
     const rect = e.currentTarget.getBoundingClientRect();
     pointerRef.current = {
       x: clamp((e.clientX - rect.left) / rect.width, 0, 1),

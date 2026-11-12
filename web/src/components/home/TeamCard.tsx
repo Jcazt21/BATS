@@ -1,4 +1,17 @@
 import { useEffect, useState } from "react";
+
+/** Ancho de carta en el carrusel móvil: 46vw con tope de 220px. Se mide para que el sprite se escale con el ancho real. */
+const MOBILE_CARD_MAX = 220;
+function useMobileCardWidth() {
+  const calc = () => (typeof window === "undefined" ? MOBILE_CARD_MAX : Math.min(MOBILE_CARD_MAX, Math.round(window.innerWidth * 0.46)));
+  const [w, setW] = useState(calc);
+  useEffect(() => {
+    const onResize = () => setW(calc());
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  return w;
+}
 import { CARD_RATIO, CardFan } from "@/components/home/CardFan";
 import HoloCard from "@/components/home/HoloCard";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -114,6 +127,7 @@ function PokemonHolo({ pokemon: p, dexNum, sprite, moveType, width }: { pokemon:
 export function TeamCard({ pool, lineupSet, maxTeamSize, season, dexNum, moveType, spriteId, className }: TeamCardProps) {
   const shown = lineupSet ? pool.filter((p) => p.in_lineup) : pool;
   const desktop = useMediaQuery("(min-width: 1024px)");
+  const mobileW = useMobileCardWidth();
   return (
     <section
       aria-label="Tu equipo"
@@ -138,8 +152,8 @@ export function TeamCard({ pool, lineupSet, maxTeamSize, season, dexNum, moveTyp
           ) : (
             <ul className="-mx-4 flex w-full snap-x snap-mandatory gap-3 overflow-x-auto px-6 pb-2">
               {shown.map((p) => (
-                <li key={p.pokemon_id} className="w-[46vw] max-w-[220px] shrink-0 snap-center">
-                  <PokemonHolo pokemon={p} dexNum={dexNum(p.name)} sprite={spriteId?.(p.name)} moveType={moveType} width={220} />
+                <li key={p.pokemon_id} className="shrink-0 snap-center" style={{ width: mobileW }}>
+                  <PokemonHolo pokemon={p} dexNum={dexNum(p.name)} sprite={spriteId?.(p.name)} moveType={moveType} width={mobileW} />
                 </li>
               ))}
             </ul>

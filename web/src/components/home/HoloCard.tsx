@@ -633,8 +633,9 @@ export default function HoloCard({
   }, []);
 
   const track = (e: PointerEvent<HTMLDivElement>) => {
-    // En táctil no hay "hover": inclinar al tocar deja la carta pegada con el efecto y compite con el scroll del carrusel.
-    if (e.pointerType === "touch") return;
+    // En táctil no hay "hover" (pointerenter llega al tocar y la carta quedaría pegada): solo cuenta mientras el dedo está apoyado.
+    // En cuanto el navegador toma el gesto como scroll manda pointercancel y la carta se suelta.
+    if (e.pointerType === "touch" && e.type !== "pointerdown" && e.type !== "pointermove") return;
     const rect = e.currentTarget.getBoundingClientRect();
     pointerRef.current = {
       x: clamp((e.clientX - rect.left) / rect.width, 0, 1),
@@ -660,6 +661,7 @@ export default function HoloCard({
       onPointerMove={track}
       onPointerDown={track}
       onPointerLeave={leave}
+      onPointerUp={(e) => { if (e.pointerType === "touch") leave(); }}
       onPointerCancel={leave}
       style={{
         "--hc-w": `${width}px`,

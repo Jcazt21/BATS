@@ -84,7 +84,7 @@ function SpriteOverlay({ sprite, width }: { sprite: OverlaySprite; width: number
  * `<img>` (Showdown no envía CORS, y un GIF no se anima dentro de un canvas). El texto de la carta va
  * también como texto real para lectores de pantalla.
  */
-function PokemonHolo({ pokemon: p, dexNum, sprite, moveType, width }: { pokemon: RosterPokemon; dexNum?: number; sprite?: string; moveType?: (move: string) => string | undefined; width: number }) {
+function PokemonHolo({ pokemon: p, dexNum, sprite, moveType, width, idle = false }: { idle?: boolean; pokemon: RosterPokemon; dexNum?: number; sprite?: string; moveType?: (move: string) => string | undefined; width: number }) {
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   // Fondo al azar entre los 3 del tipo: se sortea una vez por carta y se conserva mientras exista.
   const [roll] = useState(Math.random);
@@ -112,7 +112,7 @@ function PokemonHolo({ pokemon: p, dexNum, sprite, moveType, width }: { pokemon:
         {face?.image ? (
           <HoloCard
             image={face.image} preset="edge" intensity={0.7} edgeSparkle={0.12} frame={3} glare={0.2}
-            width={width} radius={width * 0.044} idle={false} shadow={false}
+            width={width} radius={width * 0.044} idle={idle} shadow={false}
             overlay={face.sprite ? <SpriteOverlay sprite={face.sprite} width={width} /> : undefined}
           />
         ) : (
@@ -153,7 +153,7 @@ export function TeamCard({ pool, lineupSet, maxTeamSize, season, dexNum, moveTyp
             <ul className="-mx-4 flex w-full snap-x snap-mandatory gap-3 overflow-x-auto px-6 pb-2">
               {shown.map((p) => (
                 <li key={p.pokemon_id} className="shrink-0 snap-center" style={{ width: mobileW }}>
-                  <PokemonHolo pokemon={p} dexNum={dexNum(p.name)} sprite={spriteId?.(p.name)} moveType={moveType} width={mobileW} />
+                  <PokemonHolo pokemon={p} dexNum={dexNum(p.name)} sprite={spriteId?.(p.name)} moveType={moveType} width={mobileW} idle />
                 </li>
               ))}
             </ul>

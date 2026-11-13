@@ -65,6 +65,14 @@
   a, button, input, select, textarea, label, summary, [role="button"], [data-prefetch] {
     touch-action: manipulation;
   }
+  /* Tailwind 4 deja los botones con cursor por defecto: la mano vuelve a todo lo que se pulsa
+     (no a lo deshabilitado). Ver styles/cursor.test.ts. */
+  button:not(:disabled), select:not(:disabled), summary,
+  [role="button"]:not([aria-disabled="true"]), [role="tab"]:not([aria-disabled="true"]),
+  [role="radio"]:not([aria-disabled="true"]), [role="menuitem"]:not([data-disabled]),
+  [role="menuitemcheckbox"]:not([data-disabled]), [role="option"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
   /* Menús, diálogos y popovers entran con la curva de iOS: arranque decidido y frenada
      larga. Especificidad cero para que un `ease-*` explícito siga mandando. */
   :where([class*="animate-in"], [class*="animate-out"]) {

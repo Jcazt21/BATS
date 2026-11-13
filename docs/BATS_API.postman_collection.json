@@ -255,6 +255,65 @@
               ]
             }
           }
+        },
+        {
+          "name": "Pokemon Usage",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/stats/pokemon",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "stats",
+                "pokemon"
+              ]
+            },
+            "description": "Uso por especie (pick %, bring %, win rate, kills, MVP). Acepta ?season_id=X."
+          }
+        },
+        {
+          "name": "Pokemon Entry",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/stats/pokemon/:species",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "stats",
+                "pokemon",
+                ":species"
+              ]
+            },
+            "description": "Ficha de una especie: usuarios y sets más comunes."
+          }
+        },
+        {
+          "name": "Player Pokédex",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/players/{{username}}/pokedex",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "players",
+                "{{username}}",
+                "pokedex"
+              ]
+            },
+            "description": "Pokédex pública del jugador: especies vistas en batallas de liga, más reciente primero. 404 si el jugador no existe."
+          }
         }
       ]
     },

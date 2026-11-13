@@ -8,6 +8,10 @@
 @import "@fontsource/jetbrains-mono/500.css";
 @import "./styles/tokens.css";
 
+/* Las etiquetas de tipo se arman en código (`type-${t}`): Tailwind no las ve escritas y no las
+   generaría. Se listan aquí (ver styles/type-colors.test.ts). */
+@source inline("type-{normal,fire,water,electric,grass,ice,fighting,poison,ground,flying,psychic,bug,rock,ghost,dragon,dark,steel,fairy}");
+
 @font-face {
   font-family: "Nofex";
   src: url("/fonts/nofex.woff2") format("woff2");

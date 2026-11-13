@@ -116,6 +116,7 @@ export interface LeaderboardEntry {
   total_battles:    number;
   wins:             number;
   losses:           number;
+  ties:             number;
   win_rate_pct:     number;
   total_survivors:  number;
 }
@@ -404,7 +405,7 @@ export interface PlayerProfile {
   first_seen: string | null;
   last_seen:  string | null;
   record: {
-    battles: number; wins: number; losses: number; win_rate_pct: number | null;
+    battles: number; wins: number; losses: number; ties: number; win_rate_pct: number | null;
     forfeits: number; survivors: number;
   };
   mvp:    { total: number; kills: number };

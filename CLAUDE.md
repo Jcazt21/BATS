@@ -60,10 +60,11 @@ npx vitest run
 
 ## Base de datos
 
-- `schema.sql` + `migrations/v2…v10.sql` reconstruyen la base desde cero; `--apply-schema` es reaplicable.
+- `schema.sql` + `migrations/v2…v15.sql` reconstruyen la base desde cero; `--apply-schema` es reaplicable.
 - `seed.sql` y `roles.sql` son opcionales y **solo para Postgres local**; no los apliques en Supabase.
 - **Supabase** (proyecto `BATS`, us-east-1): strings en `.env` como `BATS_SUPABASE_DSN_POOLER` (`:6543`, Vercel) y `BATS_SUPABASE_DSN_SESSION` (`:5432`, migraciones/`pg_dump`). **`BATS_DB_DSN` apunta a la DB local a propósito**: `reset`, `clean` y los tests la usan por defecto. Para operar sobre Supabase pasa `--dsn` explícito. Sin RLS (Data API desactivada).
 - **La API lee siempre las vistas materializadas** (con o sin `?season_id=`); `season_id = 0` = "sin temporada". Se refrescan con `POST /api/ingest/refresh-views` y un cron diario. **La ingesta NO las refresca.**
+- **Orden de despliegue de v15 (al revés que v10):** primero `--apply-schema` y después el código nuevo (lee `mv_player_stats.ties`; el código viejo ignora la columna extra).
 - **Orden de despliegue de v10:** primero el código nuevo y enseguida `--apply-schema` (el código nuevo ya no inserta `mvp_score`, que ahora es columna generada).
 - **Transacciones:** `db.execute()` NO hace commit. Un bloque `with get_db()` es una transacción (commit al salir, rollback ante excepción); fuera de un `with` llama `db.commit()`.
 - No dependas del `search_path`.

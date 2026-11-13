@@ -170,7 +170,7 @@ def get_pickrate(season_id: Optional[int] = Query(None)):
 
 @router.get("/leaderboard")
 def get_leaderboard(season_id: Optional[int] = Query(None)):
-    """Leaderboard de jugadores con W/L y pokémon sobrevivientes. Opcional: ?season_id=X"""
+    """Leaderboard de jugadores con V/D/E y pokémon sobrevivientes. Opcional: ?season_id=X"""
     mvf, mvp = _mv_season(season_id)
     with get_db() as db:
         rows = db.fetchall(
@@ -179,7 +179,8 @@ def get_leaderboard(season_id: Optional[int] = Query(None)):
                 username,
                 SUM(total_battles)                                       AS total_battles,
                 SUM(wins)                                                AS wins,
-                SUM(total_battles) - SUM(wins)                           AS losses,
+                SUM(total_battles) - SUM(wins) - SUM(ties)               AS losses,
+                SUM(ties)                                                AS ties,
                 ROUND(100.0 * SUM(wins) / NULLIF(SUM(total_battles), 0), 2) AS win_rate_pct,
                 SUM(total_survivors)                                     AS total_survivors
             FROM battle.mv_player_stats

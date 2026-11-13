@@ -2,6 +2,8 @@
 
 ## Estado de la ejecución (actualizado)
 
+> **v15 (empates en `mv_player_stats`):** en Supabase correr `--apply-schema` con el DSN de sesión **antes** de desplegar el código que lee `ties`.
+
 **Hecho y verificado** (los números son de pruebas reales contra los 13 logs de la liga, en bases desechables; tu DB local `bats-pkmn` no se tocó):
 
 | Fase | Estado | Verificación |

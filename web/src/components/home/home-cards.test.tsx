@@ -49,7 +49,7 @@ describe("TrainerCard", () => {
   it("insignias: ganada normal, bloqueada con aviso", () => {
     render(<TrainerCard username="x" profile={{
       username: "x", first_seen: null, last_seen: null,
-      record: { battles: 1, wins: 1, losses: 0, win_rate_pct: 100, forfeits: 0, survivors: 0 },
+      record: { battles: 1, wins: 1, losses: 0, ties: 0, win_rate_pct: 100, forfeits: 0, survivors: 0 },
       mvp: { total: 0, kills: 0 }, streak: { type: null, length: 0 }, top_pokemon: [], recent: [], roster: null,
       badges: [
         { id: "first_win", glyph: "★", label: "Primera victoria", earned: true },

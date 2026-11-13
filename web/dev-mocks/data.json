@@ -711,6 +711,7 @@
       "total_battles": 24,
       "wins": 16,
       "losses": 8,
+      "ties": 0,
       "win_rate_pct": 66.7,
       "total_survivors": 41
     },
@@ -718,7 +719,8 @@
       "username": "ronny",
       "total_battles": 22,
       "wins": 13,
-      "losses": 9,
+      "losses": 8,
+      "ties": 1,
       "win_rate_pct": 59.1,
       "total_survivors": 33
     },
@@ -727,6 +729,7 @@
       "total_battles": 20,
       "wins": 10,
       "losses": 10,
+      "ties": 0,
       "win_rate_pct": 50.0,
       "total_survivors": 28
     },
@@ -735,6 +738,7 @@
       "total_battles": 18,
       "wins": 8,
       "losses": 10,
+      "ties": 0,
       "win_rate_pct": 44.4,
       "total_survivors": 22
     },
@@ -743,6 +747,7 @@
       "total_battles": 16,
       "wins": 3,
       "losses": 13,
+      "ties": 0,
       "win_rate_pct": 18.8,
       "total_survivors": 12
     }
@@ -1687,6 +1692,7 @@
         "battles": 24,
         "wins": 16,
         "losses": 8,
+        "ties": 0,
         "win_rate_pct": 66.7,
         "forfeits": 0,
         "survivors": 41
@@ -1891,7 +1897,8 @@
       "record": {
         "battles": 22,
         "wins": 13,
-        "losses": 9,
+        "losses": 8,
+        "ties": 1,
         "win_rate_pct": 59.1,
         "forfeits": 0,
         "survivors": 33
@@ -1989,6 +1996,7 @@
         "battles": 20,
         "wins": 10,
         "losses": 10,
+        "ties": 0,
         "win_rate_pct": 50.0,
         "forfeits": 0,
         "survivors": 28
@@ -2086,6 +2094,7 @@
         "battles": 18,
         "wins": 8,
         "losses": 10,
+        "ties": 0,
         "win_rate_pct": 44.4,
         "forfeits": 0,
         "survivors": 22
@@ -2183,6 +2192,7 @@
         "battles": 16,
         "wins": 3,
         "losses": 13,
+        "ties": 0,
         "win_rate_pct": 18.8,
         "forfeits": 1,
         "survivors": 12

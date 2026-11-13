@@ -535,9 +535,9 @@ export const getBotBattleDetails = (battleId: string) => request<BattleDetailEnt
 
 export const getPlayerProfile = (username: string, seasonId?: number) =>
   request<PlayerProfile>(`/api/players/${encodeURIComponent(username)}`, { params: { season_id: seasonId } });
-export const getPokedex = (seasonId?: number) => request<PokedexList>("/api/pokedex", { params: { season_id: seasonId } });
-export const getPokedexEntry = (species: string, seasonId?: number) =>
-  request<PokedexEntry>(`/api/pokedex/${encodeURIComponent(species)}`, { params: { season_id: seasonId } });
+export const getPokemonStats = (seasonId?: number) => request<PokedexList>("/api/stats/pokemon", { params: { season_id: seasonId } });
+export const getPokemonStatsEntry = (species: string, seasonId?: number) =>
+  request<PokedexEntry>(`/api/stats/pokemon/${encodeURIComponent(species)}`, { params: { season_id: seasonId } });
 
 // ── Equipo (requiere sesión) ──────────────────────────────────────────────────
 

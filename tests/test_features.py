@@ -149,11 +149,11 @@ class TestFeatures(unittest.TestCase):
         self.who = "Gary"
         self.assertEqual(self.client.get("/api/teams/ash").status_code, 200)       # ahora público
 
-    # ── Pokédex ───────────────────────────────────────────────────────────────
+    # ── Estadísticas por pokémon ──────────────────────────────────────────────
 
     def test_pokedex_pick_vs_bring(self):
         self._battle(0, p1team=[*(["Garchomp", "Clefable", "Rotom-Wash", "Heatran", "Corviknight"]), "Gyarados"])
-        r = self.client.get("/api/pokedex", params={"season_id": self.season}).json()
+        r = self.client.get("/api/stats/pokemon", params={"season_id": self.season}).json()
         self.assertEqual(r["total_slots"], 2)
         by = {s["species"]: s for s in r["species"]}
         self.assertIn("Garchomp", by)
@@ -161,15 +161,15 @@ class TestFeatures(unittest.TestCase):
             self.assertGreaterEqual(s["brought"], s["used"])
             self.assertGreaterEqual(s["bring_pct"], s["pick_pct"])
         # un pokémon llevado pero que no llegó a salir: bring rate sin pick rate
-        gy = self.client.get("/api/pokedex/gyarados", params={"season_id": self.season}).json()
+        gy = self.client.get("/api/stats/pokemon/gyarados", params={"season_id": self.season}).json()
         self.assertEqual((gy["used"], gy["brought"]), (0, 1))
         self.assertEqual((gy["pick_pct"], gy["bring_pct"]), (0.0, 50.0))
-        self.assertEqual(self.client.get("/api/pokedex/no-existe-en-la-liga").status_code, 404)
+        self.assertEqual(self.client.get("/api/stats/pokemon/no-existe-en-la-liga").status_code, 404)
 
     def test_pokedex_sets_solo_de_rosters_publicos(self):
         self._battle(0)
         self._register()
-        url = "/api/pokedex/garchomp"
+        url = "/api/stats/pokemon/garchomp"
         self.assertEqual(self.client.get(url, params={"season_id": self.season}).json()["sets"]["players"], 0)
         self._set_restrictions(registration_closed=True)
         d = self.client.get(url, params={"season_id": self.season}).json()

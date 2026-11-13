@@ -24,14 +24,14 @@ describe("lazyPage", () => {
 
 describe("preloadRoute", () => {
   it("elige el chunk por ruta, sin confundir listas con fichas", () => {
-    const dex = vi.spyOn(pages.pokedex, "preload").mockResolvedValue({ default: () => null });
-    const entry = vi.spyOn(pages.pokedexEntry, "preload").mockResolvedValue({ default: () => null });
+    const stats = vi.spyOn(pages.stats, "preload").mockResolvedValue({ default: () => null });
+    const entry = vi.spyOn(pages.pokemonStats, "preload").mockResolvedValue({ default: () => null });
     const layout = vi.spyOn(pages.adminLayout, "preload").mockResolvedValue({ default: () => null });
     const bot = vi.spyOn(pages.statsBot, "preload").mockResolvedValue({ default: () => null });
 
-    preloadRoute("/pokedex/Pikachu");
+    preloadRoute("/stats/pokemon/Pikachu");
     expect(entry).toHaveBeenCalledOnce();
-    expect(dex).not.toHaveBeenCalled();
+    expect(stats).not.toHaveBeenCalled();
 
     preloadRoute("/admin/stats/bot");
     expect(layout).toHaveBeenCalledOnce();

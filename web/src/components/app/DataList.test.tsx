@@ -26,22 +26,22 @@ function montar(extra: Partial<React.ComponentProps<typeof DataList<Row>>> = {})
 
 describe("DataList · filas como enlaces", () => {
   it("con rowHref la celda de nombre es un <a href> real (clic medio / Ctrl+clic abren pestaña)", () => {
-    montar({ rowHref: (r) => `/pokedex/${r.name}` });
+    montar({ rowHref: (r) => `/stats/pokemon/${r.name}` });
     const tabla = screen.getByRole("table");
     const enlace = within(tabla).getByRole("link", { name: "Dragonite" });
-    expect(enlace).toHaveAttribute("href", "/pokedex/Dragonite");
+    expect(enlace).toHaveAttribute("href", "/stats/pokemon/Dragonite");
   });
 
   it("en las tarjetas (móvil) el nombre también es un enlace real", () => {
     mockViewport(false);
-    montar({ rowHref: (r) => `/pokedex/${r.name}` });
+    montar({ rowHref: (r) => `/stats/pokemon/${r.name}` });
     const tarjetas = screen.getByRole("list", { name: "Pokémon" });
-    expect(within(tarjetas).getByRole("link", { name: "Dragonite" })).toHaveAttribute("href", "/pokedex/Dragonite");
+    expect(within(tarjetas).getByRole("link", { name: "Dragonite" })).toHaveAttribute("href", "/stats/pokemon/Dragonite");
     expect(screen.queryByRole("table")).toBeNull();
   });
 
   it("en pantalla ancha no se montan las tarjetas (no se duplican las filas)", () => {
-    montar({ rowHref: (r) => `/pokedex/${r.name}` });
+    montar({ rowHref: (r) => `/stats/pokemon/${r.name}` });
     expect(screen.queryByRole("list", { name: "Pokémon" })).toBeNull();
     expect(screen.getAllByRole("link", { name: "Dragonite" })).toHaveLength(1);
   });

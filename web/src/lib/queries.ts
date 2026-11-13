@@ -18,8 +18,8 @@ export const keys = {
   mvp: (s?: SeasonArg) => ["stats", "mvp", seasonKey(s)] as const,
   pickrate: (s?: SeasonArg) => ["stats", "pickrate", seasonKey(s)] as const,
   leaderboard: (s?: SeasonArg) => ["stats", "leaderboard", seasonKey(s)] as const,
-  pokedex: (s?: SeasonArg) => ["pokedex", seasonKey(s)] as const,
-  pokedexEntry: (sp: string, s?: number) => ["pokedex", "entry", sp.toLowerCase(), s ?? "all"] as const,
+  pokemonStats: (s?: SeasonArg) => ["pokemon-stats", seasonKey(s)] as const,
+  pokemonStatsEntry: (sp: string, s?: number) => ["pokemon-stats", "entry", sp.toLowerCase(), s ?? "all"] as const,
   player: (u: string, s?: number) => ["player", u.toLowerCase(), s ?? "all"] as const,
   banRanking: ["ban", "ranking"] as const,
   banStatus: ["ban", "status"] as const,
@@ -64,10 +64,10 @@ export const usePickRate = (s?: SeasonArg) =>
   useQuery({ queryKey: keys.pickrate(s), queryFn: () => api.getPickRate(s ?? undefined), placeholderData: keepPreviousData, enabled: s !== null });
 export const useLeaderboard = (s?: SeasonArg) =>
   useQuery({ queryKey: keys.leaderboard(s), queryFn: () => api.getLeaderboard(s ?? undefined), placeholderData: keepPreviousData, enabled: s !== null });
-export const usePokedex = (s?: SeasonArg) =>
-  useQuery({ queryKey: keys.pokedex(s), queryFn: () => api.getPokedex(s ?? undefined), placeholderData: keepPreviousData, enabled: s !== null });
-export const usePokedexEntry = (species: string, s?: number) =>
-  useQuery({ queryKey: keys.pokedexEntry(species, s), queryFn: () => api.getPokedexEntry(species, s) });
+export const usePokemonStats = (s?: SeasonArg) =>
+  useQuery({ queryKey: keys.pokemonStats(s), queryFn: () => api.getPokemonStats(s ?? undefined), placeholderData: keepPreviousData, enabled: s !== null });
+export const usePokemonStatsEntry = (species: string, s?: number) =>
+  useQuery({ queryKey: keys.pokemonStatsEntry(species, s), queryFn: () => api.getPokemonStatsEntry(species, s) });
 /** Detalle pokémon a pokémon de una batalla; solo se pide cuando hay una elegida. */
 export const useBattleDetails = (battleId: string | null) =>
   useQuery({ queryKey: ["stats", "battle", battleId], queryFn: () => api.getBattleDetails(battleId!), enabled: !!battleId });

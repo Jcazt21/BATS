@@ -14,7 +14,7 @@ type Data = Record<string, any>;
 /** `undefined` = 404. */
 type Handler = (d: Data, params: string[], query: URLSearchParams) => unknown;
 
-// Igual que _norm() en bats_core/api/routes/pokedex.py: "Landorus-Therian" == "landorustherian"
+// Igual que _norm() en bats_core/api/routes/pokemon_stats.py: "Landorus-Therian" == "landorustherian"
 const norm = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
 
 const pokedexEntry: Handler = (d, [species]) => {
@@ -47,10 +47,10 @@ const rutas: [RegExp, Handler][] = [
   [/^\/api\/stats\/leaderboard$/, (d) => d.leaderboard],
   [/^\/api\/stats\/recent-battles$/, (d, _, q) => d.recent_battles.slice(0, Number(q.get("limit") ?? 8))],
   [/^\/api\/stats\/battles\/([^/]+)$/, (d, [id]) => d.battle_details[id]],
-  // Perfiles y Pokédex
+  // Perfiles y estadísticas por especie
   [/^\/api\/players\/([^/]+)$/, (d, [user]) => d.players[user.toLowerCase()]],
-  [/^\/api\/pokedex$/, (d) => d.pokedex],
-  [/^\/api\/pokedex\/([^/]+)$/, pokedexEntry],
+  [/^\/api\/stats\/pokemon$/, (d) => d.pokedex],
+  [/^\/api\/stats\/pokemon\/([^/]+)$/, pokedexEntry],
 ];
 
 function json(res: ServerResponse, body: unknown, status = 200) {

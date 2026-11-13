@@ -69,7 +69,7 @@ export function PlayerPage() {
         <Group title="Pokémon más usados">
           {q.isPending ? <div className="p-4"><Skeleton className="h-28" /></div> : !p?.top_pokemon.length ? <EmptyState title="Sin datos todavía" /> :
             p.top_pokemon.map((m) => (
-              <Link key={m.species} to={`/pokedex/${encodeURIComponent(m.species)}`} className="block">
+              <Link key={m.species} to={`/stats/pokemon/${encodeURIComponent(m.species)}`} className="block">
                 <GroupRow leading={<PokemonSprite species={m.species} size={44} />} title={m.species}
                   subtitle={`${m.kills} KOs · MVP medio ${num(m.avg_mvp, 1)}`} trailing={<span className="tabular text-subhead font-medium">{m.uses}×</span>} />
               </Link>

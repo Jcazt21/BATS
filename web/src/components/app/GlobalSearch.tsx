@@ -62,7 +62,7 @@ function Panel({ onDone }: { onDone: () => void }) {
       : [];
     const jugadores = (players.data ?? []).filter((p) => p.username.toLowerCase().includes(q)).slice(0, 6);
     return [
-      ...species.map((s) => ({ key: `s-${s.name}`, label: s.name, kind: "Pokémon" as const, to: `/pokedex/${encodeURIComponent(s.name)}` })),
+      ...species.map((s) => ({ key: `s-${s.name}`, label: s.name, kind: "Pokémon" as const, to: `/stats/pokemon/${encodeURIComponent(s.name)}` })),
       ...jugadores.map((p) => ({ key: `j-${p.username}`, label: p.username, kind: "Jugador" as const, to: `/j/${encodeURIComponent(p.username)}` })),
     ];
   }, [query, dex.data, players.data]);

@@ -3,12 +3,11 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { StatsPage } from "./StatsPage";
-import { abrirMenu } from "@/lib/test-utils";
-import { leerFuente } from "@/styles/source";
+import { abrirMenu, mockViewport } from "@/lib/test-utils";
 
 type Q = { data?: unknown; isPending?: boolean; isError?: boolean; isSuccess?: boolean; isPlaceholderData?: boolean; error?: unknown; refetch?: () => void };
 const st = vi.hoisted(() => ({
-  seasons: {} as Q, summary: {} as Q, leaderboard: {} as Q, mvp: {} as Q, pick: {} as Q, refreshing: false,
+  seasons: {} as Q, summary: {} as Q, leaderboard: {} as Q, mvp: {} as Q, pokemonStats: {} as Q, species: {} as Q, refreshing: false,
 }));
 
 vi.mock("@/lib/queries", () => ({
@@ -16,16 +15,19 @@ vi.mock("@/lib/queries", () => ({
   useSummary: () => ({ ...st.summary, isPlaceholderData: st.refreshing }),
   useLeaderboard: () => st.leaderboard,
   useMvp: () => st.mvp,
-  usePickRate: () => st.pick,
+  usePokemonStats: () => st.pokemonStats,
+  useDexEssentials: () => st.species,
 }));
-vi.mock("recharts", () => {
-  const Nada = () => null;
-  return { Bar: Nada, BarChart: Nada, CartesianGrid: Nada, Cell: Nada, ResponsiveContainer: Nada, Tooltip: Nada, XAxis: Nada, YAxis: Nada };
+
+const fila = (species: string, pick: number) => ({
+  species, used: 5, pick_pct: pick, brought: 6, bring_pct: pick + 10, win_rate_pct: 55, avg_mvp: 3.2, avg_kills: 1.5,
 });
+const sp = (name: string, types: string[]) => ({ name, types });
 
 const renderPage = () => render(<MemoryRouter><StatsPage /></MemoryRouter>);
 
 beforeEach(() => {
+  mockViewport(false);
   st.refreshing = false;
   st.seasons = { isSuccess: true, data: [
     { season_id: 3, season_name: "T3", is_active: true }, { season_id: 2, season_name: "T2", is_active: false },
@@ -36,7 +38,10 @@ beforeEach(() => {
     { username: "misty", total_battles: 5, wins: 2, losses: 3, win_rate_pct: 40, total_survivors: 5 },
   ] };
   st.mvp = { isPending: false, data: [{ species: "Gengar", player: "ash", total_mvp_score: "12", total_kills: 5, avg_mvp_per_battle: "3" }] };
-  st.pick = { isPending: false, data: [{ species: "Gengar", battles_used: 6, usage_pct: "40", win_rate_pct: "60" }] };
+  st.pokemonStats = { isPending: false, data: { total_slots: 20, species: [fila("Dragonite", 40), fila("Gengar", 30), fila("Garchomp", 20)] } };
+  st.species = { isSuccess: true, data: { species: {
+    dragonite: sp("Dragonite", ["Dragon", "Flying"]), gengar: sp("Gengar", ["Ghost", "Poison"]), garchomp: sp("Garchomp", ["Dragon", "Ground"]),
+  }, items: {}, meta: {} } };
 });
 
 describe("StatsPage · temporada", () => {
@@ -92,16 +97,27 @@ describe("StatsPage · móvil", () => {
   });
 });
 
-describe("StatsPage · gráfico (guardas de fuente)", () => {
-  const src = () => leerFuente("pages/StatsPage.tsx");
+describe("StatsPage · Uso", () => {
+  it("muestra las columnas pick %, bring %, win rate, kills y MVP, filtra por tipo y cada fila enlaza a /stats/pokemon/{species}", async () => {
+    mockViewport(true);
+    renderPage();
+    await userEvent.click(screen.getByRole("tab", { name: "Uso" }));
 
-  it("distingue win rate ≥50% también por patrón, no solo por color", () => {
-    expect(src()).toMatch(/<pattern/);
-    expect(src()).toMatch(/url\(#\$\{BAJO_ID\}\)/);
-  });
+    const tabla = screen.getByRole("table");
+    const cabeceras = within(tabla).getAllByRole("columnheader").map((th) => th.textContent);
+    expect(cabeceras).toEqual(["Pokémon", "Pick rate", "Bring rate", "Win rate", "KOs", "MVP medio"]);
 
-  it("los ticks usan las constantes de tipografía, no números sueltos", () => {
-    expect(src()).toMatch(/TICK_CAPTION/);
-    expect(src()).not.toMatch(/fontSize:\s*1[0-9]\b/);
+    const enlaces = within(tabla).getAllByRole("link").map((a) => a.getAttribute("href"));
+    expect(enlaces).toContain("/stats/pokemon/Dragonite");
+    expect(enlaces).toContain("/stats/pokemon/Gengar");
+    expect(enlaces).toContain("/stats/pokemon/Garchomp");
+
+    await userEvent.click(screen.getByRole("radio", { name: "Dragón" }));
+    const filas = within(tabla).getAllByRole("row").slice(1);
+    expect(filas).toHaveLength(2);
+    expect(within(tabla).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual([
+      "/stats/pokemon/Dragonite",
+      "/stats/pokemon/Garchomp",
+    ]);
   });
 });

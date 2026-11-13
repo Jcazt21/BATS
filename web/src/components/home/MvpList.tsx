@@ -19,7 +19,7 @@ export function MvpList({ query, dexNum }: {
           <ul className="divide-y divide-border">
             {rows.map((m) => (
               <li key={`${m.species}-${m.player}`}>
-                <Link to={`/pokedex/${encodeURIComponent(m.species)}`} className="flex items-center gap-3 rounded-2xl py-2.5 outline-none focus-visible:bg-muted">
+                <Link to={`/stats/pokemon/${encodeURIComponent(m.species)}`} className="flex items-center gap-3 rounded-2xl py-2.5 outline-none focus-visible:bg-muted">
                   <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-secondary p-1">
                     <PokemonArtwork name={m.species} dexNum={dexNum(m.species)} className="text-caption" />
                   </span>

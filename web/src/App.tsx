@@ -20,6 +20,10 @@ const {
   seasons: SeasonsPage, players: PlayersPage, rosters: RostersPage, ingest: IngestPage, fairPlay: FairPlayPage,
   leagueSettings: LeagueSettingsPage, adminBlog: BlogAdminPage,
 } = pages;
+// Demo temporal de la silueta (solo desarrollo): no entra en el build de producción.
+const SilhouetteDemoPage = import.meta.env.DEV
+  ? lazyPage(() => import("@/pages/SilhouetteDemoPage").then((m) => ({ default: m.SilhouetteDemoPage })))
+  : null;
 // Mismo chunk que /stats: precargar uno sirve para el otro.
 const AdminStatsPage = lazyPage(() => pages.stats.preload().then(({ default: Stats }) => ({ default: () => <Stats showAdminControls /> })));
 
@@ -51,6 +55,7 @@ export default function App() {
                       <Route path="/j/:username" element={<PlayerPage />} />
                       <Route path="/bans" element={<BansPage />} />
                       <Route path="/equipo" element={<TeamPage />} />
+                      {SilhouetteDemoPage && <Route path="/dev/silueta" element={<SilhouetteDemoPage />} />}
                     </Route>
                     <Route path="/registro" element={<LegacyRedirect to="/equipo" />} />
                     <Route path="/ypkmn" element={<Navigate to="/pokedex" replace />} />

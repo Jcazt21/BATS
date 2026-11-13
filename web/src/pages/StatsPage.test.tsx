@@ -102,6 +102,7 @@ describe("StatsPage · Uso", () => {
     mockViewport(true);
     renderPage();
     await userEvent.click(screen.getByRole("tab", { name: "Uso" }));
+    await userEvent.click(screen.getByRole("radio", { name: "Lista" }));
 
     const tabla = screen.getByRole("table");
     const cabeceras = within(tabla).getAllByRole("columnheader").map((th) => th.textContent);
@@ -119,5 +120,19 @@ describe("StatsPage · Uso", () => {
       "/stats/pokemon/Dragonite",
       "/stats/pokemon/Garchomp",
     ]);
+  });
+});
+
+describe("StatsPage · Uso · Gráfico / Lista", () => {
+  it("por defecto muestra el gráfico; Lista cambia a la tabla", async () => {
+    mockViewport(true);
+    renderPage();
+    await userEvent.click(screen.getByRole("tab", { name: "Uso" }));
+    expect(screen.getByRole("figure", { name: "Gráfico de uso de los 10 pokémon más usados" })).toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("radio", { name: "Lista" }));
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.queryByRole("figure")).not.toBeInTheDocument();
   });
 });

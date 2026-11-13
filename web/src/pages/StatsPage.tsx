@@ -12,6 +12,8 @@ import { PokemonSprite } from "@/components/app/PokemonSprite";
 import { Meter } from "@/components/app/Meter";
 import { EmptyState, ErrorState } from "@/components/app/States";
 import HoldButton from "@/components/app/HoldButton";
+import { SegmentedControl } from "@/components/app/SegmentedControl";
+import { PokemonUsageChart } from "@/components/stats/PokemonUsageChart";
 import { PokemonUsageTable } from "@/components/stats/PokemonUsageTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { resetBattleData, type LeaderboardEntry, type MvpEntry } from "@/lib/api";
@@ -34,6 +36,7 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
   const leaderboard = useLeaderboard(season);
   const mvp = useMvp(season);
   const pokemonStats = usePokemonStats(season);
+  const [view, setView] = useState<"chart" | "list">("chart");
   // Datos de la temporada anterior mientras llegan los de la elegida.
   const refreshing = [summary, leaderboard, mvp, pokemonStats].some((q) => q.isPlaceholderData);
   // Al llegar los datos de la temporada elegida el contenido se remonta y entra con un fundido; mientras
@@ -111,7 +114,13 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
           </TabsContent>
 
           <TabsContent value="uso" className="flex flex-col gap-3">
-            <PokemonUsageTable query={pokemonStats} temporada={seasonChoice} />
+            <div className="flex justify-end">
+              <SegmentedControl label="Vista" value={view} onChange={setView} options={[{ value: "chart", label: "Gráfico" }, { value: "list", label: "Lista" }]} />
+            </div>
+            {/* Sin datos todavía (cargando, error o vacío) la tabla muestra el estado que corresponde. */}
+            {view === "chart" && !pokemonStats.isError && !pokemonStats.isPending && pokemonStats.data?.species.length
+              ? <PokemonUsageChart rows={pokemonStats.data.species} />
+              : <PokemonUsageTable query={pokemonStats} temporada={seasonChoice} />}
           </TabsContent>
         </Tabs>
       </Reveal>

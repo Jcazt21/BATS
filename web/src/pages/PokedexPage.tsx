@@ -9,11 +9,13 @@ import { DexToolbar } from "@/components/pokedex/DexToolbar";
 import { PlayerPicker } from "@/components/pokedex/PlayerPicker";
 import { ProgressCard } from "@/components/pokedex/ProgressCard";
 import { ProgressRing } from "@/components/pokedex/ProgressRing";
+import { ProgressStrip } from "@/components/pokedex/ProgressStrip";
 import { SignInCard } from "@/components/SignInCard";
 import { buildCollection, collectionProgress, filterCollection, groupByTypes, type DexCell as Cell, type DexFilters } from "@/lib/dex/collection";
 import { speciesById } from "@/lib/dex/snapshot";
 import { clampPage, PAGE_SIZES, pageCount, paginate } from "@/lib/pagination";
 import type { PokemonType } from "@/lib/pokemon-types";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { useDexEssentials, useMe, usePlayerPokedex } from "@/lib/queries";
 import { useSession } from "@/lib/session";
 
@@ -30,6 +32,8 @@ export function PokedexPage() {
   const guest = !userParam && !sessionLoading && !session;
   const base = userParam ? `/j/${encodeURIComponent(userParam)}/pokedex` : "/pokedex";
 
+  // En pantallas angostas el aside (anillo + desglose) se reemplaza por una tira compacta.
+  const desktop = useMediaQuery("(min-width: 1024px)");
   const dex = useDexEssentials();
   const pokedex = usePlayerPokedex(username);
   const cells = useMemo(
@@ -93,13 +97,17 @@ export function PokedexPage() {
         <ErrorState error={error} onRetry={() => { void dex.refetch(); void pokedex.refetch(); }} />
       ) : (
         <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
-          <aside className="flex flex-col gap-4 lg:order-2">
-            <PlayerPicker viewing={userParam} me={me.data?.username} />
-            <div className="flex justify-center rounded-2xl border bg-card p-4">
-              <ProgressRing discovered={progress.discovered} total={progress.total} />
-            </div>
-            <ProgressCard progress={progress} />
-          </aside>
+          {desktop ? (
+            <aside className="order-2 flex flex-col gap-4">
+              <PlayerPicker viewing={userParam} me={me.data?.username} />
+              <div className="flex justify-center rounded-2xl border bg-card p-4">
+                <ProgressRing discovered={progress.discovered} total={progress.total} />
+              </div>
+              <ProgressCard progress={progress} />
+            </aside>
+          ) : (
+            <ProgressStrip progress={progress} picker={<PlayerPicker viewing={userParam} me={me.data?.username} compact />} />
+          )}
 
           <div ref={gridTop} className="flex min-w-0 scroll-mt-4 flex-col gap-4">
             <DexToolbar
@@ -107,6 +115,7 @@ export function PokedexPage() {
               status={status} onStatus={setStatus}
               types={types} onTypes={setTypes}
               gen={gen} onGen={setGen}
+              compact={!desktop}
             />
 
             {dex.isPending ? (

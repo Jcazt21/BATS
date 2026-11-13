@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { abrirMenu, mockViewport } from "@/lib/test-utils";
@@ -160,6 +160,51 @@ describe("PokedexPage · filtro por tipos", () => {
     expect(titulos).toEqual(["Fuego y Volador1", "Solo Fuego2"]);
     expect(within(screen.getByRole("list", { name: "Fuego y Volador" })).getAllByRole("listitem")).toHaveLength(1);
     expect(within(screen.getByRole("list", { name: "Solo Fuego" })).getAllByRole("listitem")).toHaveLength(2);
+  });
+});
+
+describe("PokedexPage · móvil", () => {
+  beforeEach(() => mockViewport(false));
+
+  it("arriba va una tira compacta: el desglose no ocupa la pantalla hasta pedirlo", async () => {
+    renderAt("/pokedex");
+    const strip = screen.getByRole("region", { name: "Resumen de la Pokédex" });
+    expect(within(strip).getByRole("img", { name: "4 de 4 descubiertos" })).toBeTruthy();
+    expect(within(strip).getByText("Vistos 2 · Evolución 2")).toBeTruthy();
+    expect(screen.queryByRole("region", { name: "Progreso de la Pokédex" })).toBeNull();
+
+    await userEvent.click(within(strip).getByRole("button", { name: "Ver progreso" }));
+    const card = within(screen.getByRole("dialog")).getByRole("region", { name: "Progreso de la Pokédex" });
+    expect(within(card).getByText(/contra ronny/)).toBeTruthy();
+    expect(within(card).getByText("3/3")).toBeTruthy();
+  });
+
+  it("los filtros viven en una hoja: botón «Filtros» con contador y chips para quitarlos", async () => {
+    renderAt("/pokedex");
+    expect(screen.queryByRole("radiogroup", { name: "Estado" })).toBeNull();
+
+    await userEvent.click(screen.getByRole("button", { name: "Filtros" }));
+    const sheet = screen.getByRole("dialog");
+    await userEvent.click(within(sheet).getByRole("radio", { name: "Vistos" }));
+    await userEvent.selectOptions(within(sheet).getByRole("combobox", { name: "Generación" }), "4");
+    await userEvent.click(within(sheet).getByRole("button", { name: "Listo" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull(), { timeout: 3000 });
+
+    expect(screen.getByRole("button", { name: "Filtros, 2 activos" })).toBeTruthy();
+    expect(within(grid()).getAllByRole("listitem")).toHaveLength(1);
+
+    await userEvent.click(screen.getByRole("button", { name: "Quitar filtro Generación 4" }));
+    expect(screen.getByRole("button", { name: "Filtros, 1 activo" })).toBeTruthy();
+    await userEvent.click(screen.getByRole("button", { name: "Quitar filtro Vistos" }));
+    expect(screen.getByRole("button", { name: "Filtros" })).toBeTruthy();
+    expect(within(grid()).getAllByRole("listitem")).toHaveLength(4);
+  });
+
+  it("el selector de jugador sigue disponible", async () => {
+    renderAt("/pokedex");
+    await userEvent.type(screen.getByRole("combobox", { name: "Ver la Pokédex de" }), "kae");
+    await userEvent.click(screen.getByRole("option", { name: /Kael/ }));
+    expect(screen.getByTestId("loc").textContent).toBe("/j/kael/pokedex");
   });
 });
 

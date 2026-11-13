@@ -430,6 +430,8 @@ export interface PlayerProfile {
 export interface PokedexRow {
   species: string; used: number; pick_pct: number | null; brought: number; bring_pct: number | null;
   win_rate_pct: number | null; avg_mvp: number; avg_kills: number;
+  /** % de veces que terminó la batalla vivo cuando salió al campo. */
+  survival_pct: number | null;
 }
 
 export interface PokedexList { total_slots: number; species: PokedexRow[] }
@@ -439,7 +441,7 @@ export interface CountedName { name: string; count: number }
 export interface PokedexEntry {
   species: string; types: string | null; sprite_url: string | null; national_dex: number | null;
   total_slots: number; used: number; pick_pct: number | null; brought: number; bring_pct: number | null;
-  win_rate_pct: number | null; avg_kills: number; avg_mvp: number;
+  win_rate_pct: number | null; avg_kills: number; avg_mvp: number; survival_pct: number | null;
   users: { username: string; uses: number; kills: number; mvp: number }[];
   sets: {
     players: number; moves: CountedName[]; items: CountedName[]; abilities: CountedName[];

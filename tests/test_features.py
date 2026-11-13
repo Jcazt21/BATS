@@ -166,6 +166,30 @@ class TestFeatures(unittest.TestCase):
         self.assertEqual((gy["pick_pct"], gy["bring_pct"]), (0.0, 50.0))
         self.assertEqual(self.client.get("/api/stats/pokemon/no-existe-en-la-liga").status_code, 404)
 
+    def test_supervivencia_por_especie(self):
+        """survival_pct = veces que terminó vivo / veces que salió al campo (was_active), en lista y ficha."""
+        self._battle(0)
+        self._battle(1, winner="Gary", date="2032-01-11")
+        with BATSDatabase(DSN) as db:
+            rows = db.fetchall(
+                """
+                SELECT dp.species, COUNT(*) AS n, SUM(fpp.survived::INT) AS vivo
+                FROM battle.fact_pokemon_performance fpp
+                JOIN battle.dim_pokemon dp ON dp.pokemon_id = fpp.pokemon_id
+                WHERE fpp.battle_id = ANY(%s) AND fpp.was_active
+                GROUP BY dp.species
+                """, (self.battle_ids,))
+        exp = {r["species"]: round(100 * int(r["vivo"]) / int(r["n"]), 2) for r in rows}
+        lista = {s["species"]: s for s in self.client.get(
+            "/api/stats/pokemon", params={"season_id": self.season}).json()["species"]}
+        for species, pct in exp.items():
+            self.assertEqual(lista[species]["survival_pct"], pct, species)
+        # La ficha da lo mismo aunque se pida con otra grafía (especie con forma).
+        forma = next(s for s in exp if "-" in s) if any("-" in s for s in exp) else next(iter(exp))
+        ficha = self.client.get(f"/api/stats/pokemon/{forma.upper().replace('-', '')}",
+                                params={"season_id": self.season}).json()
+        self.assertEqual(ficha["survival_pct"], exp[forma])
+
     def test_pokedex_sets_solo_de_rosters_publicos(self):
         self._battle(0)
         self._register()

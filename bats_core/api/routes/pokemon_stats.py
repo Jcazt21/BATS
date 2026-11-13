@@ -2,7 +2,7 @@
 BATS — Estadísticas por pokémon de la liga: cómo rinde cada especie en los combates de la comunidad.
 
 Endpoints:
-  GET /api/stats/pokemon                → resumen por especie (uso, bring rate, win rate)
+  GET /api/stats/pokemon                → resumen por especie (uso, bring rate, win rate, supervivencia)
   GET /api/stats/pokemon/{species}      → detalle: quién lo usa y qué sets lleva
 
 Pick rate y win rate salen de mv_pick_rate; el "bring rate" (lo llevó al equipo, aunque no
@@ -64,6 +64,31 @@ def _brought(db, season_id: Optional[int], species_norm: Optional[str] = None) -
     return {r["species"]: int(r["brought"]) for r in rows}
 
 
+def _survival(db, season_id: Optional[int], species_norm: Optional[str] = None) -> dict[str, tuple[int, int]]:
+    """Especie → (veces que terminó viva, veces que salió al campo). Mismo filtro que _brought."""
+    conds = ["fpp.was_active", "NOT fb.is_bot_battle", "NOT dpl.is_bot"]
+    params: list = []
+    if season_id is not None:
+        conds.append("fb.season_id = %s")
+        params.append(season_id)
+    if species_norm:
+        conds.append(NORM.format(col="dp.species") + " = %s")
+        params.append(species_norm)
+    rows = db.fetchall(
+        f"""
+        SELECT dp.species, SUM(fpp.survived::INT) AS survived, COUNT(*) AS appearances
+        FROM battle.fact_pokemon_performance fpp
+        JOIN battle.fact_battles fb  ON fb.battle_id  = fpp.battle_id
+        JOIN battle.dim_pokemon  dp  ON dp.pokemon_id = fpp.pokemon_id
+        JOIN battle.dim_players  dpl ON dpl.player_id = fpp.player_id
+        WHERE {' AND '.join(conds)}
+        GROUP BY dp.species
+        """,
+        tuple(params),
+    )
+    return {r["species"]: (int(r["survived"]), int(r["appearances"])) for r in rows}
+
+
 def _pct(n: int, total: int) -> Optional[float]:
     return round(100 * n / total, 2) if total else None
 
@@ -85,6 +110,7 @@ def list_pokedex(season_id: Optional[int] = Query(None)):
             mvp,
         )
         brought = _brought(db, season_id)
+        survival = _survival(db, season_id)
     return {
         "total_slots": slots,
         "species": [
@@ -97,6 +123,7 @@ def list_pokedex(season_id: Optional[int] = Query(None)):
                 "win_rate_pct": float(r["win_rate_pct"]) if r["win_rate_pct"] is not None else None,
                 "avg_mvp": float(r["avg_mvp"] or 0),
                 "avg_kills": float(r["avg_kills"] or 0),
+                "survival_pct": _pct(*survival.get(r["species"], (0, 0))),
             }
             for r in rows
         ],
@@ -132,6 +159,7 @@ def get_pokedex_entry(species: str, season_id: Optional[int] = Query(None)):
         )
         used, rows_n = int(agg["used"]), int(agg["rows"])
         brought = _brought(db, season_id, key).get(name, used)
+        survived, appearances = _survival(db, season_id, key).get(name, (0, 0))
 
         umv, ump = _season(season_id)
         users = db.fetchall(
@@ -178,6 +206,7 @@ def get_pokedex_entry(species: str, season_id: Optional[int] = Query(None)):
         "win_rate_pct": _pct(int(agg["wins"]), rows_n),
         "avg_kills": round(float(agg["kills"]) / rows_n, 2) if rows_n else 0,
         "avg_mvp": round(float(agg["mvp"]) / rows_n, 2) if rows_n else 0,
+        "survival_pct": _pct(survived, appearances),
         "users": [{"username": u["username"], "uses": int(u["uses"]), "kills": int(u["kills"]),
                    "mvp": float(u["mvp"])} for u in users],
         "sets": {

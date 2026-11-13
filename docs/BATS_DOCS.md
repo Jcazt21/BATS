@@ -553,8 +553,8 @@ El secret del JWT se deriva de: `SHA-256(BATS_VOTER_SALT)`. Expira en 24h.
 | `GET` | `/api/stats/bot/pokemon` | Pokémon más usados contra el bot |
 | `GET` | `/api/stats/bot/battles` | Historial de batallas vs bot (últimas 50) |
 | `GET` | `/api/stats/battles/{battle_id}` | Detalle de pokémon de una batalla |
-| `GET` | `/api/stats/pokemon` | Uso por especie: pick %, bring %, win rate, kills y MVP medios. Acepta `?season_id=X` |
-| `GET` | `/api/stats/pokemon/{species}` | Ficha de una especie: quién la usa y sus sets más comunes (solo de rosters públicos). Acepta `?season_id=X` |
+| `GET` | `/api/stats/pokemon` | Uso por especie: pick %, bring %, win rate, kills y MVP medios y `survival_pct` (veces que terminó vivo / veces que salió al campo, en vivo desde `fact_pokemon_performance`). Acepta `?season_id=X` |
+| `GET` | `/api/stats/pokemon/{species}` | Ficha de una especie: quién la usa, `survival_pct` y sus sets más comunes (solo de rosters públicos). Acepta `?season_id=X` |
 | `GET` | `/api/stats/bot/battles/{battle_id}` | Detalle de una batalla vs bot |
 
 **Optimización:** sin `?season_id`, usa vistas materializadas (`mv_pick_rate`, `mv_player_stats`, etc.) para máxima velocidad. Con filtro de temporada hace queries a las tablas base.

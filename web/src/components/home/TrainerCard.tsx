@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Pencil } from "lucide-react";
 import { ReflectiveCard } from "@/components/ui/reflective-card";
-import { initials, num, pct } from "@/lib/format";
+import { num, pct } from "@/lib/format";
 import { trainerPath, type PlayerProfile } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -88,21 +88,16 @@ export function TrainerCard({ username, season, rank, totalPlayers, profile, ava
 
       <header className="relative flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          {onEditAvatar ? (
+          {onEditAvatar && (
             <button
               type="button"
               onClick={onEditAvatar}
               aria-label="Cambiar sprite de entrenador"
               title="Cambiar sprite de entrenador"
-              className="group relative shrink-0 rounded-xl focus-visible:outline-2 focus-visible:outline-white"
+              className="grid size-7 shrink-0 place-items-center rounded-full bg-white/20 text-white focus-visible:outline-2 focus-visible:outline-white"
             >
-              <AvatarBox username={username} avatar={avatar} />
-              <span aria-hidden="true" className="absolute -right-1 -bottom-1 grid size-5 place-items-center rounded-full bg-white text-black shadow">
-                <Pencil className="size-3" />
-              </span>
+              <Pencil className="size-3.5" />
             </button>
-          ) : (
-            <AvatarBox username={username} avatar={avatar} />
           )}
           <span className="truncate text-caption uppercase tracking-[.14em] text-white/90">Entrenador PGL</span>
         </div>
@@ -177,26 +172,6 @@ function TrainerBackdrop({ id }: { id: string }) {
         }}
       />
     </div>
-  );
-}
-
-/** Sprite de entrenador (pixel art, sin suavizar) o, sin elegir, las iniciales. */
-function AvatarBox({ username, avatar }: { username: string; avatar?: string | null }) {
-  if (avatar) {
-    return (
-      <img
-        src={trainerPath(avatar)}
-        alt=""
-        width={56}
-        height={56}
-        className="size-14 shrink-0 rounded-xl border border-white/25 bg-white/15 object-contain [image-rendering:pixelated]"
-      />
-    );
-  }
-  return (
-    <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-xl border border-white/25 bg-white/15 text-base font-bold">
-      {initials(username)}
-    </span>
   );
 }
 

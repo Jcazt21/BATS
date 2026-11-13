@@ -18,23 +18,18 @@ vi.mock("@/lib/queries", () => ({
 }));
 
 describe("TrainerCard · sprite de entrenador", () => {
-  it("sin sprite muestra las iniciales", () => {
+  it("sin sprite no pinta imágenes ni avatar en la cabecera", () => {
     const { container } = render(<TrainerCard username="jazar" />);
     expect(container.querySelector("img")).toBeNull();
-    expect(container.textContent).toContain("JA");
+    expect(container.textContent).not.toContain("JA");
   });
 
-  it("con sprite lo pinta desde la API y no muestra las iniciales", () => {
+  it("con sprite pinta solo el sprite grande de fondo (decorativo)", () => {
     const { container } = render(<TrainerCard username="jazar" avatar="lance" />);
-    expect(container.querySelector("img")?.getAttribute("src")).toBe("/api/trainers/lance");
-  });
-
-  it("con sprite pinta además el sprite grande de fondo (decorativo); sin sprite, ninguno", () => {
-    const { container, rerender } = render(<TrainerCard username="jazar" avatar="lance" />);
-    expect(container.querySelectorAll("img")).toHaveLength(3);
+    const imgs = container.querySelectorAll("img");
+    expect(imgs).toHaveLength(2);
+    expect(imgs[0].getAttribute("src")).toBe("/api/trainers/lance");
     expect(container.querySelectorAll('[aria-hidden="true"] img')).toHaveLength(2);
-    rerender(<TrainerCard username="jazar" />);
-    expect(container.querySelectorAll("img")).toHaveLength(0);
   });
 
   it("solo es editable si se pasa onEditAvatar", () => {

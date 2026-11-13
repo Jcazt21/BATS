@@ -73,8 +73,6 @@ export function AppShell() {
 function TopBar({ scrolled }: { scrolled: boolean }) {
   const pill = usePillTransition();
   const onTab = useTabReselect();
-  // La Home usa el ancho amplio (ver WIDE_ROW en HomePage); la cabecera lo sigue para que compartan borde.
-  const wide = useLocation().pathname === "/";
   return (
     <header
       className={cn(
@@ -82,7 +80,8 @@ function TopBar({ scrolled }: { scrolled: boolean }) {
         scrolled ? "shadow-[0_1px_0_var(--separator)]" : "shadow-[0_1px_0_transparent]",
       )}
     >
-      <div className={cn("mx-auto flex h-14 items-center gap-4 px-4 sm:px-6", wide ? "max-w-[calc(1760px+3rem)]" : "max-w-6xl")}>
+      {/* Siempre al ancho amplio de la Home (ver WIDE_ROW en HomePage): logo y menú pegados a la izquierda en todas las páginas. */}
+      <div className="mx-auto flex h-14 max-w-[calc(1760px+3rem)] items-center gap-4 px-4 sm:px-6">
         <NavLink to="/" className="press flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="BATS, inicio">
           <span className="font-heading text-title3 tracking-tight">BATS</span>
           <span className="rounded-full bg-muted px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase leading-none tracking-wider text-muted-foreground">

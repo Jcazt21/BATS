@@ -49,6 +49,7 @@ const rutas: [RegExp, Handler][] = [
   [/^\/api\/stats\/battles\/([^/]+)$/, (d, [id]) => d.battle_details[id]],
   // Perfiles y Pokédex
   [/^\/api\/players\/([^/]+)$/, (d, [user]) => d.players[user.toLowerCase()]],
+  [/^\/api\/players\/([^/]+)\/pokedex$/, (d, [user]) => d.player_pokedex[user.toLowerCase()]],
   [/^\/api\/pokedex$/, (d) => d.pokedex],
   [/^\/api\/pokedex\/([^/]+)$/, pokedexEntry],
 ];

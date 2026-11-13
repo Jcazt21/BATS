@@ -147,3 +147,8 @@ export function collectionProgress(cells: DexCell[]): DexProgress {
     byGen: [...gens.values()].sort((a, b) => a.gen - b.gen), last,
   };
 }
+
+/** 6 → "#006". Se arma en código: un literal "#006" lo confundiría el guard de colores con un hex. */
+export function dexNumber(num: number): string {
+  return `#${String(num).padStart(3, "0")}`;
+}

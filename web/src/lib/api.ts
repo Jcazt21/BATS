@@ -550,6 +550,16 @@ export const getBotBattleDetails = (battleId: string) => request<BattleDetailEnt
 export const getPlayerProfile = (username: string, seasonId?: number) =>
   request<PlayerProfile>(`/api/players/${encodeURIComponent(username)}`, { params: { season_id: seasonId } });
 
+/** GET /api/stats/head-to-head: historial directo entre `a` y `b` (usernames en minúsculas). */
+export interface HeadToHead {
+  a: string; b: string; wins_a: number; wins_b: number; ties: number;
+  /** De la más reciente a la más vieja; `winner` null = empate. */
+  battles: { battle_id: string; date: string; winner: string | null; turns: number }[];
+  top_killer: { a: { species: string; kills: number } | null; b: { species: string; kills: number } | null };
+}
+export const getHeadToHead = (a: string, b: string, seasonId?: number) =>
+  request<HeadToHead>("/api/stats/head-to-head", { params: { a, b, season_id: seasonId } });
+
 /** Una especie que el jugador vio salir al campo en una batalla de liga (primer avistamiento). */
 export interface PokedexSighting {
   species_id: string; species: string; first_seen_at: string; battle_id: string; opponent: string;

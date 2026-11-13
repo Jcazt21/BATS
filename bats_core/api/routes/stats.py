@@ -17,7 +17,7 @@ from collections import defaultdict
 from datetime import timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from ..common import iso
 from ..db import get_db
@@ -298,6 +298,80 @@ def get_battles_per_day(season_id: Optional[int] = Query(None), days: int = Quer
     last_7 = sum(x["battles"] for x in series[-7:])
     prev_7 = sum(x["battles"] for x in series[-14:-7])
     return {"days": series, "last_7": last_7, "prev_7": prev_7}
+
+
+# ── Cara a cara ───────────────────────────────────────────────────────────────
+
+@router.get("/head-to-head")
+def get_head_to_head(
+    a: str,
+    b: str,
+    season_id: Optional[int] = Query(None),
+    limit: int = Query(5, ge=1, le=20),
+):
+    """
+    Historial directo entre dos jugadores: victorias de cada uno y empates, las últimas `limit`
+    batallas entre ellos (de la más reciente a la más vieja) y el pokémon con más KOs de cada uno
+    en esos duelos. Los conteos son sobre todas las batallas, no solo las `limit` listadas.
+    Opcional: ?season_id=X
+    """
+    ka, kb = a.strip().lower(), b.strip().lower()
+    if ka == kb:
+        raise HTTPException(status_code=400, detail="Elige dos jugadores distintos.")
+    sf, sp = _season_filter(season_id)
+    with get_db() as db:
+        players = {
+            r["key"]: r["player_id"]
+            for r in db.fetchall(
+                "SELECT LOWER(username) AS key, player_id FROM battle.dim_players "
+                "WHERE LOWER(username) IN (%s, %s) AND NOT is_bot",
+                (ka, kb),
+            )
+        }
+        if ka not in players or kb not in players:
+            raise HTTPException(status_code=404, detail="Jugador no encontrado.")
+        ida, idb = players[ka], players[kb]
+        battles = db.fetchall(
+            f"""
+            SELECT fb.battle_id, fb.battle_date, fb.total_turns, fb.winner_id
+            FROM battle.fact_battles fb
+            WHERE NOT fb.is_bot_battle
+              AND ((fb.p1_id = %s AND fb.p2_id = %s) OR (fb.p1_id = %s AND fb.p2_id = %s)) {sf}
+            ORDER BY fb.battle_date DESC, fb.logged_at DESC
+            """,
+            (ida, idb, idb, ida) + sp,
+        )
+        kills = db.fetchall(
+            """
+            SELECT fpp.player_id, dp.species, SUM(fpp.kills) AS kills
+            FROM battle.fact_pokemon_performance fpp
+            JOIN battle.dim_pokemon dp ON dp.pokemon_id = fpp.pokemon_id
+            WHERE fpp.battle_id = ANY(%s) AND fpp.was_active
+            GROUP BY fpp.player_id, dp.species
+            HAVING SUM(fpp.kills) > 0
+            ORDER BY SUM(fpp.kills) DESC, dp.species
+            """,
+            ([x["battle_id"] for x in battles],),
+        ) if battles else []
+
+    def top(player_id: int) -> Optional[dict]:
+        row = next((k for k in kills if k["player_id"] == player_id), None)
+        return {"species": row["species"], "kills": int(row["kills"])} if row else None
+
+    names = {ida: ka, idb: kb}
+    return {
+        "a": ka,
+        "b": kb,
+        "wins_a": sum(1 for x in battles if x["winner_id"] == ida),
+        "wins_b": sum(1 for x in battles if x["winner_id"] == idb),
+        "ties": sum(1 for x in battles if x["winner_id"] is None),
+        "battles": [
+            {"battle_id": x["battle_id"], "date": iso(x["battle_date"]), "winner": names.get(x["winner_id"]),
+             "turns": x["total_turns"]}
+            for x in battles[:limit]
+        ],
+        "top_killer": {"a": top(ida), "b": top(idb)},
+    }
 
 
 # ── Bot Battle Endpoints ───────────────────────────────────────────────────────

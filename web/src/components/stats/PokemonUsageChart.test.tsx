@@ -3,7 +3,7 @@ import { leerFuente } from "@/styles/source";
 import { usageChartData } from "./usage-chart-data";
 
 const row = (species: string, used: number, pick: number | null, wr: number | null) =>
-  ({ species, used, pick_pct: pick, brought: used, bring_pct: pick, win_rate_pct: wr, avg_mvp: 1, avg_kills: 1 });
+  ({ species, used, pick_pct: pick, brought: used, bring_pct: pick, win_rate_pct: wr, avg_mvp: 1, avg_kills: 1, survival_pct: 50 });
 
 describe("usageChartData", () => {
   it("toma los 10 más usados, de mayor a menor", () => {

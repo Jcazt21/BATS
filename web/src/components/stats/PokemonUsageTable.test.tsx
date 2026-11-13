@@ -11,7 +11,7 @@ vi.mock("@/lib/queries", () => ({
 const query = {
   isPending: false,
   refetch: () => undefined,
-  data: { total_slots: 10, species: [{ species: "Gengar", used: 5, pick_pct: 50, brought: 6, bring_pct: 60, win_rate_pct: 40, avg_mvp: 1, avg_kills: 1 }] },
+  data: { total_slots: 10, species: [{ species: "Gengar", used: 5, pick_pct: 50, brought: 6, bring_pct: 60, win_rate_pct: 40, avg_mvp: 1, avg_kills: 1, survival_pct: 50 }] },
 };
 const href = (temporada?: Parameters<typeof PokemonUsageTable>[0]["temporada"]) => {
   const { unmount } = render(<MemoryRouter><PokemonUsageTable query={query} temporada={temporada} /></MemoryRouter>);

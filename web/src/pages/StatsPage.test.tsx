@@ -20,7 +20,7 @@ vi.mock("@/lib/queries", () => ({
 }));
 
 const fila = (species: string, pick: number) => ({
-  species, used: 5, pick_pct: pick, brought: 6, bring_pct: pick + 10, win_rate_pct: 55, avg_mvp: 3.2, avg_kills: 1.5,
+  species, used: 5, pick_pct: pick, brought: 6, bring_pct: pick + 10, win_rate_pct: 55, avg_mvp: 3.2, avg_kills: 1.5, survival_pct: 50,
 });
 const sp = (name: string, types: string[]) => ({ name, types });
 

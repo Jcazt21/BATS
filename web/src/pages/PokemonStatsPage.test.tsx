@@ -14,7 +14,7 @@ vi.mock("@/lib/queries", () => ({
 const items = (n: number) => Array.from({ length: n }, (_, i) => ({ name: `Mov${i + 1}`, count: n - i }));
 const base = {
   species: "Dragonite", types: "Dragon / Flying", sprite_url: null, national_dex: 149, total_slots: 10, used: 5, pick_pct: 50,
-  brought: 6, bring_pct: 60, win_rate_pct: 55, avg_kills: 1, avg_mvp: 3, users: [],
+  brought: 6, bring_pct: 60, win_rate_pct: 55, avg_kills: 1, avg_mvp: 3, survival_pct: 50, users: [],
 };
 const conSets = { ...base, sets: { players: 8, moves: items(8), items: items(3), abilities: [], natures: [], tera_types: [] } };
 const sinSets = { ...base, sets: { players: 0, moves: [], items: [], abilities: [], natures: [], tera_types: [] } };

@@ -24,6 +24,7 @@ const COLS: Column<PokedexRow>[] = [
     cell: (r) => <span className="inline-flex items-center justify-end gap-2"><Meter label={`Pick rate de ${r.species}`} value={r.pick_pct} className="w-16" />{pct(r.pick_pct, 1)}</span> },
   { key: "bring", header: "Bring rate", align: "right", sortValue: (r) => r.bring_pct, cell: (r) => pct(r.bring_pct, 1) },
   { key: "wr", header: "Win rate", align: "right", sortValue: (r) => r.win_rate_pct, cell: (r) => pct(r.win_rate_pct, 1) },
+  { key: "surv", header: "Supervivencia", align: "right", hideOnMobile: true, sortValue: (r) => r.survival_pct, cell: (r) => pct(r.survival_pct, 1) },
   { key: "kills", header: "KOs", align: "right", hideOnMobile: true, sortValue: (r) => r.avg_kills, cell: (r) => num(r.avg_kills, 1) },
   { key: "mvp", header: "MVP medio", align: "right", hideOnMobile: true, sortValue: (r) => r.avg_mvp, cell: (r) => num(r.avg_mvp, 1) },
 ];

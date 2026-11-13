@@ -141,11 +141,10 @@ describe("StatsPage · Uso", () => {
     mockViewport(true);
     renderPage();
     await userEvent.click(screen.getByRole("tab", { name: "Pokémon" }));
-    await userEvent.click(screen.getByRole("radio", { name: "Lista" }));
 
     const tabla = screen.getByRole("table", { name: "Pokémon de la liga" });
     const cabeceras = within(tabla).getAllByRole("columnheader").map((th) => th.textContent);
-    expect(cabeceras).toEqual(["Pokémon", "Pick rate", "Bring rate", "Win rate", "KOs", "MVP medio"]);
+    expect(cabeceras).toEqual(["Pokémon", "Pick rate", "Bring rate", "Win rate", "Supervivencia", "KOs", "MVP medio"]);
 
     const enlaces = within(tabla).getAllByRole("link").map((a) => a.getAttribute("href"));
     expect(enlaces).toContain("/stats/pokemon/Dragonite");
@@ -162,16 +161,22 @@ describe("StatsPage · Uso", () => {
   });
 });
 
-describe("StatsPage · Uso · Gráfico / Lista", () => {
-  it("por defecto muestra el gráfico; Lista cambia a la tabla", async () => {
+describe("StatsPage · Pokémon · dispersión", () => {
+  it("muestra la dispersión uso vs. win rate, el top MVP y la tabla, sin selector Gráfico/Lista", async () => {
     mockViewport(true);
     renderPage();
     await userEvent.click(screen.getByRole("tab", { name: "Pokémon" }));
-    expect(screen.getByRole("figure", { name: "Gráfico de uso de los 10 pokémon más usados" })).toBeInTheDocument();
-    expect(screen.queryByRole("table", { name: "Pokémon de la liga" })).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("radio", { name: "Lista" }));
+    expect(screen.getByRole("figure", { name: "Uso contra win rate de los pokémon" })).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Top de MVP" })).toBeInTheDocument();
     expect(screen.getByRole("table", { name: "Pokémon de la liga" })).toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "Lista" })).not.toBeInTheDocument();
+  });
+
+  it("temporada sin pokémon: sin dispersión, la tabla muestra su estado vacío", async () => {
+    st.pokemonStats = { isPending: false, data: { total_slots: 0, species: [] } };
+    const { container } = renderPage();
+    await userEvent.click(screen.getByRole("tab", { name: "Pokémon" }));
     expect(screen.queryByRole("figure")).not.toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/NaN|undefined/);
   });
 });

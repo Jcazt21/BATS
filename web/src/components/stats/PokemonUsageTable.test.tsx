@@ -33,3 +33,16 @@ describe("PokemonUsageTable · enlace a la ficha", () => {
     expect(href("all")).toBe("/stats/pokemon/Gengar?temporada=all");
   });
 });
+
+describe("PokemonUsageTable · supervivencia", () => {
+  it("muestra la columna Supervivencia con pct(survival_pct, 1) y un guion si no hay dato", () => {
+    const { unmount } = render(<MemoryRouter><PokemonUsageTable query={query} /></MemoryRouter>);
+    const tabla = screen.getByRole("table");
+    expect(within(tabla).getByRole("columnheader", { name: /Supervivencia/ })).toBeInTheDocument();
+    expect(within(tabla).getByRole("cell", { name: "50%" })).toBeInTheDocument();
+    unmount();
+    const sinDato = { ...query, data: { ...query.data, species: [{ ...query.data.species[0], survival_pct: null }] } };
+    render(<MemoryRouter><PokemonUsageTable query={sinDato} /></MemoryRouter>);
+    expect(within(screen.getByRole("table")).getByRole("cell", { name: "—" })).toBeInTheDocument();
+  });
+});

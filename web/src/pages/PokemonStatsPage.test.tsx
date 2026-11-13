@@ -2,13 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { PokedexEntryPage } from "./PokedexEntryPage";
+import { PokemonStatsPage } from "./PokemonStatsPage";
 
 type Q = { data?: unknown; isPending?: boolean; isError?: boolean; error?: unknown; refetch?: () => void };
 const st = vi.hoisted(() => ({ entry: {} as Q, args: [] as unknown[][] }));
 vi.mock("@/lib/queries", () => ({
   useActiveSeason: () => ({ data: { season_id: 1 } }),
-  usePokedexEntry: (...a: unknown[]) => { st.args.push(a); return st.entry; },
+  usePokemonStatsEntry: (...a: unknown[]) => { st.args.push(a); return st.entry; },
 }));
 
 const items = (n: number) => Array.from({ length: n }, (_, i) => ({ name: `Mov${i + 1}`, count: n - i }));
@@ -19,15 +19,15 @@ const base = {
 const conSets = { ...base, sets: { players: 8, moves: items(8), items: items(3), abilities: [], natures: [], tera_types: [] } };
 const sinSets = { ...base, sets: { players: 0, moves: [], items: [], abilities: [], natures: [], tera_types: [] } };
 
-const renderPage = (url = "/pokedex/Dragonite") => render(
+const renderPage = (url = "/stats/pokemon/Dragonite") => render(
   <MemoryRouter initialEntries={[url]}>
-    <Routes><Route path="/pokedex/:species" element={<PokedexEntryPage />} /></Routes>
+    <Routes><Route path="/stats/pokemon/:species" element={<PokemonStatsPage />} /></Routes>
   </MemoryRouter>,
 );
 
 beforeEach(() => { st.args = []; st.entry = { isPending: false, data: conSets }; });
 
-describe("PokedexEntryPage · sets", () => {
+describe("PokemonStatsPage · sets", () => {
   it("sets aún privados: EmptyState que explica por qué", () => {
     st.entry = { isPending: false, data: sinSets };
     renderPage();
@@ -54,21 +54,21 @@ describe("PokedexEntryPage · sets", () => {
   });
 });
 
-describe("PokedexEntryPage · temporada", () => {
+describe("PokemonStatsPage · temporada y volver", () => {
   it("por defecto usa la activa", () => {
     renderPage();
     expect(st.args.at(-1)).toEqual(["Dragonite", 1]);
   });
 
   it("?temporada=all pide todas y ?temporada=2 esa temporada (la ficha coincide con la lista de la que vienes)", () => {
-    renderPage("/pokedex/Dragonite?temporada=all");
+    renderPage("/stats/pokemon/Dragonite?temporada=all");
     expect(st.args.at(-1)).toEqual(["Dragonite", undefined]);
-    renderPage("/pokedex/Dragonite?temporada=2");
+    renderPage("/stats/pokemon/Dragonite?temporada=2");
     expect(st.args.at(-1)).toEqual(["Dragonite", 2]);
   });
 
-  it("el enlace de vuelta conserva la temporada", () => {
-    renderPage("/pokedex/Dragonite?temporada=all");
-    expect(screen.getByRole("link", { name: /Pokédex/ })).toHaveAttribute("href", "/pokedex?temporada=all");
+  it("el enlace de vuelta apunta a /stats", () => {
+    renderPage("/stats/pokemon/Dragonite");
+    expect(screen.getByRole("link", { name: /Estadísticas/ })).toHaveAttribute("href", "/stats");
   });
 });

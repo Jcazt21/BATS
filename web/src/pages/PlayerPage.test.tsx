@@ -55,9 +55,9 @@ describe("PlayerPage", () => {
   });
 
   it("volver regresa a la página previa y, entrando directo, a /stats", async () => {
-    renderPage(["/pokedex/Gengar", "/j/ash"], 1);
+    renderPage(["/stats/pokemon/Gengar", "/j/ash"], 1);
     await userEvent.click(screen.getByRole("link", { name: /Estadísticas/ }));
-    expect(screen.getByTestId("loc")).toHaveTextContent("/pokedex/Gengar");
+    expect(screen.getByTestId("loc")).toHaveTextContent("/stats/pokemon/Gengar");
   });
 
   it("selector de temporada: por defecto la activa; elegir otra o 'Todas' repite la consulta", async () => {

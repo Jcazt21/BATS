@@ -1,9 +1,9 @@
 """
-BATS — Pokédex de la liga: cómo rinde cada pokémon en los combates de la comunidad.
+BATS — Estadísticas por pokémon de la liga: cómo rinde cada especie en los combates de la comunidad.
 
 Endpoints:
-  GET /api/pokedex                → resumen por especie (uso, bring rate, win rate)
-  GET /api/pokedex/{species}      → detalle: quién lo usa y qué sets lleva
+  GET /api/stats/pokemon                → resumen por especie (uso, bring rate, win rate)
+  GET /api/stats/pokemon/{species}      → detalle: quién lo usa y qué sets lleva
 
 Pick rate y win rate salen de mv_pick_rate; el "bring rate" (lo llevó al equipo, aunque no
 llegara a salir) se cuenta aparte porque las vistas solo consideran los pokémon activos.
@@ -17,7 +17,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from ..db import get_db
 
-router = APIRouter(prefix="/api/pokedex", tags=["pokedex"])
+router = APIRouter(prefix="/api/stats/pokemon", tags=["stats"])
 
 # Nombre comparable entre dim_pokemon.species ("Landorus-Therian") y pokemon_cache.name
 NORM = "regexp_replace(lower({col}), '[^a-z0-9]', '', 'g')"

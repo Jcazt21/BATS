@@ -29,7 +29,7 @@ export function BansPage() {
 
   const cols: Column<BanCandidate>[] = [
     { key: "mon", header: "Pokémon", primary: true, sortValue: (r) => r.species,
-      cell: (r) => <Link to={`/pokedex/${encodeURIComponent(r.species)}`} className="inline-flex items-center gap-2 font-medium hover:underline"><PokemonSprite species={r.species} src={r.sprite_url} size={36} />{r.species}</Link> },
+      cell: (r) => <Link to={`/stats/pokemon/${encodeURIComponent(r.species)}`} className="inline-flex items-center gap-2 font-medium hover:underline"><PokemonSprite species={r.species} src={r.sprite_url} size={36} />{r.species}</Link> },
     { key: "wr", header: "Win rate", align: "right", sortValue: (r) => r.win_rate_pct,
       cell: (r) => <span className="inline-flex items-center justify-end gap-2"><Meter label={`Win rate de ${r.species}`} value={r.win_rate_pct} tone="warning" className="hidden w-16 md:block" />{pct(r.win_rate_pct, 1)}</span> },
     { key: "n", header: "Batallas", align: "right", sortValue: (r) => r.battles_used, cell: (r) => r.battles_used },

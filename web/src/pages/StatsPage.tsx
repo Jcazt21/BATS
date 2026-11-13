@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/app/PageHeader";
@@ -8,17 +7,16 @@ import { StatTile } from "@/components/app/StatTile";
 import { DataList, type Column } from "@/components/app/DataList";
 import { Reveal } from "@/components/app/Reveal";
 import { SeasonSelect, type SeasonChoice } from "@/components/app/SeasonSelect";
-import { SegmentedControl } from "@/components/app/SegmentedControl";
 import { PlayerAvatar } from "@/components/app/PlayerAvatar";
 import { PokemonSprite } from "@/components/app/PokemonSprite";
 import { Meter } from "@/components/app/Meter";
 import { EmptyState, ErrorState } from "@/components/app/States";
 import HoldButton from "@/components/app/HoldButton";
+import { PokemonUsageTable } from "@/components/stats/PokemonUsageTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TICK_CAPTION, TICK_FOOTNOTE } from "@/lib/chart";
-import { resetBattleData, type LeaderboardEntry, type MvpEntry, type PickRateEntry } from "@/lib/api";
+import { resetBattleData, type LeaderboardEntry, type MvpEntry } from "@/lib/api";
 import { errorMessage } from "@/lib/http";
-import { useLeaderboard, useMvp, usePickRate, useSeasons, useSummary } from "@/lib/queries";
+import { useLeaderboard, useMvp, usePokemonStats, useSeasons, useSummary } from "@/lib/queries";
 import { useToast } from "@/lib/toast";
 import { num, pct } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -35,10 +33,9 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
   const summary = useSummary(season);
   const leaderboard = useLeaderboard(season);
   const mvp = useMvp(season);
-  const pick = usePickRate(season);
-  const [view, setView] = useState<"chart" | "list">("chart");
+  const pokemonStats = usePokemonStats(season);
   // Datos de la temporada anterior mientras llegan los de la elegida.
-  const refreshing = [summary, leaderboard, mvp, pick].some((q) => q.isPlaceholderData);
+  const refreshing = [summary, leaderboard, mvp, pokemonStats].some((q) => q.isPlaceholderData);
   // Al llegar los datos de la temporada elegida el contenido se remonta y entra con un fundido; mientras
   // tanto se sigue viendo (atenuado) lo anterior. Ajuste de estado durante el render: sin efectos ni parpadeo.
   const [settledSid, setSettledSid] = useState(sid);
@@ -60,19 +57,11 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
 
   const mvpCols: Column<MvpEntry>[] = [
     { key: "mon", header: "Pokémon", primary: true, sortValue: (r) => r.species, cell: (r) => (
-      <Link to={`/pokedex/${encodeURIComponent(r.species)}`} className="inline-flex items-center gap-2 font-medium hover:underline"><PokemonSprite species={r.species} size={36} />{r.species}</Link>) },
+      <Link to={`/stats/pokemon/${encodeURIComponent(r.species)}`} className="inline-flex items-center gap-2 font-medium hover:underline"><PokemonSprite species={r.species} size={36} />{r.species}</Link>) },
     { key: "player", header: "Jugador", sortValue: (r) => r.player, cell: (r) => r.player },
     { key: "mvp", header: "MVP", align: "right", sortValue: (r) => Number(r.total_mvp_score), cell: (r) => num(Number(r.total_mvp_score), 1) },
     { key: "kills", header: "KOs", align: "right", sortValue: (r) => r.total_kills, cell: (r) => r.total_kills },
     { key: "avg", header: "MVP / batalla", align: "right", hideOnMobile: true, cell: (r) => num(Number(r.avg_mvp_per_battle), 1) },
-  ];
-
-  const pickCols: Column<PickRateEntry>[] = [
-    { key: "mon", header: "Pokémon", primary: true, sortValue: (r) => r.species, cell: (r) => (
-      <Link to={`/pokedex/${encodeURIComponent(r.species)}`} className="inline-flex items-center gap-2 font-medium hover:underline"><PokemonSprite species={r.species} size={32} />{r.species}</Link>) },
-    { key: "used", header: "Batallas", align: "right", sortValue: (r) => Number(r.battles_used), cell: (r) => r.battles_used },
-    { key: "usage", header: "Uso", align: "right", sortValue: (r) => Number(r.usage_pct), cell: (r) => pct(Number(r.usage_pct), 1) },
-    { key: "wr", header: "Win rate", align: "right", sortValue: (r) => Number(r.win_rate_pct), cell: (r) => pct(Number(r.win_rate_pct), 1) },
   ];
 
   return (
@@ -122,54 +111,11 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
           </TabsContent>
 
           <TabsContent value="uso" className="flex flex-col gap-3">
-            <div className="flex justify-end">
-              <SegmentedControl label="Vista" value={view} onChange={setView} options={[{ value: "chart", label: "Gráfico" }, { value: "list", label: "Lista" }]} />
-            </div>
-            {pick.isError ? <ErrorState error={pick.error} onRetry={() => pick.refetch()} /> :
-              view === "list" || pick.isPending || !pick.data?.length ? (
-                <DataList caption="Pick rate por pokémon" rows={pick.data ?? []} columns={pickCols} rowKey={(r) => r.species} mobileSort
-                  loading={pick.isPending} defaultSort={{ key: "used", dir: "desc" }} empty={<EmptyState title="Sin datos de uso" />} />
-              ) : <PickChart rows={pick.data} />}
+            <PokemonUsageTable query={pokemonStats} />
           </TabsContent>
         </Tabs>
       </Reveal>
     </div>
-  );
-}
-
-const BAJO_ID = "pick-wr-bajo";
-
-function PickChart({ rows }: { rows: PickRateEntry[] }) {
-  const data = rows.slice(0, 10).map((r) => ({ species: r.species, uso: Number(r.usage_pct), wr: Number(r.win_rate_pct) }));
-  return (
-    <figure className="rounded-2xl bg-card p-4 shadow-sm ring-1 ring-border" aria-label="Gráfico de uso de los 10 pokémon más usados">
-      <div className="h-[22rem]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16 }}>
-            {/* Win rate < 50 %: rayas además del color, para no depender solo del tono. */}
-            <defs>
-              <pattern id={BAJO_ID} patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
-                <rect width="6" height="6" fill="var(--chart-1)" />
-                <line x1="0" y1="0" x2="0" y2="6" stroke="var(--card)" strokeWidth="2" />
-              </pattern>
-            </defs>
-            <CartesianGrid horizontal={false} stroke="var(--separator)" />
-            <XAxis type="number" unit="%" tick={{ fill: "var(--muted-foreground)", fontSize: TICK_CAPTION }} axisLine={false} tickLine={false} />
-            <YAxis type="category" dataKey="species" width={110} tick={{ fill: "var(--foreground)", fontSize: TICK_FOOTNOTE }} axisLine={false} tickLine={false} />
-            <Tooltip cursor={{ fill: "var(--muted)" }}
-              contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 12, color: "var(--popover-foreground)" }}
-              formatter={(v, name) => [`${num(Number(v), 1)}%`, name === "uso" ? "Uso" : "Win rate"]} />
-            <Bar dataKey="uso" radius={[0, 8, 8, 0]} isAnimationActive={false}>
-              {data.map((d) => <Cell key={d.species} fill={d.wr >= 50 ? "var(--chart-6)" : `url(#${BAJO_ID})`} />)}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-      <figcaption className="mt-2 flex items-center gap-4 text-caption text-muted-foreground">
-        <span className="flex items-center gap-1.5"><i className="size-2.5 rounded-full bg-chart-6" /> Win rate ≥ 50 %</span>
-        <span className="flex items-center gap-1.5"><i className="size-2.5 rounded-full" style={{ background: "repeating-linear-gradient(45deg, var(--chart-1) 0 2px, var(--card) 2px 4px)" }} /> Win rate &lt; 50 % (rayado)</span>
-      </figcaption>
-    </figure>
   );
 }
 

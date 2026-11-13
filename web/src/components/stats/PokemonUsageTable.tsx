@@ -13,6 +13,7 @@ import { speciesById } from "@/lib/dex/snapshot";
 import { isPokemonType, type PokemonType } from "@/lib/pokemon-types";
 import { useDexEssentials } from "@/lib/queries";
 import { num, pct } from "@/lib/format";
+import { fichaHref } from "@/lib/stats-links";
 import type { SeasonChoice } from "@/components/app/SeasonSelect";
 
 // Fuera del componente: identidad estable, así el ordenamiento de DataList no se recalcula en cada tecla.
@@ -49,8 +50,7 @@ export function PokemonUsageTable({ query, temporada = "active" }: {
     }, { replace: true });
   }
 
-  const ficha = (r: PokedexRow) =>
-    `/stats/pokemon/${encodeURIComponent(r.species)}${temporada === "active" ? "" : `?temporada=${temporada}`}`;
+  const ficha = (r: PokedexRow) => fichaHref(r.species, temporada);
 
   const rows = useMemo(
     () => (query.data?.species ?? []).filter((r) => {

@@ -17,6 +17,7 @@ vi.mock("@/lib/queries", () => ({
   useMvp: () => st.mvp,
   usePokemonStats: () => st.pokemonStats,
   useDexEssentials: () => st.species,
+  useBattlesPerDay: () => ({ data: { days: [], last_7: 0, prev_7: 0 } }),
 }));
 
 const fila = (species: string, pick: number) => ({
@@ -68,14 +69,23 @@ describe("StatsPage · temporada", () => {
   });
 });
 
-describe("StatsPage · tabs", () => {
-  it("navega con Tabla · MVP · Uso y solo monta el contenido de la activa", async () => {
+describe("StatsPage · bento", () => {
+  it("arriba va el bento de la temporada en lugar de los StatTile", () => {
     renderPage();
-    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Tabla", "MVP", "Uso"]);
+    const bento = screen.getByRole("group", { name: "Resumen de la temporada" });
+    expect(within(bento).getByRole("region", { name: "Pokémon más usado" })).toHaveTextContent("Dragonite");
+    expect(within(bento).getByRole("region", { name: "MVP de la temporada" })).toHaveTextContent("Gengar");
+  });
+});
+
+describe("StatsPage · tabs", () => {
+  it("navega con Jugadores · Pokémon · Coleccionistas y solo monta el contenido de la activa", async () => {
+    renderPage();
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Jugadores", "Pokémon", "Coleccionistas"]);
     expect(screen.getByRole("list", { name: "Clasificación de jugadores" })).toBeInTheDocument();
     expect(screen.queryByRole("list", { name: "Top de MVP" })).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("tab", { name: "MVP" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Pokémon" }));
     expect(screen.getByRole("list", { name: "Top de MVP" })).toBeInTheDocument();
     expect(screen.queryByRole("list", { name: "Clasificación de jugadores" })).not.toBeInTheDocument();
   });
@@ -101,10 +111,10 @@ describe("StatsPage · Uso", () => {
   it("muestra las columnas pick %, bring %, win rate, kills y MVP, filtra por tipo y cada fila enlaza a /stats/pokemon/{species}", async () => {
     mockViewport(true);
     renderPage();
-    await userEvent.click(screen.getByRole("tab", { name: "Uso" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Pokémon" }));
     await userEvent.click(screen.getByRole("radio", { name: "Lista" }));
 
-    const tabla = screen.getByRole("table");
+    const tabla = screen.getByRole("table", { name: "Pokémon de la liga" });
     const cabeceras = within(tabla).getAllByRole("columnheader").map((th) => th.textContent);
     expect(cabeceras).toEqual(["Pokémon", "Pick rate", "Bring rate", "Win rate", "KOs", "MVP medio"]);
 
@@ -127,12 +137,12 @@ describe("StatsPage · Uso · Gráfico / Lista", () => {
   it("por defecto muestra el gráfico; Lista cambia a la tabla", async () => {
     mockViewport(true);
     renderPage();
-    await userEvent.click(screen.getByRole("tab", { name: "Uso" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Pokémon" }));
     expect(screen.getByRole("figure", { name: "Gráfico de uso de los 10 pokémon más usados" })).toBeInTheDocument();
-    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.queryByRole("table", { name: "Pokémon de la liga" })).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("radio", { name: "Lista" }));
-    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Pokémon de la liga" })).toBeInTheDocument();
     expect(screen.queryByRole("figure")).not.toBeInTheDocument();
   });
 });

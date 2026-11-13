@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/app/PageHeader";
-import { StatTile } from "@/components/app/StatTile";
 import { DataList, type Column } from "@/components/app/DataList";
 import { Reveal } from "@/components/app/Reveal";
 import { SeasonSelect, type SeasonChoice } from "@/components/app/SeasonSelect";
@@ -15,10 +14,13 @@ import HoldButton from "@/components/app/HoldButton";
 import { SegmentedControl } from "@/components/app/SegmentedControl";
 import { PokemonUsageChart } from "@/components/stats/PokemonUsageChart";
 import { PokemonUsageTable } from "@/components/stats/PokemonUsageTable";
+import { StatsBento } from "@/components/stats/StatsBento";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { resetBattleData, type LeaderboardEntry, type MvpEntry } from "@/lib/api";
 import { errorMessage } from "@/lib/http";
-import { useLeaderboard, useMvp, usePokemonStats, useSeasons, useSummary } from "@/lib/queries";
+import { speciesById } from "@/lib/dex/snapshot";
+import { WIDE_ROW } from "@/lib/layout";
+import { useBattlesPerDay, useDexEssentials, useLeaderboard, useMvp, usePokemonStats, useSeasons, useSummary } from "@/lib/queries";
 import { useToast } from "@/lib/toast";
 import { num, pct } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -36,6 +38,9 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
   const leaderboard = useLeaderboard(season);
   const mvp = useMvp(season);
   const pokemonStats = usePokemonStats(season);
+  const perDay = useBattlesPerDay(30, sid);
+  const dex = useDexEssentials();
+  const dexNum = (species: string) => (dex.data ? speciesById(dex.data, species)?.num : undefined);
   const [view, setView] = useState<"chart" | "list">("chart");
   // Datos de la temporada anterior mientras llegan los de la elegida.
   const refreshing = [summary, leaderboard, mvp, pokemonStats].some((q) => q.isPlaceholderData);
@@ -68,7 +73,7 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
   ];
 
   return (
-    <div className={showAdminControls ? "flex flex-col gap-8" : "flex flex-col gap-10"} aria-busy={refreshing || undefined}>
+    <div className={cn(showAdminControls ? "flex flex-col gap-8" : `flex flex-col gap-10 ${WIDE_ROW}`)} aria-busy={refreshing || undefined}>
       <PageHeader
         eyebrow={seasonChoice === "all" ? "Todas las temporadas" : active && sid === active.season_id ? "Temporada activa" : "Estadísticas"}
         title="Estadísticas"
@@ -84,21 +89,21 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
       />
 
       <Reveal key={String(settledSid)} data-stats-content className="flex flex-col gap-8">
-        <section aria-label="Resumen" className={cn("grid grid-cols-2 gap-3 transition-opacity duration-200 md:grid-cols-4", refreshing && "opacity-60")}>
-          <StatTile label="Batallas" value={num(summary.data?.total_battles)} loading={summary.isPending} />
-          <StatTile label="Jugadores" value={num(summary.data?.total_players)} loading={summary.isPending} />
-          <StatTile label="Turnos por batalla" value={num(summary.data?.avg_turns, 1)} loading={summary.isPending} />
-          <StatTile label="Mejor win rate" value={pct(summary.data?.top_win_rate, 1)} loading={summary.isPending} hint="mín. 3 batallas" />
-        </section>
+        <div className={cn("transition-opacity duration-200", refreshing && "opacity-60")}>
+          <StatsBento
+            summary={summary.data} summaryLoading={summary.isPending} leaderboard={leaderboard.data} perDay={perDay.data}
+            topPokemon={pokemonStats.data?.species[0]} mvp={mvp.data?.[0]} temporada={seasonChoice} dexNum={dexNum}
+          />
+        </div>
 
-        <Tabs defaultValue="tabla" className={cn("gap-4 transition-opacity duration-200", refreshing && "opacity-60")}>
+        <Tabs defaultValue="jugadores" className={cn("gap-4 transition-opacity duration-200", refreshing && "opacity-60")}>
           <TabsList className="h-11 self-start">
-            <TabsTrigger value="tabla" className="px-4">Tabla</TabsTrigger>
-            <TabsTrigger value="mvp" className="px-4">MVP</TabsTrigger>
-            <TabsTrigger value="uso" className="px-4">Uso</TabsTrigger>
+            <TabsTrigger value="jugadores" className="px-4">Jugadores</TabsTrigger>
+            <TabsTrigger value="pokemon" className="px-4">Pokémon</TabsTrigger>
+            <TabsTrigger value="coleccionistas" className="px-4">Coleccionistas</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="tabla" className="flex flex-col gap-3">
+          <TabsContent value="jugadores" className="flex flex-col gap-3">
             {leaderboard.isError ? <ErrorState error={leaderboard.error} onRetry={() => leaderboard.refetch()} /> : (
               <DataList caption="Clasificación de jugadores" rows={ranked} columns={leaderboardCols} rowKey={(r) => r.username} mobileSort
                 loading={leaderboard.isPending} defaultSort={{ key: "wins", dir: "desc" }}
@@ -106,14 +111,7 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
             )}
           </TabsContent>
 
-          <TabsContent value="mvp" className="flex flex-col gap-3">
-            {mvp.isError ? <ErrorState error={mvp.error} onRetry={() => mvp.refetch()} /> : (
-              <DataList caption="Top de MVP" rows={mvp.data ?? []} columns={mvpCols} rowKey={(r) => `${r.species}-${r.player}`} mobileSort loading={mvp.isPending}
-                empty={<EmptyState title="Sin datos de MVP" />} />
-            )}
-          </TabsContent>
-
-          <TabsContent value="uso" className="flex flex-col gap-3">
+          <TabsContent value="pokemon" className="flex flex-col gap-6">
             <div className="flex justify-end">
               <SegmentedControl label="Vista" value={view} onChange={setView} options={[{ value: "chart", label: "Gráfico" }, { value: "list", label: "Lista" }]} />
             </div>
@@ -121,6 +119,17 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
             {view === "chart" && !pokemonStats.isError && !pokemonStats.isPending && pokemonStats.data?.species.length
               ? <PokemonUsageChart rows={pokemonStats.data.species} />
               : <PokemonUsageTable query={pokemonStats} temporada={seasonChoice} />}
+            <section aria-labelledby="top-mvp" className="flex flex-col gap-3">
+              <h2 id="top-mvp" className="px-1 text-title3">Top de MVP</h2>
+              {mvp.isError ? <ErrorState error={mvp.error} onRetry={() => mvp.refetch()} /> : (
+                <DataList caption="Top de MVP" rows={mvp.data ?? []} columns={mvpCols} rowKey={(r) => `${r.species}-${r.player}`} mobileSort loading={mvp.isPending}
+                  empty={<EmptyState title="Sin datos de MVP" />} />
+              )}
+            </section>
+          </TabsContent>
+
+          <TabsContent value="coleccionistas" className="flex flex-col gap-3">
+            <EmptyState title="Ranking de coleccionistas" description="Quién descubrió más especies en su Pokédex." />
           </TabsContent>
         </Tabs>
       </Reveal>

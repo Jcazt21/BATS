@@ -55,9 +55,9 @@ describe("PlayerPage", () => {
   });
 
   it("volver regresa a la página previa y, entrando directo, a /stats", async () => {
-    renderPage(["/pokedex/Gengar", "/j/ash"], 1);
+    renderPage(["/stats/pokemon/Gengar", "/j/ash"], 1);
     await userEvent.click(screen.getByRole("link", { name: /Estadísticas/ }));
-    expect(screen.getByTestId("loc")).toHaveTextContent("/pokedex/Gengar");
+    expect(screen.getByTestId("loc")).toHaveTextContent("/stats/pokemon/Gengar");
   });
 
   it("selector de temporada: por defecto la activa; elegir otra o 'Todas' repite la consulta", async () => {
@@ -77,5 +77,10 @@ describe("PlayerPage", () => {
     await userEvent.click(screen.getByRole("button", { name: /vs misty/ }));
     const dialogo = await screen.findByRole("dialog", { name: "ash vs misty" });
     expect(within(dialogo).getByText(/detalle ash vs misty gana ash/)).toBeInTheDocument();
+  });
+
+  it("enlaza a la Pokédex pública del jugador", () => {
+    renderPage();
+    expect(screen.getByRole("link", { name: /Ver Pokédex/ }).getAttribute("href")).toBe("/j/ash/pokedex");
   });
 });

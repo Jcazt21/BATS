@@ -552,6 +552,8 @@ El secret del JWT se deriva de: `SHA-256(BATS_VOTER_SALT)`. Expira en 24h.
 | `GET` | `/api/stats/bot/pokemon` | Pokémon más usados contra el bot |
 | `GET` | `/api/stats/bot/battles` | Historial de batallas vs bot (últimas 50) |
 | `GET` | `/api/stats/battles/{battle_id}` | Detalle de pokémon de una batalla |
+| `GET` | `/api/stats/pokemon` | Uso por especie: pick %, bring %, win rate, kills y MVP medios. Acepta `?season_id=X` |
+| `GET` | `/api/stats/pokemon/{species}` | Ficha de una especie: quién la usa y sus sets más comunes (solo de rosters públicos). Acepta `?season_id=X` |
 | `GET` | `/api/stats/bot/battles/{battle_id}` | Detalle de una batalla vs bot |
 
 **Optimización:** sin `?season_id`, usa vistas materializadas (`mv_pick_rate`, `mv_player_stats`, etc.) para máxima velocidad. Con filtro de temporada hace queries a las tablas base.
@@ -631,6 +633,27 @@ API resuelve identidad y rol en `tournament.player_accounts`.
 | `DELETE` | `/api/admin/seasons/{id}/whitelist/{hash}` | Elimina jugador del whitelist |
 
 ---
+
+### `/api/players/{username}/pokedex` — Pokédex por cuenta (pública)
+
+`GET /api/players/{username}/pokedex` devuelve las especies que el jugador vio salir al campo en batallas de liga, de la más reciente a la más antigua. El username no distingue mayúsculas.
+
+```json
+{ "username": "ana",
+  "seen": [ { "species_id": "scizormega", "species": "Scizor-Mega",
+              "first_seen_at": "2026-11-10T00:00:00+00:00", "battle_id": "gen9pinchesgueysleague-1008", "opponent": "bea" } ] }
+```
+
+- `200` con `seen: []` si el jugador tiene cuenta pero aún no vio nada; `404` si no tiene cuenta ni avistamientos.
+- El backend solo guarda hechos (`tournament.pokedex_seen`). La agrupación por número nacional, las preevoluciones descubiertas, los filtros y el progreso los calcula el frontend con el dex estático (`web/src/lib/dex/collection.ts`).
+
+Reglas de la Pokédex por cuenta:
+
+- Cuenta solo lo que **salió al campo** (`was_active`), propio o del rival. La banca no cuenta.
+- Solo batallas de **liga** (`LEAGUE_FORMAT`, `bats_core/league.py`); ni sparring ni batallas contra el bot.
+- Una casilla por número nacional: ver una forma (Scizor-Mega, Raichu-Alola) descubre la casilla de su número.
+- Ver una especie descubre también su cadena de preevoluciones, solo hacia atrás (ver Charizard descubre a Charmeleon y Charmander). Las megas heredan la cadena de su especie base.
+- El buscador encuentra por nombre solo a los descubiertos; por número, a cualquiera. La ficha `/pokedex/:species` de una casilla no descubierta redirige a la grilla.
 
 ### `/api/teams/*` — Equipos de Torneo (teambuilder)
 
@@ -778,6 +801,7 @@ tournament.bans             -- Bans oficiales confirmados por el admin
 tournament.roster           -- Equipo registrado por jugador por temporada
 tournament.roster_pokemon   -- Pokémon en el pool del equipo (max 8)
 tournament.roster_lineup    -- Los 6 activos del equipo en la batalla actual
+tournament.pokedex_seen     -- Pokédex por cuenta: primer avistamiento de cada especie por jugador (v14)
 ```
 
 ### Vistas
@@ -910,6 +934,7 @@ Jugador desafía al bot en PS
         → detectar is_bot_battle (si PGL-Bot participa → skip stats)
         → INSERT fact_battles
         → INSERT fact_pokemon_performance (activos + banca)
+        → _record_pokedex_seen (solo liga, sin bot: tournament.pokedex_seen)
         → _detect_ban_violations (si hay season_id)
         → etl_log status="ok"
         → COMMIT

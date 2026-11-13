@@ -103,7 +103,36 @@ def _rename_username_cascade(db, old: str, new: str) -> dict:
     ))
     db.execute("DELETE FROM tournament.ban_whitelist WHERE voter_hash = %s", (old_hash,))
 
-    return {"roster": roster_n, "bans": bans_n, "whitelist": whitelist_n, "participation": participation_n}
+    # Pokédex: se fusiona con la del nombre nuevo conservando el primer avistamiento
+    # de cada especie; las filas de otros jugadores que lo tenían de rival lo siguen.
+    # Guarda: con old_l == new_l el DELETE de abajo borraría la Pokédex entera.
+    pokedex_n = 0
+    if old_l != new_l:
+        pokedex_n = _merge_pokedex(db, old_l, new_l)
+
+    return {"roster": roster_n, "bans": bans_n, "whitelist": whitelist_n, "participation": participation_n,
+            "pokedex": pokedex_n}
+
+
+def _merge_pokedex(db, old_l: str, new_l: str) -> int:
+    """Mueve la Pokédex de old_l a new_l (ya en minúsculas). Devuelve cuántas especies entraron o
+    rejuvenecieron su primer avistamiento en new_l (las que new_l ya tenía antes no cuentan)."""
+    moved = len(db.fetchall(
+        """
+        INSERT INTO tournament.pokedex_seen (username, species_id, species, first_seen_at, battle_id, opponent)
+        SELECT %s, species_id, species, first_seen_at, battle_id, opponent
+        FROM tournament.pokedex_seen WHERE username = %s
+        ON CONFLICT (username, species_id) DO UPDATE
+            SET species = EXCLUDED.species, first_seen_at = EXCLUDED.first_seen_at,
+                battle_id = EXCLUDED.battle_id, opponent = EXCLUDED.opponent
+            WHERE EXCLUDED.first_seen_at < tournament.pokedex_seen.first_seen_at
+        RETURNING 1
+        """,
+        (new_l, old_l),
+    ))
+    db.execute("DELETE FROM tournament.pokedex_seen WHERE username = %s", (old_l,))
+    db.execute("UPDATE tournament.pokedex_seen SET opponent = %s WHERE opponent = %s", (new_l, old_l))
+    return moved
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -238,7 +267,7 @@ def update_player_account(account_id: int, body: UpdatePlayerAccountRequest, me:
         else:
             new_user_id = row["user_id"]
 
-        cascade = {"roster": 0, "bans": 0, "whitelist": 0, "participation": 0}
+        cascade = {"roster": 0, "bans": 0, "whitelist": 0, "participation": 0, "pokedex": 0}
         if new_username.lower() != row["username"].lower():
             cascade = _rename_username_cascade(db, row["username"], new_username)
 

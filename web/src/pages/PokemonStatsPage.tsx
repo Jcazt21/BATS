@@ -12,22 +12,22 @@ import { EmptyState, ErrorState } from "@/components/app/States";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/http";
-import { useActiveSeason, usePokedexEntry } from "@/lib/queries";
+import { useActiveSeason, usePokemonStatsEntry } from "@/lib/queries";
 import type { CountedName } from "@/lib/api";
 import { num, pct } from "@/lib/format";
 
-export function PokedexEntryPage() {
+export function PokemonStatsPage() {
   const { species = "" } = useParams();
   const season = useActiveSeason();
   const [params] = useSearchParams();
   const temporada = params.get("temporada");
   // Misma temporada que la lista de origen: "all" = todas, un número = esa, nada = la activa.
   const sid = temporada === "all" ? undefined : temporada && Number.isInteger(Number(temporada)) ? Number(temporada) : season.data?.season_id;
-  const q = usePokedexEntry(species, sid);
+  const q = usePokemonStatsEntry(species, sid);
 
   const back = (
-    <Link to={temporada ? `/pokedex?temporada=${encodeURIComponent(temporada)}` : "/pokedex"} className="inline-flex items-center gap-1 text-subhead text-primary hover:underline">
-      <ArrowLeft className="size-4" /> Pokédex
+    <Link to="/stats" className="inline-flex items-center gap-1 text-subhead text-primary hover:underline">
+      <ArrowLeft className="size-4" /> Estadísticas
     </Link>
   );
 

@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { motion } from "motion/react";
 import { useLocation, useNavigationType } from "react-router-dom";
 import { useReducedMotion, useSpring } from "@/lib/motion";
+import { pageKey } from "@/lib/page-key";
 
 /** Profundidad de una ruta: "/" y "/stats" son de primer nivel (1); "/pokedex/Gengar" es un detalle (2). */
 const depth = (pathname: string) => Math.max(1, pathname.split("/").filter(Boolean).length);
@@ -17,7 +18,8 @@ const depth = (pathname: string) => Math.max(1, pathname.split("/").filter(Boole
  * montando la página nueva, que es justo lo que pasa durante esta animación.
  */
 export function PageTransition({ children }: { children: ReactNode }) {
-  const { pathname } = useLocation();
+  // La ficha-modal de la Pokédex no es otra página: misma clave, sin remontar ni animar.
+  const pathname = pageKey(useLocation().pathname);
   const navType = useNavigationType();
   const reduce = useReducedMotion();
   const transition = useSpring("snappy");

@@ -11,6 +11,7 @@ La regla vigente sale de BATS (active_rules.json); si difiere, `rules_drift()` l
 import json
 from typing import Optional
 
+from ..league import LEAGUE_FORMAT
 from ..paths import ACTIVE_BANS_FILE, ACTIVE_RULES_FILE
 
 # ─── Tipo del mes para el que están armados los pools de sets ────────────────
@@ -30,7 +31,7 @@ BOT_PASSWORD = None  # None = sin contraseña (servidor local sin auth)
 
 # ─── Formato del torneo ───────────────────────────────────────────────────────
 # ID generado por PS: toID("[Gen 9] PinchesGueys League") = "gen9pinchesgueys"
-BATTLE_FORMAT = "gen9pinchesgueysleague"
+BATTLE_FORMAT = LEAGUE_FORMAT
 
 # ─── Reglas del formato (para validación interna del team builder) ────────────
 MAX_RESTRICTED = 1   # máximo 1 legendary/sub-legendary por equipo

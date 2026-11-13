@@ -14,20 +14,13 @@ type Data = Record<string, any>;
 /** `undefined` = 404. */
 type Handler = (d: Data, params: string[], query: URLSearchParams) => unknown;
 
-// Igual que _norm() en bats_core/api/routes/pokedex.py: "Landorus-Therian" == "landorustherian"
+// Igual que _norm() en bats_core/api/routes/pokemon_stats.py: "Landorus-Therian" == "landorustherian"
 const norm = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, "");
 
 const pokedexEntry: Handler = (d, [species]) => {
   const row = d.pokedex.species.find((r: { species: string }) => norm(r.species) === norm(species));
   return row && { ...row, total_slots: d.pokedex.total_slots, ...d.pokedex_entries[row.species] };
 };
-
-/** Mismos números que la Pokédex, con los nombres de campo de /api/stats/pickrate. */
-const pickRate: Handler = (d) =>
-  d.pokedex.species.map((r: Data) => ({
-    species: r.species, battles_used: r.used, total_slots: d.pokedex.total_slots, usage_pct: r.pick_pct,
-    avg_kills: r.avg_kills, avg_mvp_score: r.avg_mvp, win_rate_pct: r.win_rate_pct,
-  }));
 
 const rutas: [RegExp, Handler][] = [
   // Sesión y equipo
@@ -43,14 +36,14 @@ const rutas: [RegExp, Handler][] = [
   [/^\/api\/stats\/seasons$/, (d) => d.seasons],
   [/^\/api\/stats\/summary$/, (d) => d.summary],
   [/^\/api\/stats\/mvp$/, (d) => d.mvp],
-  [/^\/api\/stats\/pickrate$/, pickRate],
   [/^\/api\/stats\/leaderboard$/, (d) => d.leaderboard],
   [/^\/api\/stats\/recent-battles$/, (d, _, q) => d.recent_battles.slice(0, Number(q.get("limit") ?? 8))],
   [/^\/api\/stats\/battles\/([^/]+)$/, (d, [id]) => d.battle_details[id]],
-  // Perfiles y Pokédex
+  // Perfiles y estadísticas por especie
   [/^\/api\/players\/([^/]+)$/, (d, [user]) => d.players[user.toLowerCase()]],
-  [/^\/api\/pokedex$/, (d) => d.pokedex],
-  [/^\/api\/pokedex\/([^/]+)$/, pokedexEntry],
+  [/^\/api\/players\/([^/]+)\/pokedex$/, (d, [user]) => d.player_pokedex[user.toLowerCase()]],
+  [/^\/api\/stats\/pokemon$/, (d) => d.pokedex],
+  [/^\/api\/stats\/pokemon\/([^/]+)$/, pokedexEntry],
 ];
 
 function json(res: ServerResponse, body: unknown, status = 200) {

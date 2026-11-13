@@ -2300,5 +2300,120 @@
   "ban_eligibility": {
     "can_vote": true,
     "reason": null
+  },
+  "player_pokedex": {
+    "jazar": {
+      "username": "jazar",
+      "seen": [
+        {
+          "species_id": "garchomp",
+          "species": "Garchomp",
+          "first_seen_at": "2026-11-12T01:40:00Z",
+          "battle_id": "gen9pinchesgueysleague-1008",
+          "opponent": "ronny"
+        },
+        {
+          "species_id": "landorustherian",
+          "species": "Landorus-Therian",
+          "first_seen_at": "2026-11-12T01:40:00Z",
+          "battle_id": "gen9pinchesgueysleague-1008",
+          "opponent": "ronny"
+        },
+        {
+          "species_id": "charizardmegay",
+          "species": "Charizard-Mega-Y",
+          "first_seen_at": "2026-11-10T20:00:00Z",
+          "battle_id": "gen9pinchesgueysleague-1004",
+          "opponent": "mili"
+        },
+        {
+          "species_id": "tauros",
+          "species": "Tauros",
+          "first_seen_at": "2026-11-10T20:00:00Z",
+          "battle_id": "gen9pinchesgueysleague-1004",
+          "opponent": "mili"
+        },
+        {
+          "species_id": "weavile",
+          "species": "Weavile",
+          "first_seen_at": "2026-11-08T18:20:00Z",
+          "battle_id": "gen9pinchesgueysleague-1002",
+          "opponent": "kael"
+        },
+        {
+          "species_id": "heatran",
+          "species": "Heatran",
+          "first_seen_at": "2026-11-08T18:20:00Z",
+          "battle_id": "gen9pinchesgueysleague-1002",
+          "opponent": "kael"
+        },
+        {
+          "species_id": "kyuremblack",
+          "species": "Kyurem-Black",
+          "first_seen_at": "2026-11-08T18:20:00Z",
+          "battle_id": "gen9pinchesgueysleague-1002",
+          "opponent": "kael"
+        },
+        {
+          "species_id": "scizormega",
+          "species": "Scizor-Mega",
+          "first_seen_at": "2026-11-08T18:20:00Z",
+          "battle_id": "gen9pinchesgueysleague-1002",
+          "opponent": "kael"
+        },
+        {
+          "species_id": "tapufini",
+          "species": "Tapu Fini",
+          "first_seen_at": "2026-11-08T18:20:00Z",
+          "battle_id": "gen9pinchesgueysleague-1002",
+          "opponent": "kael"
+        },
+        {
+          "species_id": "raichualola",
+          "species": "Raichu-Alola",
+          "first_seen_at": "2026-11-08T18:20:00Z",
+          "battle_id": "gen9pinchesgueysleague-1002",
+          "opponent": "kael"
+        }
+      ]
+    },
+    "ronny": {
+      "username": "ronny",
+      "seen": [
+        {
+          "species_id": "garchomp",
+          "species": "Garchomp",
+          "first_seen_at": "2026-11-12T01:40:00Z",
+          "battle_id": "gen9pinchesgueysleague-1008",
+          "opponent": "jazar"
+        },
+        {
+          "species_id": "scizormega",
+          "species": "Scizor-Mega",
+          "first_seen_at": "2026-11-12T01:40:00Z",
+          "battle_id": "gen9pinchesgueysleague-1008",
+          "opponent": "jazar"
+        },
+        {
+          "species_id": "heatran",
+          "species": "Heatran",
+          "first_seen_at": "2026-11-10T22:15:00Z",
+          "battle_id": "gen9pinchesgueysleague-1005",
+          "opponent": "kael"
+        }
+      ]
+    },
+    "kael": {
+      "username": "kael",
+      "seen": []
+    },
+    "mili": {
+      "username": "mili",
+      "seen": []
+    },
+    "tono": {
+      "username": "tono",
+      "seen": []
+    }
   }
 }

@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { useLocation, useNavigationType } from "react-router-dom";
+import { pageKey } from "@/lib/page-key";
 
 /** Posición de scroll de cada entrada del historial (por `location.key`). */
 const positions = new Map<string, number>();
@@ -31,7 +32,8 @@ export function useScrollRestoration(): void {
 
   useLayoutEffect(() => {
     current.current = location.key;
-    const samePage = prevPath.current === location.pathname;
+    // pageKey: la ficha-modal de la Pokédex cuenta como la misma página que su grilla.
+    const samePage = pageKey(prevPath.current) === pageKey(location.pathname);
     prevPath.current = location.pathname;
     if (location.hash) return;
     if (type === "POP") window.scrollTo({ top: positions.get(location.key) ?? 0, behavior: "instant" });

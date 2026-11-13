@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Flame, Snowflake } from "lucide-react";
+import { BookOpen, Flame, Snowflake } from "lucide-react";
 import { BackLink } from "@/components/app/BackLink";
 import { PageHeader } from "@/components/app/PageHeader";
 import { ResponsiveSheet } from "@/components/app/ResponsiveSheet";
@@ -55,7 +55,14 @@ export function PlayerPage() {
             {streak.type === "win" ? <Flame /> : <Snowflake />} Racha de {streak.length} {streak.type === "win" ? "victorias" : "derrotas"}
           </Badge>
         ) : undefined}
-        actions={seasons.data && seasons.data.length > 0 ? <SeasonSelect seasons={seasons.data} value={choice} onChange={setChoice} /> : undefined}
+        actions={
+          <div className="flex flex-wrap items-center gap-3">
+            <Link to={`/j/${encodeURIComponent(username)}/pokedex`} className="inline-flex items-center gap-1.5 text-subhead font-medium text-primary hover:underline">
+              <BookOpen className="size-4" aria-hidden /> Ver Pokédex
+            </Link>
+            {seasons.data && seasons.data.length > 0 && <SeasonSelect seasons={seasons.data} value={choice} onChange={setChoice} />}
+          </div>
+        }
       />
 
       <section aria-label="Récord" className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -69,7 +76,7 @@ export function PlayerPage() {
         <Group title="Pokémon más usados">
           {q.isPending ? <div className="p-4"><Skeleton className="h-28" /></div> : !p?.top_pokemon.length ? <EmptyState title="Sin datos todavía" /> :
             p.top_pokemon.map((m) => (
-              <Link key={m.species} to={`/pokedex/${encodeURIComponent(m.species)}`} className="block">
+              <Link key={m.species} to={`/stats/pokemon/${encodeURIComponent(m.species)}`} className="block">
                 <GroupRow leading={<PokemonSprite species={m.species} size={44} />} title={m.species}
                   subtitle={`${m.kills} KOs · MVP medio ${num(m.avg_mvp, 1)}`} trailing={<span className="tabular text-subhead font-medium">{m.uses}×</span>} />
               </Link>

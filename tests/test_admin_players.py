@@ -243,7 +243,7 @@ class TestAdminPlayers(unittest.TestCase):
         res = self.client.patch(f"/api/admin/players/{acc}", json={"username": new})
         self.assertEqual(res.status_code, 200)
         cascade = res.json()["cascade"]
-        self.assertEqual(cascade, {"roster": 1, "bans": 1, "whitelist": 1, "participation": 1})
+        self.assertEqual(cascade, {"roster": 1, "bans": 1, "whitelist": 1, "participation": 1, "pokedex": 0})
 
         with BATSDatabase(DSN) as db:
             self.assertEqual(
@@ -266,7 +266,7 @@ class TestAdminPlayers(unittest.TestCase):
         acc = self._add(username=f"solo{self.tag}").json()["account_id"]
         res = self.client.patch(f"/api/admin/players/{acc}", json={"username": f"solonuevo{self.tag}"})
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json()["cascade"], {"roster": 0, "bans": 0, "whitelist": 0, "participation": 0})
+        self.assertEqual(res.json()["cascade"], {"roster": 0, "bans": 0, "whitelist": 0, "participation": 0, "pokedex": 0})
 
     def test_rename_con_colision_no_mueve_nada(self):
         """Si el nombre nuevo ya tiene equipo en la misma temporada, se aborta entero."""

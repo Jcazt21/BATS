@@ -70,6 +70,7 @@ npx vitest run
 ## Reglas del dominio
 
 - **Esquemas:** `battle.*` es efímero y puede truncarse; `tournament.*` (seasons, bans, votos, whitelist) **nunca** se trunca en cascada y no tiene FKs hacia `battle`. Al agregar tablas respeta esa frontera.
+- **Pokédex por cuenta:** `tournament.pokedex_seen` (v14) guarda el primer avistamiento de cada especie por jugador. La escribe `BATSEtl._record_pokedex_seen` dentro de `load_battle` (solo formato de liga, sin bot, solo `was_active`) y la sigue el rename de cuentas. Vive en `tournament.*` porque `battle.*` se trunca. API pública: `GET /api/players/{username}/pokedex`; las stats por especie están en `/api/stats/pokemon*`.
 - **Una sola fórmula de MVP:** `(kills × 2) + survived + final_hit + min(turns_active, 8) × 0.25`, banca = 0. Vive en `bats_core/mvp.py` y en `battle.mvp_score()` (SQL, `v10.sql`); `tests/test_mvp.py` comprueba que coinciden. Cambiarla = nueva migración que recree la columna generada + actualizar `mvp.py`.
 - **ETL idempotente por `battle_id`** (PK de `fact_battles`). En `battle.etl_log` la clave única es `file_path` (ruta absoluta) o `push:<battle_id>`. El parser descarta logs de menos de 3 turnos y devuelve `None` ante JSON corrupto.
 - **Votos de ban anónimos por diseño:** `api/crypto.py` guarda `SHA-256(BATS_VOTER_SALT + username)`; `ban_votes` no referencia al votante (hay un test). No agregues columna de usuario ni loguees el username junto al voto. Un jugador = máximo 1 ban activo por temporada.

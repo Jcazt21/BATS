@@ -59,16 +59,6 @@ export interface MvpEntry {
   avg_mvp_per_battle: number;
 }
 
-export interface PickRateEntry {
-  species:       string;
-  battles_used:  number;
-  total_slots:   number;
-  usage_pct:     number;
-  avg_kills:     number;
-  avg_mvp_score: number;
-  win_rate_pct:  number;
-}
-
 export interface BotSummaryEntry {
   username:      string;
   total_battles: number;
@@ -381,7 +371,7 @@ export interface AuthLoginsResponse {
 
 /** Cuántas filas movió el rename de un username en tournament.roster/bans/ban_whitelist/ban_participation. */
 export interface UsernameRenameCascade {
-  roster: number; bans: number; whitelist: number; participation: number;
+  roster: number; bans: number; whitelist: number; participation: number; pokedex: number;
 }
 
 export interface BlogPostSummary {
@@ -528,7 +518,6 @@ export const getActiveSeason = () => request<ActiveSeasonInfo>("/api/teams/activ
 export const getPublicSeasons = () => request<PublicSeasonEntry[]>("/api/stats/seasons");
 export const getLeagueSummary = (seasonId?: number) => request<LeagueSummary>("/api/stats/summary", { params: { season_id: seasonId } });
 export const getMvpTop5 = (seasonId?: number) => request<MvpEntry[]>("/api/stats/mvp", { params: { season_id: seasonId } });
-export const getPickRate = (seasonId?: number) => request<PickRateEntry[]>("/api/stats/pickrate", { params: { season_id: seasonId } });
 export const getLeaderboard = (seasonId?: number) => request<LeaderboardEntry[]>("/api/stats/leaderboard", { params: { season_id: seasonId } });
 /** Batalla del feed de actividad. Empate: `winner` y `loser` son null. */
 export interface RecentBattle {
@@ -553,9 +542,18 @@ export const getBotBattleDetails = (battleId: string) => request<BattleDetailEnt
 
 export const getPlayerProfile = (username: string, seasonId?: number) =>
   request<PlayerProfile>(`/api/players/${encodeURIComponent(username)}`, { params: { season_id: seasonId } });
-export const getPokedex = (seasonId?: number) => request<PokedexList>("/api/pokedex", { params: { season_id: seasonId } });
-export const getPokedexEntry = (species: string, seasonId?: number) =>
-  request<PokedexEntry>(`/api/pokedex/${encodeURIComponent(species)}`, { params: { season_id: seasonId } });
+
+/** Una especie que el jugador vio salir al campo en una batalla de liga (primer avistamiento). */
+export interface PokedexSighting {
+  species_id: string; species: string; first_seen_at: string; battle_id: string; opponent: string;
+}
+/** GET /api/players/{username}/pokedex: más reciente primero. */
+export interface PlayerPokedex { username: string; seen: PokedexSighting[] }
+export const getPlayerPokedex = (username: string) =>
+  request<PlayerPokedex>(`/api/players/${encodeURIComponent(username)}/pokedex`);
+export const getPokemonStats = (seasonId?: number) => request<PokedexList>("/api/stats/pokemon", { params: { season_id: seasonId } });
+export const getPokemonStatsEntry = (species: string, seasonId?: number) =>
+  request<PokedexEntry>(`/api/stats/pokemon/${encodeURIComponent(species)}`, { params: { season_id: seasonId } });
 
 // ── Equipo (requiere sesión) ──────────────────────────────────────────────────
 

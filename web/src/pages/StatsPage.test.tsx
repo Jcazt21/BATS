@@ -153,7 +153,7 @@ describe("StatsPage · Coleccionistas", () => {
 describe("StatsPage · móvil", () => {
   it("la tabla ofrece 'Ordenar por' y las tarjetas muestran posición y Meter", () => {
     renderPage();
-    expect(screen.getByRole("radiogroup", { name: "Ordenar por" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Ordenar por" })).toBeInTheDocument();
     const tarjetas = screen.getByRole("list", { name: "Clasificación de jugadores" });
     const primera = within(tarjetas).getAllByRole("listitem")[0];
     expect(primera).toHaveTextContent(/Posición 1/);

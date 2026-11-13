@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown } from "lucide-react";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 /** Al sustituir al esqueleto, el contenido llega con un fundido breve en vez de un corte seco. */
 const ENTER = "animate-in fade-in-0 duration-300";
@@ -105,26 +108,46 @@ export function DataList<T>({ rows, columns, rowKey, onRowClick, rowHref, rowPre
 
   return (
     <div className={cn("overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border", className)}>
-      {/* Orden en móvil: la tabla tiene cabeceras pulsables, las tarjetas no */}
-      {mobileSort && !wide && (
-        <div role="radiogroup" aria-label="Ordenar por" className="flex gap-2 overflow-x-auto border-b border-separator px-4 py-3 md:hidden">
-          {columns.filter((c) => c.sortValue).map((c) => {
-            const active = sort?.key === c.key;
-            return (
-              <button
-                key={c.key} type="button" role="radio" aria-checked={active} onClick={() => toggle(c)}
-                className={cn(
-                  "press relative inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3 text-footnote font-medium outline-none transition-colors duration-200 before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-[''] focus-visible:ring-2 focus-visible:ring-ring",
-                  active ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground",
-                )}
+      {/* Orden en móvil: un solo control en una línea (criterio + dirección); la tabla usa sus cabeceras. */}
+      {mobileSort && !wide && (() => {
+        const ordenables = columns.filter((c) => c.sortValue);
+        const actual = ordenables.find((c) => c.key === sort?.key);
+        const desc = sort?.dir !== "asc";
+        return (
+          <div role="group" aria-label="Ordenar por" className="flex items-center gap-2 border-b border-separator px-4 py-2 md:hidden">
+            <span aria-hidden="true" className="text-footnote text-muted-foreground">Ordenar por</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label={`Ordenar por: ${actual?.header ?? "sin orden"}`}
+                className="press inline-flex h-11 min-w-0 items-center gap-1 rounded-full bg-secondary px-3.5 text-footnote font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {c.header}
-                {active && (sort!.dir === "asc" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />)}
+                <span className="truncate">{actual?.header ?? "Elegir"}</span>
+                <ChevronDown aria-hidden="true" className="size-3.5 shrink-0 text-muted-foreground" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-auto min-w-44">
+                <DropdownMenuRadioGroup
+                  value={sort?.key ?? ""}
+                  onValueChange={(key) => setSort((s) => ({ key: String(key), dir: s && s.key === key ? s.dir : "desc" }))}
+                >
+                  {ordenables.map((c) => (
+                    <DropdownMenuRadioItem key={c.key} closeOnClick value={c.key} className="min-h-11 text-subhead">{c.header}</DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {actual && (
+              <button
+                type="button"
+                onClick={() => toggle(actual)}
+                aria-label={`Invertir orden (ahora ${desc ? "mayor primero" : "menor primero"})`}
+                className="press ml-auto grid size-11 shrink-0 place-items-center rounded-full bg-secondary text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {desc ? <ArrowDown className="size-4" /> : <ArrowUp className="size-4" />}
               </button>
-            );
-          })}
-        </div>
-      )}
+            )}
+          </div>
+        );
+      })()}
 
       {/* Tarjetas (móvil) */}
       {!wide && <ul className="divide-y divide-separator" aria-label={caption}>

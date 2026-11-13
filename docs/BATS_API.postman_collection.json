@@ -195,7 +195,8 @@
                 "stats",
                 "leaderboard"
               ]
-            }
+            },
+            "description": "V/D/E por jugador (wins, losses, ties) más form (últimas 5: W/L/T, de la más vieja a la más nueva) y streak {type, length}, calculadas en vivo desde fact_battles. Acepta ?season_id=X."
           }
         },
         {
@@ -313,6 +314,93 @@
               ]
             },
             "description": "Pokédex pública del jugador: especies vistas en batallas de liga, más reciente primero. 404 si el jugador no existe."
+          }
+        },
+        {
+          "name": "Cara a cara",
+          "request": {
+            "method": "GET",
+            "description": "Historial directo entre dos jugadores: wins_a, wins_b, ties, últimas batallas (winner null = empate) y top_killer de cada uno. Opcional ?season_id=X. 400 si a == b, 404 si un jugador no existe.",
+            "url": {
+              "raw": "{{base_url}}/api/stats/head-to-head?a=ash&b=gary&limit=5",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "stats",
+                "head-to-head"
+              ],
+              "query": [
+                {
+                  "key": "a",
+                  "value": "ash"
+                },
+                {
+                  "key": "b",
+                  "value": "gary"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Coleccionistas",
+          "request": {
+            "method": "GET",
+            "description": "Avistamientos de la Pokédex de cada jugador con al menos uno; el progreso lo calcula el frontend. No depende de la temporada.",
+            "url": {
+              "raw": "{{base_url}}/api/stats/collectors",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "stats",
+                "collectors"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Pokémon · uso por especie",
+          "request": {
+            "method": "GET",
+            "description": "Uso por especie: pick %, bring %, win rate, KOs y MVP medios y survival_pct. Opcional ?season_id=X.",
+            "url": {
+              "raw": "{{base_url}}/api/stats/pokemon",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "stats",
+                "pokemon"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Pokémon · ficha",
+          "request": {
+            "method": "GET",
+            "description": "Ficha de una especie: quién la usa, survival_pct y sets más comunes (solo rosters públicos). Opcional ?season_id=X. 404 si no aparece en la liga.",
+            "url": {
+              "raw": "{{base_url}}/api/stats/pokemon/Garchomp",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "stats",
+                "pokemon",
+                "Garchomp"
+              ]
+            }
           }
         }
       ]

@@ -192,7 +192,8 @@
         "bring_pct": 40.0,
         "win_rate_pct": 61.9,
         "avg_mvp": 1.4,
-        "avg_kills": 1.3
+        "avg_kills": 1.3,
+        "survival_pct": 37.8
       },
       {
         "species": "Landorus-Therian",
@@ -202,7 +203,8 @@
         "bring_pct": 37.5,
         "win_rate_pct": 57.9,
         "avg_mvp": 1.1,
-        "avg_kills": 1.0
+        "avg_kills": 1.0,
+        "survival_pct": 28.3
       },
       {
         "species": "Heatran",
@@ -212,7 +214,8 @@
         "bring_pct": 33.3,
         "win_rate_pct": 54.8,
         "avg_mvp": 0.9,
-        "avg_kills": 0.8
+        "avg_kills": 0.8,
+        "survival_pct": 55.8
       },
       {
         "species": "Tapu Fini",
@@ -222,7 +225,8 @@
         "bring_pct": 30.0,
         "win_rate_pct": 51.9,
         "avg_mvp": 0.8,
-        "avg_kills": 0.6
+        "avg_kills": 0.6,
+        "survival_pct": 24.0
       },
       {
         "species": "Kyurem-Black",
@@ -232,7 +236,8 @@
         "bring_pct": 24.2,
         "win_rate_pct": 58.3,
         "avg_mvp": 1.5,
-        "avg_kills": 1.6
+        "avg_kills": 1.6,
+        "survival_pct": 49.5
       },
       {
         "species": "Weavile",
@@ -242,7 +247,8 @@
         "bring_pct": 25.0,
         "win_rate_pct": 45.5,
         "avg_mvp": 1.2,
-        "avg_kills": 1.1
+        "avg_kills": 1.1,
+        "survival_pct": 40.1
       },
       {
         "species": "Garchomp",
@@ -252,7 +258,8 @@
         "bring_pct": 20.8,
         "win_rate_pct": 47.4,
         "avg_mvp": 1.0,
-        "avg_kills": 1.0
+        "avg_kills": 1.0,
+        "survival_pct": 23.2
       },
       {
         "species": "Tauros",
@@ -262,7 +269,8 @@
         "bring_pct": 9.2,
         "win_rate_pct": 33.3,
         "avg_mvp": 0.5,
-        "avg_kills": 0.3
+        "avg_kills": 0.3,
+        "survival_pct": 47.9
       }
     ]
   },
@@ -711,40 +719,55 @@
       "total_battles": 24,
       "wins": 16,
       "losses": 8,
+      "ties": 0,
       "win_rate_pct": 66.7,
-      "total_survivors": 41
+      "total_survivors": 41,
+      "form": ["W", "W", "L", "W", "W"],
+      "streak": {"type": "W", "length": 2}
     },
     {
       "username": "ronny",
       "total_battles": 22,
       "wins": 13,
-      "losses": 9,
+      "losses": 8,
+      "ties": 1,
       "win_rate_pct": 59.1,
-      "total_survivors": 33
+      "total_survivors": 33,
+      "form": ["L", "W", "T", "W", "W"],
+      "streak": {"type": "W", "length": 2}
     },
     {
       "username": "kael",
       "total_battles": 20,
       "wins": 10,
       "losses": 10,
+      "ties": 0,
       "win_rate_pct": 50.0,
-      "total_survivors": 28
+      "total_survivors": 28,
+      "form": ["W", "L", "L", "W", "L"],
+      "streak": {"type": "L", "length": 1}
     },
     {
       "username": "mili",
       "total_battles": 18,
       "wins": 8,
       "losses": 10,
+      "ties": 0,
       "win_rate_pct": 44.4,
-      "total_survivors": 22
+      "total_survivors": 22,
+      "form": ["L", "L", "W", "L", "L"],
+      "streak": {"type": "L", "length": 2}
     },
     {
       "username": "tono",
       "total_battles": 16,
       "wins": 3,
       "losses": 13,
+      "ties": 0,
       "win_rate_pct": 18.8,
-      "total_survivors": 12
+      "total_survivors": 12,
+      "form": ["W", "L", "W", "L", "W"],
+      "streak": {"type": "W", "length": 1}
     }
   ],
   "mvp": [
@@ -1687,6 +1710,7 @@
         "battles": 24,
         "wins": 16,
         "losses": 8,
+        "ties": 0,
         "win_rate_pct": 66.7,
         "forfeits": 0,
         "survivors": 41
@@ -1891,7 +1915,8 @@
       "record": {
         "battles": 22,
         "wins": 13,
-        "losses": 9,
+        "losses": 8,
+        "ties": 1,
         "win_rate_pct": 59.1,
         "forfeits": 0,
         "survivors": 33
@@ -1989,6 +2014,7 @@
         "battles": 20,
         "wins": 10,
         "losses": 10,
+        "ties": 0,
         "win_rate_pct": 50.0,
         "forfeits": 0,
         "survivors": 28
@@ -2086,6 +2112,7 @@
         "battles": 18,
         "wins": 8,
         "losses": 10,
+        "ties": 0,
         "win_rate_pct": 44.4,
         "forfeits": 0,
         "survivors": 22
@@ -2183,6 +2210,7 @@
         "battles": 16,
         "wins": 3,
         "losses": 13,
+        "ties": 0,
         "win_rate_pct": 18.8,
         "forfeits": 1,
         "survivors": 12

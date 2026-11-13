@@ -22,6 +22,52 @@ const pokedexEntry: Handler = (d, [species]) => {
   return row && { ...row, total_slots: d.pokedex.total_slots, ...d.pokedex_entries[row.species] };
 };
 
+type MockBattle = { battle_id: string; date: string; winner: string | null; players: string[]; turns: number };
+
+/** Cara a cara armado con `recent_battles`; el pokémon con más KOs sale del top MVP de cada uno. */
+const headToHead: Handler = (d, _, q) => {
+  const a = (q.get("a") ?? "").toLowerCase();
+  const b = (q.get("b") ?? "").toLowerCase();
+  if (!a || a === b) return undefined;
+  const battles = (d.recent_battles as MockBattle[]).filter((x) => {
+    const ps = x.players.map((p) => p.toLowerCase());
+    return ps.includes(a) && ps.includes(b);
+  });
+  const killer = (u: string) => {
+    const m = (d.mvp as { species: string; player: string; total_kills: number }[]).find((r) => r.player.toLowerCase() === u);
+    return battles.length && m ? { species: m.species, kills: m.total_kills } : null;
+  };
+  return {
+    a, b,
+    wins_a: battles.filter((x) => x.winner?.toLowerCase() === a).length,
+    wins_b: battles.filter((x) => x.winner?.toLowerCase() === b).length,
+    ties: battles.filter((x) => !x.winner).length,
+    battles: battles.slice(0, Number(q.get("limit") ?? 5)).map((x) => ({
+      battle_id: x.battle_id, date: x.date, winner: x.winner?.toLowerCase() ?? null, turns: x.turns,
+    })),
+    top_killer: { a: killer(a), b: killer(b) },
+  };
+};
+
+/** Batallas por día armadas con las fechas de `recent_battles`: ventana contigua que termina en la última. */
+const battlesPerDay: Handler = (d, _, q) => {
+  const days = Number(q.get("days") ?? 30);
+  const porDia = new Map<string, number>();
+  for (const b of d.recent_battles as MockBattle[]) porDia.set(b.date.slice(0, 10), (porDia.get(b.date.slice(0, 10)) ?? 0) + 1);
+  const fechas = [...porDia.keys()].sort();
+  if (!fechas.length) return { days: [], last_7: 0, prev_7: 0 };
+  const fin = new Date(`${fechas.at(-1)}T00:00:00Z`);
+  let total = 0;
+  const serie = Array.from({ length: days }, (_, i) => {
+    const dia = new Date(fin.getTime() - (days - 1 - i) * 86_400_000).toISOString().slice(0, 10);
+    const battles = porDia.get(dia) ?? 0;
+    total += battles;
+    return { date: dia, battles, total };
+  });
+  const suma = (xs: typeof serie) => xs.reduce((n, x) => n + x.battles, 0);
+  return { days: serie, last_7: suma(serie.slice(-7)), prev_7: suma(serie.slice(-14, -7)) };
+};
+
 const rutas: [RegExp, Handler][] = [
   // Sesión y equipo
   [/^\/api\/me$/, (d) => d.me],
@@ -39,6 +85,9 @@ const rutas: [RegExp, Handler][] = [
   [/^\/api\/stats\/leaderboard$/, (d) => d.leaderboard],
   [/^\/api\/stats\/recent-battles$/, (d, _, q) => d.recent_battles.slice(0, Number(q.get("limit") ?? 8))],
   [/^\/api\/stats\/battles\/([^/]+)$/, (d, [id]) => d.battle_details[id]],
+  [/^\/api\/stats\/head-to-head$/, headToHead],
+  [/^\/api\/stats\/battles-per-day$/, battlesPerDay],
+  [/^\/api\/stats\/collectors$/, (d) => (Object.values(d.player_pokedex) as { seen: unknown[] }[]).filter((p) => p.seen.length > 0)],
   // Perfiles y estadísticas por especie
   [/^\/api\/players\/([^/]+)$/, (d, [user]) => d.players[user.toLowerCase()]],
   [/^\/api\/players\/([^/]+)\/pokedex$/, (d, [user]) => d.player_pokedex[user.toLowerCase()]],

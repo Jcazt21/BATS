@@ -547,13 +547,15 @@ El secret del JWT se deriva de: `SHA-256(BATS_VOTER_SALT)`. Expira en 24h.
 | `GET` | `/api/stats/summary` | KPIs globales (total batallas, jugadores, avg turnos, top win rate). Acepta `?season_id=X` |
 | `GET` | `/api/stats/mvp` | Top 5 pokémon por MVP Score acumulado. Acepta `?season_id=X` |
 | `GET` | `/api/stats/pickrate` | Pick rate y win rate de las 20 especies más usadas. Acepta `?season_id=X` |
-| `GET` | `/api/stats/leaderboard` | Leaderboard de jugadores con W/L. Acepta `?season_id=X` |
+| `GET` | `/api/stats/leaderboard` | Leaderboard de jugadores con V/D/E (`wins`, `losses`, `ties`; `win_rate_pct` = victorias / batallas), `form` (últimas 5 como `W`/`L`/`T`, de la más vieja a la más nueva) y `streak` `{type, length}` (un empate corta la racha). Forma y racha salen en vivo de `fact_battles`. Acepta `?season_id=X` |
+| `GET` | `/api/stats/head-to-head?a=&b=` | Cara a cara entre dos jugadores (usernames sin distinguir mayúsculas): `wins_a`, `wins_b`, `ties`, las últimas `limit` batallas (5 por defecto, 1–20; `winner` null = empate) y `top_killer` `{a, b}` (especie con más KOs de cada uno en esos duelos). Los conteos cubren todas las batallas. 400 si `a == b`, 404 si un jugador no existe. Acepta `?season_id=X` |
+| `GET` | `/api/stats/collectors` | Ranking de coleccionistas: `[{username, seen}]` con los avistamientos crudos de `tournament.pokedex_seen` (mismo formato que `/api/players/{username}/pokedex`) de cada jugador con al menos uno. El frontend calcula el progreso con `buildCollection` + `collectionProgress`, igual que la Pokédex. No depende de la temporada |
 | `GET` | `/api/stats/bot/summary` | Rendimiento de jugadores vs bot |
 | `GET` | `/api/stats/bot/pokemon` | Pokémon más usados contra el bot |
 | `GET` | `/api/stats/bot/battles` | Historial de batallas vs bot (últimas 50) |
 | `GET` | `/api/stats/battles/{battle_id}` | Detalle de pokémon de una batalla |
-| `GET` | `/api/stats/pokemon` | Uso por especie: pick %, bring %, win rate, kills y MVP medios. Acepta `?season_id=X` |
-| `GET` | `/api/stats/pokemon/{species}` | Ficha de una especie: quién la usa y sus sets más comunes (solo de rosters públicos). Acepta `?season_id=X` |
+| `GET` | `/api/stats/pokemon` | Uso por especie: pick %, bring %, win rate, kills y MVP medios y `survival_pct` (veces que terminó vivo / veces que salió al campo, en vivo desde `fact_pokemon_performance`). Acepta `?season_id=X` |
+| `GET` | `/api/stats/pokemon/{species}` | Ficha de una especie: quién la usa, `survival_pct` y sus sets más comunes (solo de rosters públicos). Acepta `?season_id=X` |
 | `GET` | `/api/stats/bot/battles/{battle_id}` | Detalle de una batalla vs bot |
 
 **Optimización:** sin `?season_id`, usa vistas materializadas (`mv_pick_rate`, `mv_player_stats`, etc.) para máxima velocidad. Con filtro de temporada hace queries a las tablas base.
@@ -701,7 +703,7 @@ Se guarda en `tournament.player_accounts.avatar` (migración `v13.sql`; `NULL` =
 | `GET` | `/api/trainers` | — | Catálogo `[{id, label, category}]` |
 | `GET` | `/api/trainers/{id}` | — | PNG del sprite (proxy a `play.pokemonshowdown.com/sprites/trainers/{id}.png`, solo ids del catálogo) |
 
-`GET /api/players/{username}` también devuelve `avatar`.
+`GET /api/players/{username}` también devuelve `avatar`. `record.ties` cuenta los empates y `record.losses` ya no los incluye (v15).
 
 ### `/api/admin/rosters`
 
@@ -814,7 +816,7 @@ tournament.v_ban_ranking     -- Ranking de votos por temporada
 -- Vistas Materializadas (refrescadas solo después del ETL)
 battle.mv_pick_rate           -- Pick rate y win rate por especie y formato
 battle.mv_mvp_leaderboard     -- Ranking MVP por (jugador, pokémon, formato)
-battle.mv_player_stats        -- W/L/winrate por jugador
+battle.mv_player_stats        -- V/E/winrate por jugador (`ties` desde v15: winner_id IS NULL)
 battle.mv_ban_candidates      -- Especies con win_rate > 70% (candidatos a ban)
 battle.mv_bot_summary         -- Rendimiento de jugadores vs bot
 battle.mv_bot_pokemon         -- Pokémon usados por jugadores vs bot

@@ -66,7 +66,7 @@ export function PlayerPage() {
       />
 
       <section aria-label="Récord" className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatTile label="Récord" value={p ? `${p.record.wins}–${p.record.losses}` : "—"} hint={p ? `${p.record.battles} batallas` : undefined} loading={q.isPending} />
+        <StatTile label="Récord" value={p ? `${p.record.wins}–${p.record.losses}${p.record.ties ? `–${p.record.ties}` : ""}` : "—"} hint={p ? `${p.record.battles} batallas${p.record.ties ? " · V–D–E" : ""}` : undefined} loading={q.isPending} />
         <StatTile label="Win rate" value={pct(p?.record.win_rate_pct, 1)} loading={q.isPending} />
         <StatTile label="MVP acumulado" value={num(p?.mvp.total, 1)} hint={p ? `${p.mvp.kills} KOs` : undefined} loading={q.isPending} />
         <StatTile label="Rendiciones" value={num(p?.record.forfeits)} hint="batallas abandonadas" loading={q.isPending} />

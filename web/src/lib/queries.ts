@@ -75,8 +75,17 @@ export const usePlayerProfile = (username: string, s?: number) =>
 /** Pokédex por cuenta (avistamientos). Sin `username` no pide nada. */
 export const usePlayerPokedex = (username?: string) =>
   useQuery({ queryKey: keys.playerPokedex(username ?? ""), queryFn: () => api.getPlayerPokedex(username!), enabled: !!username });
-export const useBattlesPerDay = (days = 30, s?: number) =>
-  useQuery({ queryKey: ["stats", "battles-per-day", days, s ?? "all"], queryFn: () => api.getBattlesPerDay(days, s), refetchInterval: 60_000 });
+export const useCollectors = () => useQuery({ queryKey: ["stats", "collectors"], queryFn: api.getCollectors });
+export const useHeadToHead = (a?: string, b?: string, s?: SeasonArg) =>
+  useQuery({
+    queryKey: ["stats", "h2h", a, b, seasonKey(s)], queryFn: () => api.getHeadToHead(a!, b!, s ?? undefined),
+    enabled: !!a && !!b && a !== b && s !== null, placeholderData: keepPreviousData,
+  });
+export const useBattlesPerDay = (days = 30, s?: SeasonArg) =>
+  useQuery({
+    queryKey: ["stats", "battles-per-day", days, seasonKey(s)], queryFn: () => api.getBattlesPerDay(days, s ?? undefined),
+    refetchInterval: 60_000, placeholderData: keepPreviousData, enabled: s !== null,
+  });
 export const useRecentBattles = (limit = 8, s?: number) =>
   useQuery({ queryKey: ["stats", "recent", limit, s ?? "all"], queryFn: () => api.getRecentBattles(limit, s), refetchInterval: 60_000 });
 

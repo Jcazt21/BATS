@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { mockViewport, restoreMatchMedia } from "@/lib/test-utils";
+import { abrirMenu, mockViewport, restoreMatchMedia } from "@/lib/test-utils";
 import { DataList, type Column } from "./DataList";
 
 // Solo se monta una presentación: por defecto la tabla (ancha); las tarjetas piden `mockViewport(false)`.
@@ -128,37 +128,71 @@ describe("DataList · entrada escalonada", () => {
 
 describe("DataList · orden en móvil (mobileSort)", () => {
   beforeEach(() => mockViewport(false));
-  const ordenar = () => screen.getByRole("radiogroup", { name: "Ordenar por" });
+  const ordenar = () => screen.getByRole("group", { name: "Ordenar por" });
   const nombresTarjetas = () =>
     within(screen.getByRole("list", { name: "Pokémon" })).getAllByRole("listitem").map((li) => li.textContent?.slice(0, 9));
+  const criterio = () => within(ordenar()).getByRole("button", { name: /Ordenar por:/ });
+  const invertir = () => within(ordenar()).getByRole("button", { name: /Invertir orden/ });
 
   it("sin la opción no hay selector de orden", () => {
     montar();
-    expect(screen.queryByRole("radiogroup", { name: "Ordenar por" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Ordenar por" })).not.toBeInTheDocument();
   });
 
-  it("muestra un chip por columna ordenable, con el orden actual marcado", () => {
+  it("es un solo control en una línea (sin chips que desborden) con el criterio actual", async () => {
     montar({ mobileSort: true, defaultSort: { key: "wr", dir: "desc" } });
-    const chips = within(ordenar()).getAllByRole("radio");
-    expect(chips.map((c) => c.textContent)).toEqual(["Nombre", "Win rate"]);
-    expect(within(ordenar()).getByRole("radio", { name: /Win rate/ })).toBeChecked();
+    expect(within(ordenar()).queryAllByRole("radio")).toHaveLength(0);
+    expect(criterio()).toHaveTextContent("Win rate");
+    await abrirMenu(criterio());
+    const opciones = await screen.findAllByRole("menuitemradio");
+    expect(opciones.map((o) => o.textContent)).toEqual(["Nombre", "Win rate"]);
+    expect(screen.getByRole("menuitemradio", { name: "Win rate" })).toHaveAttribute("aria-checked", "true");
   });
 
-  it("elegir un chip reordena las tarjetas", async () => {
+  it("elegir otro criterio reordena las tarjetas (descendente)", async () => {
     montar({ mobileSort: true, defaultSort: { key: "wr", dir: "desc" } });
     expect(nombresTarjetas()[0]).toMatch(/Dragonite/);
-    await userEvent.click(within(ordenar()).getByRole("radio", { name: "Nombre" })); // nuevo criterio: descendente
+    await abrirMenu(criterio());
+    await userEvent.click(await screen.findByRole("menuitemradio", { name: "Nombre" }));
     expect(nombresTarjetas()[0]).toMatch(/Gengar/);
+    expect(criterio()).toHaveTextContent("Nombre");
   });
 
-  it("pulsar el chip activo invierte la dirección", async () => {
+  it("el botón de dirección invierte el orden", async () => {
     montar({ mobileSort: true, defaultSort: { key: "wr", dir: "desc" } });
-    await userEvent.click(within(ordenar()).getByRole("radio", { name: /Win rate/ }));
+    expect(invertir()).toHaveAccessibleName(/mayor primero/);
+    await userEvent.click(invertir());
     expect(nombresTarjetas()[0]).toMatch(/Gengar/); // ascendente: 40% primero
+    expect(invertir()).toHaveAccessibleName(/menor primero/);
   });
 
-  it("cada chip mide ≥44px de área táctil", () => {
-    montar({ mobileSort: true });
-    for (const chip of within(ordenar()).getAllByRole("radio")) expect(chip.className).toMatch(/before:-inset-y-/);
+  it("los controles miden ≥44px de alto", () => {
+    montar({ mobileSort: true, defaultSort: { key: "wr", dir: "desc" } });
+    expect(criterio().className).toMatch(/\bh-11\b/);
+    expect(invertir().className).toMatch(/\bsize-11\b/);
+  });
+});
+
+describe("DataList · mobileRow", () => {
+  type R = { id: string; n: number };
+  const cols: Column<R>[] = [
+    { key: "id", header: "Nombre", primary: true, cell: (r) => r.id },
+    { key: "n", header: "Número", cell: (r) => r.n },
+  ];
+
+  it("en el teléfono usa la fila compacta en vez de la tarjeta etiqueta/valor", () => {
+    mockViewport(false);
+    render(<DataList caption="Lista" rows={[{ id: "a", n: 1 }]} columns={cols} rowKey={(r) => r.id}
+      mobileRow={(r) => <p>compacta {r.id}-{r.n}</p>} />);
+    const lista = screen.getByRole("list", { name: "Lista" });
+    expect(within(lista).getByText("compacta a-1")).toBeInTheDocument();
+    expect(within(lista).queryByText("Número")).not.toBeInTheDocument();
+  });
+
+  it("en escritorio la ignora y muestra la tabla", () => {
+    render(<DataList caption="Lista" rows={[{ id: "a", n: 1 }]} columns={cols} rowKey={(r) => r.id}
+      mobileRow={(r) => <p>compacta {r.id}</p>} />);
+    expect(screen.getByRole("table", { name: "Lista" })).toBeInTheDocument();
+    expect(screen.queryByText("compacta a")).not.toBeInTheDocument();
   });
 });

@@ -5,6 +5,7 @@ import { EmptyState, ErrorState } from "@/components/app/States";
 import { DexCell } from "@/components/pokedex/DexCell";
 import { DexEntryModal } from "@/components/pokedex/DexEntryModal";
 import { DexToolbar } from "@/components/pokedex/DexToolbar";
+import { PlayerPicker } from "@/components/pokedex/PlayerPicker";
 import { ProgressCard } from "@/components/pokedex/ProgressCard";
 import { ProgressRing } from "@/components/pokedex/ProgressRing";
 import { SignInCard } from "@/components/SignInCard";
@@ -62,7 +63,11 @@ export function PokedexPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={title} subtitle="Cada pokémon que ves salir al campo en una batalla de liga queda registrado." />
+      <PageHeader
+        title={title}
+        subtitle="Cada pokémon que ves salir al campo en una batalla de liga queda registrado."
+        actions={<PlayerPicker viewing={userParam} me={me.data?.username} />}
+      />
 
       {guest && (
         <div className="flex justify-center">

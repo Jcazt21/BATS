@@ -20,6 +20,7 @@ vi.mock("@/lib/queries", () => ({
   usePlayerPokedex: (u?: string) => { st.pokedexUser = u; return st.pokedex; },
   usePokemonStatsEntry: (sp: string) => { st.statsSpecies = sp; return st.stats; },
   useDexDetails: () => ({ data: undefined }),
+  useLeaderboard: () => ({ data: [{ username: "jazar" }, { username: "ronny" }, { username: "Kael" }] }),
 }));
 // La carta holográfica dibuja en canvas y pide el sprite por red: fuera de los tests de la carta, se aíslan.
 vi.mock("@/lib/card-image", async (orig) => ({ ...(await orig<object>()), renderCardImage: () => Promise.resolve(null) }));
@@ -159,6 +160,32 @@ describe("PokedexPage · filtro por tipos", () => {
     expect(titulos).toEqual(["Fuego y Volador1", "Solo Fuego2"]);
     expect(within(screen.getByRole("list", { name: "Fuego y Volador" })).getAllByRole("listitem")).toHaveLength(1);
     expect(within(screen.getByRole("list", { name: "Solo Fuego" })).getAllByRole("listitem")).toHaveLength(2);
+  });
+});
+
+describe("PokedexPage · ver la Pokédex de otro jugador", () => {
+  const picker = () => screen.getByRole("combobox", { name: "Ver la Pokédex de" });
+
+  it("elegir un jugador lleva a su Pokédex", async () => {
+    renderAt("/pokedex");
+    await userEvent.type(picker(), "kae");
+    await userEvent.click(screen.getByRole("option", { name: /Kael/ }));
+    expect(screen.getByTestId("loc").textContent).toBe("/j/kael/pokedex");
+  });
+
+  it("elegirse a uno mismo vuelve a /pokedex, y la lista lo marca como «Tú»", async () => {
+    renderAt("/j/ronny/pokedex");
+    await userEvent.type(picker(), "jaz");
+    const yo = screen.getByRole("option", { name: /jazar/ });
+    expect(yo.textContent).toContain("Tú");
+    await userEvent.click(yo);
+    expect(screen.getByTestId("loc").textContent).toBe("/pokedex");
+  });
+
+  it("viendo la de otro, el botón de quitar vuelve a la mía", async () => {
+    renderAt("/j/ronny/pokedex");
+    await userEvent.click(screen.getByRole("button", { name: "Volver a mi Pokédex" }));
+    expect(screen.getByTestId("loc").textContent).toBe("/pokedex");
   });
 });
 

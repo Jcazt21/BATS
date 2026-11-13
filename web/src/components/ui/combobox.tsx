@@ -27,6 +27,8 @@ interface ComboboxProps {
   onClear?: () => void;
   /** Nombre accesible del botón de vaciar ("Quitar objeto"...). */
   clearLabel?: string;
+  /** Nombre accesible del campo, cuando no hay un <label> visible que lo nombre. */
+  ariaLabel?: string;
 }
 
 /** Tope de opciones pintadas a la vez: con listas grandes (especies, movimientos) evita listas de miles de <li>. */
@@ -40,7 +42,7 @@ const LIST_MAX_H = 256;
  * como `role="combobox"` + `listbox` (WAI-ARIA combobox pattern). No depende de una librería:
  * es la pieza base de SpeciesPicker y de los selectores de movimiento del SetEditor.
  */
-export function Combobox({ items, value, onChange, placeholder, emptyText = "Sin resultados", className, inputClassName, disabled, onClear, clearLabel = "Quitar" }: ComboboxProps) {
+export function Combobox({ items, value, onChange, placeholder, emptyText = "Sin resultados", className, inputClassName, disabled, onClear, clearLabel = "Quitar", ariaLabel }: ComboboxProps) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -138,6 +140,7 @@ export function Combobox({ items, value, onChange, placeholder, emptyText = "Sin
       <Input
         ref={inputRef}
         role="combobox"
+        aria-label={ariaLabel}
         aria-expanded={open}
         aria-controls={listboxId}
         aria-autocomplete="list"

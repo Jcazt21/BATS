@@ -11,14 +11,19 @@ const st = vi.hoisted(() => ({
   dex: {} as Q, me: {} as Q, pokedex: {} as Q, stats: {} as Q,
   session: { session: {} as unknown, loading: false },
   pokedexUser: undefined as string | undefined,
+  statsSpecies: undefined as string | undefined,
 }));
 
 vi.mock("@/lib/queries", () => ({
   useDexEssentials: () => st.dex,
   useMe: () => st.me,
   usePlayerPokedex: (u?: string) => { st.pokedexUser = u; return st.pokedex; },
-  usePokemonStatsEntry: () => st.stats,
+  usePokemonStatsEntry: (sp: string) => { st.statsSpecies = sp; return st.stats; },
+  useDexDetails: () => ({ data: undefined }),
 }));
+// La carta holográfica dibuja en canvas y pide el sprite por red: fuera de los tests de la carta, se aíslan.
+vi.mock("@/lib/card-image", async (orig) => ({ ...(await orig<object>()), renderCardImage: () => Promise.resolve(null) }));
+vi.mock("@/lib/sprite-overlay", async (orig) => ({ ...(await orig<object>()), resolveOverlaySprite: () => Promise.resolve(null) }));
 vi.mock("@/lib/session", () => ({ useSession: () => st.session }));
 vi.mock("@/components/SignInCard", () => ({ SignInCard: ({ title }: { title: string }) => <p>{title}</p> }));
 
@@ -35,6 +40,7 @@ const SPECIES = [
   sp("charmeleon", "Charmeleon", 5, { prevo: "Charmander" }),
   sp("charizard", "Charizard", 6, { prevo: "Charmeleon", types: ["Fire", "Flying"] }),
   sp("garchomp", "Garchomp", 445, { types: ["Dragon", "Ground"], gen: 4 }),
+  sp("charizardmegay", "Charizard-Mega-Y", 6, { types: ["Fire", "Flying"], baseSpecies: "Charizard", forme: "Mega-Y", abilities: ["Drought"], baseStats: { hp: 78, atk: 104, def: 78, spa: 159, spd: 115, spe: 100 } }),
 ];
 const seen = (species: string, at: string, opponent = "bea") => ({
   species_id: species.toLowerCase(), species, first_seen_at: at, battle_id: `b-${species}`, opponent,
@@ -64,7 +70,10 @@ beforeEach(() => {
   st.pokedex = { isSuccess: true, data: { username: "jazar", seen: [
     seen("Garchomp", "2026-11-11T00:00:00Z", "ronny"), seen("Charizard", "2026-11-05T00:00:00Z"),
   ] } };
-  st.stats = { isSuccess: true, isPending: false, data: { pick_pct: 35, win_rate_pct: 61.9, avg_mvp: 1.4 } };
+  st.stats = { isSuccess: true, isPending: false, data: { pick_pct: 35, win_rate_pct: 61.9, avg_mvp: 1.4, sets: {
+    players: 2, moves: [{ name: "Flamethrower", count: 2 }, { name: "Roost", count: 1 }], items: [{ name: "Heavy-Duty Boots", count: 2 }],
+    abilities: [{ name: "Solar Power", count: 2 }], natures: [], tera_types: [],
+  } } };
 });
 
 describe("PokedexPage · grilla", () => {
@@ -183,6 +192,31 @@ describe("PokedexPage · ficha en modal", () => {
     expect(within(dialog).getByText("Velocidad")).toBeTruthy();
     expect(within(dialog).getByText("61,9%")).toBeTruthy();
     expect(within(dialog).getByRole("link", { name: "Ver estadísticas completas" }).getAttribute("href")).toBe("/stats/pokemon/Charizard");
+  });
+
+  it("muestra la carta del pokémon con el set más usado en la liga", () => {
+    renderAt("/pokedex/charizard");
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText(/Charizard\. Fuego, Volador\. Heavy-Duty Boots\. Solar Power\. Movimientos: Flamethrower, Roost/)).toBeTruthy();
+    expect(within(dialog).getByText("Set más usado en la liga · 2 jugadores")).toBeTruthy();
+  });
+
+  it("si lo viste en una forma, la carta y las estadísticas son de esa forma", () => {
+    st.pokedex = { isSuccess: true, data: { username: "jazar", seen: [
+      { species_id: "charizardmegay", species: "Charizard-Mega-Y", first_seen_at: "2026-11-05T00:00:00Z", battle_id: "b-1", opponent: "bea" },
+    ] } };
+    renderAt("/pokedex/charizard");
+    const dialog = screen.getByRole("dialog");
+    expect(st.statsSpecies).toBe("Charizard-Mega-Y");
+    expect(within(dialog).getByText(/^Charizard-Mega-Y\. Fuego, Volador/)).toBeTruthy();
+    expect(within(dialog).getByText("159")).toBeTruthy();
+    expect(within(dialog).getByRole("link", { name: "Ver estadísticas completas" }).getAttribute("href")).toBe("/stats/pokemon/Charizard-Mega-Y");
+  });
+
+  it("sin sets públicos la carta queda limpia y lo dice", () => {
+    st.stats = { isSuccess: true, isPending: false, data: { pick_pct: 35, win_rate_pct: 61.9, avg_mvp: 1.4, sets: { players: 0, moves: [], items: [], abilities: [], natures: [], tera_types: [] } } };
+    renderAt("/pokedex/charizard");
+    expect(within(screen.getByRole("dialog")).getByText("Todavía sin sets públicos en la liga")).toBeTruthy();
   });
 
   it("una casilla sin descubrir no se abre, ni por URL", () => {

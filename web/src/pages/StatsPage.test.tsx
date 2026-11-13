@@ -18,6 +18,8 @@ vi.mock("@/lib/queries", () => ({
   usePokemonStats: () => st.pokemonStats,
   useDexEssentials: () => st.species,
   useBattlesPerDay: () => ({ data: { days: [], last_7: 0, prev_7: 0 } }),
+  useMe: () => ({ data: undefined }),
+  useHeadToHead: () => ({ data: undefined, isPending: true }),
 }));
 
 const fila = (species: string, pick: number) => ({
@@ -35,8 +37,8 @@ beforeEach(() => {
   ] };
   st.summary = { isPending: false, data: { total_battles: 10, total_players: 4, avg_turns: 8, top_win_rate: 70 } };
   st.leaderboard = { isPending: false, data: [
-    { username: "ash", total_battles: 5, wins: 4, losses: 1, win_rate_pct: 80, total_survivors: 9 },
-    { username: "misty", total_battles: 5, wins: 2, losses: 3, win_rate_pct: 40, total_survivors: 5 },
+    { username: "ash", total_battles: 5, wins: 4, losses: 1, ties: 0, win_rate_pct: 80, total_survivors: 9, form: ["L", "W", "W"], streak: { type: "W", length: 2 } },
+    { username: "misty", total_battles: 5, wins: 2, losses: 2, ties: 1, win_rate_pct: 40, total_survivors: 5, form: ["W", "T"], streak: { type: "T", length: 1 } },
   ] };
   st.mvp = { isPending: false, data: [{ species: "Gengar", player: "ash", total_mvp_score: "12", total_kills: 5, avg_mvp_per_battle: "3" }] };
   st.pokemonStats = { isPending: false, data: { total_slots: 20, species: [fila("Dragonite", 40), fila("Gengar", 30), fila("Garchomp", 20)] } };
@@ -47,8 +49,8 @@ beforeEach(() => {
 
 describe("StatsPage · temporada", () => {
   it("el selector es un menú accesible, no un <select> nativo", () => {
-    renderPage();
-    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+    const { container } = renderPage();
+    expect(container.querySelector("select")).toBeNull();
     expect(screen.getByRole("button", { name: /Temporada/ })).toHaveTextContent("T3");
   });
 
@@ -93,6 +95,22 @@ describe("StatsPage · tabs", () => {
   it("las pestañas miden ≥44px", () => {
     renderPage();
     expect(screen.getByRole("tablist")).toHaveClass("h-11");
+  });
+});
+
+describe("StatsPage · Jugadores", () => {
+  it("la clasificación muestra empates, forma y racha, y debajo el cara a cara", () => {
+    mockViewport(true);
+    renderPage();
+    const tabla = screen.getByRole("table", { name: "Clasificación de jugadores" });
+    expect(within(tabla).getAllByRole("columnheader").map((th) => th.textContent)).toEqual(
+      ["#", "Jugador", "Victorias", "Derrotas", "E", "Win rate", "Forma", "Racha", "Supervivientes"]);
+    const misty = within(tabla).getByRole("row", { name: /misty/ });
+    expect(within(misty).getByText("Empates:").parentElement).toHaveTextContent("1");
+    expect(within(misty).getByText("1E")).toBeInTheDocument();
+    expect(within(tabla).getByText("2V")).toBeInTheDocument();
+    expect(within(tabla).getByRole("img", { name: "Forma: D, V, V" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Cara a cara" })).toBeInTheDocument();
   });
 });
 

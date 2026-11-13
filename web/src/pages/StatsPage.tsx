@@ -13,6 +13,8 @@ import { EmptyState, ErrorState } from "@/components/app/States";
 import HoldButton from "@/components/app/HoldButton";
 import { SegmentedControl } from "@/components/app/SegmentedControl";
 import { PokemonUsageChart } from "@/components/stats/PokemonUsageChart";
+import { FormDots } from "@/components/stats/FormDots";
+import { HeadToHead } from "@/components/stats/HeadToHead";
 import { PokemonUsageTable } from "@/components/stats/PokemonUsageTable";
 import { StatsBento } from "@/components/stats/StatsBento";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,7 +22,8 @@ import { resetBattleData, type LeaderboardEntry, type MvpEntry } from "@/lib/api
 import { errorMessage } from "@/lib/http";
 import { speciesById } from "@/lib/dex/snapshot";
 import { WIDE_ROW } from "@/lib/layout";
-import { useBattlesPerDay, useDexEssentials, useLeaderboard, useMvp, usePokemonStats, useSeasons, useSummary } from "@/lib/queries";
+import { streakLabel } from "@/lib/match-result";
+import { useBattlesPerDay, useDexEssentials, useLeaderboard, useMe, useMvp, usePokemonStats, useSeasons, useSummary } from "@/lib/queries";
 import { useToast } from "@/lib/toast";
 import { num, pct } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -40,6 +43,7 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
   const pokemonStats = usePokemonStats(season);
   const perDay = useBattlesPerDay(30, sid);
   const dex = useDexEssentials();
+  const me = useMe();
   const dexNum = (species: string) => (dex.data ? speciesById(dex.data, species)?.num : undefined);
   const [view, setView] = useState<"chart" | "list">("chart");
   // Datos de la temporada anterior mientras llegan los de la elegida.
@@ -56,8 +60,12 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
       cell: (r) => <Link to={`/j/${encodeURIComponent(r.username)}`} className="inline-flex items-center gap-2 font-medium hover:underline"><span className="tabular text-muted-foreground md:hidden"><span className="sr-only">Posición </span>{r._rank}</span><PlayerAvatar name={r.username} size={28} />{r.username}</Link> },
     { key: "wins", header: "Victorias", align: "right", sortValue: (r) => r.wins, cell: (r) => r.wins },
     { key: "losses", header: "Derrotas", align: "right", sortValue: (r) => r.losses, cell: (r) => r.losses },
+    { key: "ties", header: "E", align: "right", sortValue: (r) => r.ties, cell: (r) => <><span className="sr-only">Empates: </span>{r.ties}</> },
     { key: "wr", header: "Win rate", align: "right", sortValue: (r) => r.win_rate_pct,
       cell: (r) => <span className="inline-flex items-center justify-end gap-2"><Meter label={`Win rate de ${r.username}`} value={r.win_rate_pct} className="w-16" tone={r.win_rate_pct >= 50 ? "success" : "primary"} />{pct(r.win_rate_pct)}</span> },
+    { key: "form", header: "Forma", hideOnMobile: true, cell: (r) => <FormDots form={r.form ?? []} /> },
+    { key: "streak", header: "Racha", align: "right", sortValue: (r) => (r.streak?.type === "W" ? 1 : r.streak?.type === "L" ? -1 : 0) * (r.streak?.length ?? 0),
+      cell: (r) => <span className="font-card-mono tabular">{streakLabel(r.streak)}</span> },
     { key: "surv", header: "Supervivientes", align: "right", hideOnMobile: true, sortValue: (r) => r.total_survivors, cell: (r) => r.total_survivors },
   ];
   // La posición sale del orden de origen (victorias), no del orden que elija el usuario
@@ -103,12 +111,13 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
             <TabsTrigger value="coleccionistas" className="px-4">Coleccionistas</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="jugadores" className="flex flex-col gap-3">
+          <TabsContent value="jugadores" className="flex flex-col gap-6">
             {leaderboard.isError ? <ErrorState error={leaderboard.error} onRetry={() => leaderboard.refetch()} /> : (
               <DataList caption="Clasificación de jugadores" rows={ranked} columns={leaderboardCols} rowKey={(r) => r.username} mobileSort
                 loading={leaderboard.isPending} defaultSort={{ key: "wins", dir: "desc" }}
                 empty={<EmptyState title="Aún no hay batallas" description="Cuando se juegue la primera aparecerá aquí." />} />
             )}
+            {leaderboard.data && <HeadToHead players={leaderboard.data} me={me.data?.username} season={season} dexNum={dexNum} />}
           </TabsContent>
 
           <TabsContent value="pokemon" className="flex flex-col gap-6">

@@ -36,6 +36,8 @@ from datetime import date
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from bats_core.league import LEAGUE_FORMAT
+
 if TYPE_CHECKING:
     from bats_core.parser import BattleData
     from bats_core.db.connection import BATSDatabase
@@ -297,6 +299,9 @@ class BATSEtl:
                     perf_rows,
                 )
 
+            # ── 6b. Pokédex por cuenta: lo que cada jugador vio salir al campo ──
+            self._record_pokedex_seen(battle.battle_id, battle.format, is_bot_battle)
+
             # ── 7. Detectar violaciones de ban y de equipo ───────────────────
             if season_id is not None:
                 self._detect_ban_violations(battle.battle_id)
@@ -328,6 +333,48 @@ class BATSEtl:
             _log_error(self.db, file_path, file_size, battle.battle_id, exc)
             logger.error("Error cargando batalla '%s': %s", battle.battle_id, exc)
             raise
+
+    # ─── Pokédex por cuenta ──────────────────────────────────────────────────
+
+    def _record_pokedex_seen(self, battle_id: str, format_name: str, is_bot_battle: bool) -> int:
+        """
+        Registra en tournament.pokedex_seen las especies que cada jugador vio salir
+        al campo (was_active) en esta batalla: las propias y las del rival. Solo
+        batallas de liga y nunca contra el bot. Si la especie ya estaba, se conserva
+        el avistamiento más antiguo (un backfill fuera de orden lo corrige).
+        No hace commit: corre dentro de la transacción de load_battle.
+
+        Returns:
+            Filas insertadas o rejuvenecidas.
+        """
+        if format_name != LEAGUE_FORMAT or is_bot_battle:
+            return 0
+        rows = self.db.fetchall(
+            """
+            INSERT INTO tournament.pokedex_seen
+                (username, species_id, species, first_seen_at, battle_id, opponent)
+            SELECT DISTINCT ON (v.viewer, species_id)
+                   v.viewer,
+                   regexp_replace(lower(dp.species), '[^a-z0-9]', '', 'g') AS species_id,
+                   dp.species, fb.battle_date::timestamptz, fb.battle_id, v.rival
+            FROM battle.fact_battles fb
+            JOIN battle.dim_players p1 ON p1.player_id = fb.p1_id
+            JOIN battle.dim_players p2 ON p2.player_id = fb.p2_id
+            CROSS JOIN LATERAL (VALUES (lower(p1.username), lower(p2.username)),
+                                       (lower(p2.username), lower(p1.username))) AS v(viewer, rival)
+            JOIN battle.fact_pokemon_performance fpp ON fpp.battle_id = fb.battle_id AND fpp.was_active
+            JOIN battle.dim_pokemon dp ON dp.pokemon_id = fpp.pokemon_id
+            WHERE fb.battle_id = %s
+            ORDER BY v.viewer, species_id
+            ON CONFLICT (username, species_id) DO UPDATE
+                SET species = EXCLUDED.species, first_seen_at = EXCLUDED.first_seen_at,
+                    battle_id = EXCLUDED.battle_id, opponent = EXCLUDED.opponent
+                WHERE EXCLUDED.first_seen_at < tournament.pokedex_seen.first_seen_at
+            RETURNING 1
+            """,
+            (battle_id,),
+        )
+        return len(rows)
 
     # ─── Detección de violaciones de ban ─────────────────────────────────────
 

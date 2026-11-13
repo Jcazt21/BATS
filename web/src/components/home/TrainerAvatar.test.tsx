@@ -29,6 +29,14 @@ describe("TrainerCard · sprite de entrenador", () => {
     expect(container.querySelector("img")?.getAttribute("src")).toBe("/api/trainers/lance");
   });
 
+  it("con sprite pinta además el sprite grande de fondo (decorativo); sin sprite, ninguno", () => {
+    const { container, rerender } = render(<TrainerCard username="jazar" avatar="lance" />);
+    expect(container.querySelectorAll("img")).toHaveLength(3);
+    expect(container.querySelectorAll('[aria-hidden="true"] img')).toHaveLength(2);
+    rerender(<TrainerCard username="jazar" />);
+    expect(container.querySelectorAll("img")).toHaveLength(0);
+  });
+
   it("solo es editable si se pasa onEditAvatar", () => {
     const edit = vi.fn();
     const { rerender } = render(<TrainerCard username="jazar" />);

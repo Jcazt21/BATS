@@ -78,6 +78,8 @@ export function TrainerCard({ username, season, rank, totalPlayers, profile, ava
       aria-label="Tu carnet"
       className="relative flex h-full w-full flex-col justify-between font-card text-white [container-type:inline-size]"
     >
+      {avatar && <TrainerBackdrop id={avatar} />}
+
       {rank != null && (
         <span aria-hidden="true" className="pointer-events-none absolute -bottom-[70px] -left-3.5 select-none text-[420px] font-bold leading-none tracking-[-0.07em] text-white/[.12]">
           #{rank}
@@ -141,6 +143,40 @@ export function TrainerCard({ username, season, rank, totalPlayers, profile, ava
       </ul>
     </section>
     </ReflectiveCard>
+  );
+}
+
+const FADE_MASK = "linear-gradient(to left,#000 35%,transparent 98%),linear-gradient(to bottom,#000 40%,transparent 68%)";
+
+/**
+ * Sprite grande colgando de la esquina superior derecha: halo borroso detrás y sprite nítido
+ * que se funde hacia la izquierda y hacia abajo antes de las estadísticas. La capa ocupa toda
+ * la placa (anula el padding del contenido) para que los desplazamientos midan desde su borde.
+ */
+function TrainerBackdrop({ id }: { id: string }) {
+  const src = trainerPath(id);
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute" style={{ inset: "calc(-1 * var(--rc-pad))" }}>
+      <img
+        src={src}
+        alt=""
+        className="absolute h-full w-auto opacity-40 [filter:blur(22px)_saturate(1.3)]"
+        style={{ right: -40, top: -20 }}
+      />
+      <img
+        src={src}
+        alt=""
+        className="absolute h-[94%] w-auto opacity-[.88] [image-rendering:pixelated]"
+        style={{
+          right: -26,
+          top: -10,
+          WebkitMaskImage: FADE_MASK,
+          WebkitMaskComposite: "source-in",
+          maskImage: FADE_MASK,
+          maskComposite: "intersect",
+        }}
+      />
+    </div>
   );
 }
 

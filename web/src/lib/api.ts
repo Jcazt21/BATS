@@ -570,6 +570,10 @@ export interface PokedexSighting {
 export interface PlayerPokedex { username: string; seen: PokedexSighting[] }
 export const getPlayerPokedex = (username: string) =>
   request<PlayerPokedex>(`/api/players/${encodeURIComponent(username)}/pokedex`);
+
+/** GET /api/stats/collectors: avistamientos crudos de cada jugador con al menos uno (no depende de la temporada). */
+export interface CollectorEntry { username: string; seen: PokedexSighting[] }
+export const getCollectors = () => request<CollectorEntry[]>("/api/stats/collectors");
 export const getPokemonStats = (seasonId?: number) => request<PokedexList>("/api/stats/pokemon", { params: { season_id: seasonId } });
 export const getPokemonStatsEntry = (species: string, seasonId?: number) =>
   request<PokedexEntry>(`/api/stats/pokemon/${encodeURIComponent(species)}`, { params: { season_id: seasonId } });

@@ -67,6 +67,7 @@ const rutas: [RegExp, Handler][] = [
   [/^\/api\/stats\/recent-battles$/, (d, _, q) => d.recent_battles.slice(0, Number(q.get("limit") ?? 8))],
   [/^\/api\/stats\/battles\/([^/]+)$/, (d, [id]) => d.battle_details[id]],
   [/^\/api\/stats\/head-to-head$/, headToHead],
+  [/^\/api\/stats\/collectors$/, (d) => (Object.values(d.player_pokedex) as { seen: unknown[] }[]).filter((p) => p.seen.length > 0)],
   // Perfiles y estadísticas por especie
   [/^\/api\/players\/([^/]+)$/, (d, [user]) => d.players[user.toLowerCase()]],
   [/^\/api\/players\/([^/]+)\/pokedex$/, (d, [user]) => d.player_pokedex[user.toLowerCase()]],

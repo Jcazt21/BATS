@@ -102,3 +102,20 @@ class TestPlayerPokedex(unittest.TestCase):
     def test_es_publica(self):
         # Sin header Authorization ni overrides de auth.
         self.assertEqual(self.client.get(f"/api/players/{self.ana}/pokedex").status_code, 200)
+
+    def test_collectors_devuelve_cada_jugador_con_sus_avistamientos(self):
+        """GET /api/stats/collectors: avistamientos crudos de cada jugador (el cliente calcula el progreso)."""
+        bea = f"bea{self.tag}"
+        with BATSDatabase(DSN) as db:
+            db.execute(
+                "INSERT INTO tournament.pokedex_seen (username, species_id, species, first_seen_at, battle_id, opponent) "
+                "VALUES (%s, 'scizormega', 'Scizor-Mega', '2026-11-05', 'b-scizor', %s)", (bea, self.ana))
+            db.commit()
+        res = self.client.get("/api/stats/collectors")
+        self.assertEqual(res.status_code, 200)
+        mine = [c for c in res.json() if c["username"].endswith(self.tag)]
+        self.assertEqual([c["username"] for c in mine], sorted([self.ana, bea]))
+        for c in mine:
+            self.assertEqual(c["seen"], self.client.get(f"/api/players/{c['username']}/pokedex").json()["seen"])
+        # Con cuenta pero sin avistamientos: no aparece.
+        self.assertNotIn(self.sin, [c["username"] for c in res.json()])

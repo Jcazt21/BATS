@@ -75,6 +75,7 @@ export const usePlayerProfile = (username: string, s?: number) =>
 /** Pokédex por cuenta (avistamientos). Sin `username` no pide nada. */
 export const usePlayerPokedex = (username?: string) =>
   useQuery({ queryKey: keys.playerPokedex(username ?? ""), queryFn: () => api.getPlayerPokedex(username!), enabled: !!username });
+export const useCollectors = () => useQuery({ queryKey: ["stats", "collectors"], queryFn: api.getCollectors });
 export const useHeadToHead = (a?: string, b?: string, s?: SeasonArg) =>
   useQuery({
     queryKey: ["stats", "h2h", a, b, seasonKey(s)], queryFn: () => api.getHeadToHead(a!, b!, s ?? undefined),

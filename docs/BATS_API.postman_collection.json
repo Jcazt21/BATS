@@ -347,6 +347,24 @@
               ]
             }
           }
+        },
+        {
+          "name": "Coleccionistas",
+          "request": {
+            "method": "GET",
+            "description": "Avistamientos de la Pokédex de cada jugador con al menos uno; el progreso lo calcula el frontend. No depende de la temporada.",
+            "url": {
+              "raw": "{{base_url}}/api/stats/collectors",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "stats",
+                "collectors"
+              ]
+            }
+          }
         }
       ]
     },

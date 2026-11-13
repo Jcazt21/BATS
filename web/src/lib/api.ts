@@ -381,7 +381,7 @@ export interface AuthLoginsResponse {
 
 /** Cuántas filas movió el rename de un username en tournament.roster/bans/ban_whitelist/ban_participation. */
 export interface UsernameRenameCascade {
-  roster: number; bans: number; whitelist: number; participation: number;
+  roster: number; bans: number; whitelist: number; participation: number; pokedex: number;
 }
 
 export interface BlogPostSummary {

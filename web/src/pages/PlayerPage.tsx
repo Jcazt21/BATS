@@ -47,7 +47,7 @@ export function PlayerPage() {
     <div className="flex flex-col gap-8">
       {back}
       <PageHeader
-        leading={<PlayerAvatar name={p?.username ?? username} size={64} className="text-title3" />}
+        leading={<PlayerAvatar name={p?.username ?? username} trainer={p?.avatar} size={64} className="text-title3" />}
         eyebrow={choice === "all" ? "Todas las temporadas" : seasons.data?.find((x) => x.season_id === sid)?.season_name ?? season.data?.season_name}
         title={p?.username ?? username}
         subtitle={streak && streak.type && streak.length >= 2 ? (

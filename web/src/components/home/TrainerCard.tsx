@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { Pencil } from "lucide-react";
 import { ReflectiveCard } from "@/components/ui/reflective-card";
 import { initials, num, pct } from "@/lib/format";
-import type { PlayerProfile } from "@/lib/api";
+import { trainerPath, type PlayerProfile } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export interface TrainerCardProps {
@@ -11,6 +12,10 @@ export interface TrainerCardProps {
   rank?: number | null;
   totalPlayers?: number;
   profile?: PlayerProfile;
+  /** Id del sprite de entrenador elegido (de `useMe`; el perfil público también lo trae). */
+  avatar?: string | null;
+  /** Si se pasa, el sprite se vuelve un botón para cambiarlo (solo en el carnet propio). */
+  onEditAvatar?: () => void;
   className?: string;
 }
 
@@ -56,7 +61,7 @@ const MONTH_FALLBACK = "linear-gradient(165deg,oklch(0.5 0.09 var(--month-h,210)
  * y el puesto como marca de agua. Sin WebGL2 se ve el degradado del mes.
  * Los datos ya vienen calculados (récord, racha e insignias salen del servidor).
  */
-export function TrainerCard({ username, season, rank, totalPlayers, profile, className }: TrainerCardProps) {
+export function TrainerCard({ username, season, rank, totalPlayers, profile, avatar, onEditAvatar, className }: TrainerCardProps) {
   const streak = profile?.streak;
   const { tint, radius } = useMonthLook();
   return (
@@ -81,9 +86,22 @@ export function TrainerCard({ username, season, rank, totalPlayers, profile, cla
 
       <header className="relative flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-xl border border-white/25 bg-white/15 text-base font-bold">
-            {initials(username)}
-          </span>
+          {onEditAvatar ? (
+            <button
+              type="button"
+              onClick={onEditAvatar}
+              aria-label="Cambiar sprite de entrenador"
+              title="Cambiar sprite de entrenador"
+              className="group relative shrink-0 rounded-xl focus-visible:outline-2 focus-visible:outline-white"
+            >
+              <AvatarBox username={username} avatar={avatar} />
+              <span aria-hidden="true" className="absolute -right-1 -bottom-1 grid size-5 place-items-center rounded-full bg-white text-black shadow">
+                <Pencil className="size-3" />
+              </span>
+            </button>
+          ) : (
+            <AvatarBox username={username} avatar={avatar} />
+          )}
           <span className="truncate text-caption uppercase tracking-[.14em] text-white/90">Entrenador PGL</span>
         </div>
         {season && <span className="shrink-0 text-caption uppercase tracking-[.14em] text-white/90">{season}</span>}
@@ -123,6 +141,26 @@ export function TrainerCard({ username, season, rank, totalPlayers, profile, cla
       </ul>
     </section>
     </ReflectiveCard>
+  );
+}
+
+/** Sprite de entrenador (pixel art, sin suavizar) o, sin elegir, las iniciales. */
+function AvatarBox({ username, avatar }: { username: string; avatar?: string | null }) {
+  if (avatar) {
+    return (
+      <img
+        src={trainerPath(avatar)}
+        alt=""
+        width={56}
+        height={56}
+        className="size-14 shrink-0 rounded-xl border border-white/25 bg-white/15 object-contain [image-rendering:pixelated]"
+      />
+    );
+  }
+  return (
+    <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-xl border border-white/25 bg-white/15 text-base font-bold">
+      {initials(username)}
+    </span>
   );
 }
 

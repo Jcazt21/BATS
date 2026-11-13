@@ -90,6 +90,19 @@ export const useBlogPost = (slug: string) => useQuery({ queryKey: keys.blogPost(
 
 // ── Con sesión ────────────────────────────────────────────────────────────────
 
+/** Catálogo de sprites de entrenador: casi no cambia, se guarda para toda la sesión. */
+export const useTrainers = () =>
+  useQuery({ queryKey: ["trainers"], queryFn: api.getTrainers, staleTime: Infinity, gcTime: Infinity });
+
+/** Guarda el sprite del carnet y refresca `me` y los perfiles (el carnet lee el suyo de ahí). */
+export function useUpdateAvatar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.updateAvatar,
+    onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: keys.me }), qc.invalidateQueries({ queryKey: ["player"] })]),
+  });
+}
+
 /** Quién soy (nombre de jugador y si soy admin). Solo se pide con sesión abierta. */
 export function useMe() {
   const { session } = useSession();

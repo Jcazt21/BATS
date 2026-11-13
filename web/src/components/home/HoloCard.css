@@ -72,7 +72,9 @@
   -webkit-user-drag: none;
 }
 
+/* Por encima del sprite del overlay: el sprite sigue pintado (el GIF se anima) pero lo tapa el canvas, que ya lo dibuja con foil. */
 .holo-card__face > canvas {
+  z-index: 1;
   opacity: 0;
   transition: opacity 0.3s ease;
 }

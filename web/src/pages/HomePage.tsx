@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { EmptyState, ErrorState } from "@/components/app/States";
 import { ActionsRow } from "@/components/home/ActionsRow";
@@ -8,6 +8,7 @@ import { MonthRulesList } from "@/components/home/MonthRulesList";
 import { MvpList } from "@/components/home/MvpList";
 import { RecentActivity } from "@/components/home/RecentActivity";
 import { TeamCard } from "@/components/home/TeamCard";
+import { TrainerAvatarPicker } from "@/components/home/TrainerAvatarPicker";
 import { TrainerCard } from "@/components/home/TrainerCard";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,6 +41,7 @@ export function HomePage() {
   const profile = usePlayerProfile(me.data?.username ?? "");
   const roster = useRoster();
   const elig = useEligibility();
+  const [pickingAvatar, setPickingAvatar] = useState(false);
 
   // Número de Pokédex desde el dex local (la misma fuente de verdad del teambuilder).
   const dexNum = useCallback(
@@ -102,7 +104,11 @@ export function HomePage() {
             </>
           ) : (
             <>
-              <TrainerCard username={username} season={seasonName} rank={rank} totalPlayers={leaderboard.data?.length} profile={profile.data} />
+              <TrainerCard
+                username={username} season={seasonName} rank={rank} totalPlayers={leaderboard.data?.length} profile={profile.data}
+                avatar={me.data?.avatar} onEditAvatar={() => setPickingAvatar(true)}
+              />
+              <TrainerAvatarPicker open={pickingAvatar} onOpenChange={setPickingAvatar} />
               {roster.isPending ? <Skeleton className={CARD_SKELETON} /> :
                 noTeam ? (
                   <div className="flex flex-col items-center justify-center rounded-[var(--radius-card)] border border-border lg:min-h-[485px]">

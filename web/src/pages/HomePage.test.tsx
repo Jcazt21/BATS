@@ -18,6 +18,8 @@ vi.mock("@/lib/queries", () => ({
   useActiveSeason: () => st.season, useSummary: () => st.summary, useLeaderboard: () => st.leaderboard,
   useMvp: () => st.mvp, useBanStatus: () => st.ban, useRecentBattles: () => st.recent, useDexEssentials: () => st.dex, useDexDetails: () => ({ data: undefined }),
   useMe: () => st.me, usePlayerProfile: () => st.profile, useRoster: () => st.roster, useEligibility: () => st.elig,
+  // Selector de sprite del carnet: montado pero cerrado, solo necesita que los hooks existan.
+  useTrainers: () => ({ isPending: false, isError: false, data: [] }), useUpdateAvatar: () => ({ mutate: () => {}, isPending: false, isError: false }),
 }));
 
 const mon = (id: number, name: string, types: string, extra = {}) => ({

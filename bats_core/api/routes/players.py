@@ -121,12 +121,16 @@ def get_player(username: str, season_id: Optional[int] = Query(None)):
         )
 
         roster = _published_roster(db, key)
+        account = db.fetchone(
+            "SELECT avatar FROM tournament.player_accounts WHERE LOWER(username) = %s", (key,)
+        )
 
     forfeits = sum(1 for g in games if g["end_type"] == "forfeit" and not g["won"])
     battles = int(record["battles"])
     wins = int(record["wins"])
     return {
         "username": name,
+        "avatar": account["avatar"] if account else None,
         "first_seen": iso(player["first_seen"]),
         "last_seen": iso(player["last_seen"]),
         "record": {

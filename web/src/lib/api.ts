@@ -409,6 +409,8 @@ export interface AdminBlogPost extends BlogPostSummary {
 
 export interface PlayerProfile {
   username:   string;
+  /** Id del sprite de entrenador elegido; `null` = sin elegir. */
+  avatar?:    string | null;
   first_seen: string | null;
   last_seen:  string | null;
   record: {
@@ -505,8 +507,17 @@ export const getBanStatus = () => request<BanStatus>("/api/ban/status");
 export const getBanCandidates = (minBattles = 3) =>
   request<BanCandidate[]>("/api/ban/candidates", { params: { min_battles: minBattles } });
 
-export interface Me { username: string; email: string; is_admin: boolean }
+export interface Me { username: string; email: string; is_admin: boolean; avatar: string | null }
 export const getMe = () => request<Me>("/api/me", { auth: true });
+
+/** Sprite de entrenador del carnet (catálogo curado de Showdown); `null` vuelve a las iniciales. */
+export const updateAvatar = (avatar: string | null) =>
+  request<{ avatar: string | null }>("/api/me", { method: "PATCH", body: { avatar }, auth: true, fallback: "Error al guardar el sprite" });
+
+export interface TrainerSprite { id: string; label: string; category: string }
+export const getTrainers = () => request<TrainerSprite[]>("/api/trainers");
+/** PNG del sprite, servido por la API (Showdown no manda CORS). */
+export const trainerPath = (id: string) => `/api/trainers/${encodeURIComponent(id)}`;
 
 // ── Reglas y temporada activa ─────────────────────────────────────────────────
 

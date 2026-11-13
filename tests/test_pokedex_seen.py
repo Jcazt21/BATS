@@ -201,3 +201,67 @@ class TestRecordPokedexSeen(unittest.TestCase):
             db.commit()
         self.assertEqual(again, 0)
         self.assertEqual(len(self._seen(self.ana)), 3)
+
+
+# ─── Backfill desde las batallas ya cargadas (BATSEtl.backfill_pokedex_seen) ──
+
+@unittest.skipUnless(DSN, "Define BATS_TEST_DSN apuntando a una base desechable.")
+class TestBackfillPokedexSeen(TestRecordPokedexSeen):
+    """Batallas cargadas antes de v14: la Pokédex se reconstruye desde battle.*."""
+
+    def _wipe(self) -> None:
+        with BATSDatabase(DSN) as db:
+            db.execute("DELETE FROM tournament.pokedex_seen WHERE username LIKE %s", (f"%{self.tag}",))
+            db.commit()
+
+    def _backfill(self) -> int:
+        from bats_core.db.etl import BATSEtl
+        with BATSDatabase(DSN) as db:
+            n = BATSEtl(db).backfill_pokedex_seen()
+            db.commit()
+        return n
+
+    def test_reconstruye_lo_mismo_que_la_ingesta(self):
+        self._load("a", "2026-11-10")
+        antes = self._seen(self.ana), self._seen(self.bea)
+        self._wipe()
+        self.assertGreaterEqual(self._backfill(), 6)
+        self.assertEqual((self._seen(self.ana), self._seen(self.bea)), antes)
+
+    def test_gana_la_batalla_mas_antigua(self):
+        self._load("b", "2026-11-12")
+        self._load("a", "2026-11-10")
+        self._wipe()
+        self._backfill()
+        fila = self._seen(self.ana)["weavile"]
+        self.assertEqual((fila["battle_id"], fila["day"]), (self.battles[1], "2026-11-10"))
+
+    def test_ignora_sparring_y_bot(self):
+        self._load("s", "2026-11-10", fmt="gen9pglsparring")
+        self._load("x", "2026-11-11")
+        with BATSDatabase(DSN) as db:
+            db.execute("UPDATE battle.fact_battles SET is_bot_battle = TRUE WHERE battle_id = %s", (self.battles[1],))
+            db.commit()
+        self._wipe()
+        self._backfill()
+        self.assertEqual(self._seen(self.ana), {})
+
+    def test_es_idempotente(self):
+        self._load("a", "2026-11-10")
+        self._wipe()
+        self._backfill()
+        self.assertEqual(self._backfill(), 0)
+        self.assertEqual(len(self._seen(self.ana)), 3)
+
+    def test_cli_backfill_pokedex(self):
+        import subprocess
+        import sys
+        self._load("a", "2026-11-10")
+        self._wipe()
+        res = subprocess.run(
+            [sys.executable, "-m", "bats_core", "db", "--backfill-pokedex", "--dsn", DSN],
+            cwd=DB_DIR.parent.parent, capture_output=True, text=True,
+        )
+        self.assertEqual(res.returncode, 0, res.stdout + res.stderr)
+        self.assertRegex(res.stdout, r"Pokédex: \d+ avistamientos nuevos o adelantados\.")
+        self.assertEqual(set(self._seen(self.ana)), {"garchomp", "scizormega", "weavile"})

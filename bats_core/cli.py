@@ -18,6 +18,7 @@ Uso modo DB:
     python -m bats_core db --etl --logs-dir ../pokemon-showdown/logs
     python -m bats_core db --etl --logs-dir ../pokemon-showdown/logs --dsn postgresql://user:pw@host/bats
     python -m bats_core db --refresh-views
+  python -m bats_core db --backfill-pokedex
     python -m bats_core db --apply-schema --etl --logs-dir ../pokemon-showdown/logs
 
 Uso modo ban:
@@ -168,9 +169,9 @@ def run_db_command(args: argparse.Namespace) -> None:
         )
         sys.exit(1)
 
-    if not any([args.apply_schema, args.etl, args.refresh_views]):
+    if not any([args.apply_schema, args.etl, args.refresh_views, args.backfill_pokedex]):
         print(
-            "[ERROR] Especifica al menos una operación: --apply-schema, --etl o --refresh-views",
+            "[ERROR] Especifica al menos una operación: --apply-schema, --etl, --refresh-views o --backfill-pokedex",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -244,7 +245,20 @@ def run_db_command(args: argparse.Namespace) -> None:
                     f"  ─ {stats['total']} archivos en total"
                 )
 
-            # ── 3. Refrescar vistas (solo si se pidió explícitamente sin ETL) ─
+            # ── 3. Pokédex por cuenta desde las batallas ya cargadas ─────────
+            if args.backfill_pokedex:
+                from .db.etl import BATSEtl
+                print("[BATS:db] Reconstruyendo la Pokédex por cuenta desde battle.*...")
+                try:
+                    n = BATSEtl(db).backfill_pokedex_seen()
+                    db.commit()
+                    print(f"[BATS:db] Pokédex: {n} avistamientos nuevos o adelantados.")
+                except Exception as exc:
+                    db.rollback()
+                    print(f"[ERROR] No se pudo reconstruir la Pokédex: {exc}", file=sys.stderr)
+                    sys.exit(1)
+
+            # ── 4. Refrescar vistas (solo si se pidió explícitamente sin ETL) ─
             if args.refresh_views and not args.etl:
                 print("[BATS:db] Refrescando vistas materializadas...")
                 try:
@@ -868,6 +882,15 @@ Ejemplos:
         action="store_true",
         default=False,
         help="Refresca las vistas materializadas de BATS (mv_pick_rate, etc.).",
+    )
+    db_parser.add_argument(
+        "--backfill-pokedex",
+        action="store_true",
+        default=False,
+        help=(
+            "Llena tournament.pokedex_seen con las batallas de liga ya cargadas "
+            "(las anteriores a v14). Idempotente."
+        ),
     )
     db_parser.add_argument(
         "--dsn",

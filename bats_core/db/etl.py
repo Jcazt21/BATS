@@ -52,6 +52,34 @@ PUSH_KEY_PREFIX = "push:"
 # Clase principal ETL
 # =============================================================================
 
+# Avistamientos de la Pokédex por cuenta para las batallas que cumplan `{where}`:
+# cada jugador ve los pokémon que salieron al campo (propios y del rival). Si una especie
+# aparece en varias batallas gana la más antigua, también frente a lo ya guardado.
+_POKEDEX_SEEN_SQL = """
+    INSERT INTO tournament.pokedex_seen
+        (username, species_id, species, first_seen_at, battle_id, opponent)
+    SELECT DISTINCT ON (v.viewer, species_id)
+           v.viewer,
+           regexp_replace(lower(dp.species), '[^a-z0-9]', '', 'g') AS species_id,
+           dp.species, fb.battle_date::timestamptz, fb.battle_id, v.rival
+    FROM battle.fact_battles fb
+    JOIN battle.dim_formats df ON df.format_id = fb.format_id
+    JOIN battle.dim_players p1 ON p1.player_id = fb.p1_id
+    JOIN battle.dim_players p2 ON p2.player_id = fb.p2_id
+    CROSS JOIN LATERAL (VALUES (lower(p1.username), lower(p2.username)),
+                               (lower(p2.username), lower(p1.username))) AS v(viewer, rival)
+    JOIN battle.fact_pokemon_performance fpp ON fpp.battle_id = fb.battle_id AND fpp.was_active
+    JOIN battle.dim_pokemon dp ON dp.pokemon_id = fpp.pokemon_id
+    WHERE {where}
+    ORDER BY v.viewer, species_id, fb.battle_date, fb.battle_id
+    ON CONFLICT (username, species_id) DO UPDATE
+        SET species = EXCLUDED.species, first_seen_at = EXCLUDED.first_seen_at,
+            battle_id = EXCLUDED.battle_id, opponent = EXCLUDED.opponent
+        WHERE EXCLUDED.first_seen_at < tournament.pokedex_seen.first_seen_at
+    RETURNING 1
+"""
+
+
 class BATSEtl:
     """
     Pipeline ETL para cargar datos de batallas en PostgreSQL.
@@ -349,30 +377,22 @@ class BATSEtl:
         """
         if format_name != LEAGUE_FORMAT or is_bot_battle:
             return 0
+        rows = self.db.fetchall(_POKEDEX_SEEN_SQL.format(where="fb.battle_id = %s"), (battle_id,))
+        return len(rows)
+
+    def backfill_pokedex_seen(self) -> int:
+        """
+        Reconstruye tournament.pokedex_seen desde las batallas ya cargadas en battle.*:
+        mismas reglas que la ingesta (solo liga, nunca contra el bot, solo was_active)
+        y gana la batalla más antigua. Sirve para las batallas cargadas antes de v14.
+        Idempotente; no hace commit.
+
+        Returns:
+            Filas insertadas o rejuvenecidas.
+        """
         rows = self.db.fetchall(
-            """
-            INSERT INTO tournament.pokedex_seen
-                (username, species_id, species, first_seen_at, battle_id, opponent)
-            SELECT DISTINCT ON (v.viewer, species_id)
-                   v.viewer,
-                   regexp_replace(lower(dp.species), '[^a-z0-9]', '', 'g') AS species_id,
-                   dp.species, fb.battle_date::timestamptz, fb.battle_id, v.rival
-            FROM battle.fact_battles fb
-            JOIN battle.dim_players p1 ON p1.player_id = fb.p1_id
-            JOIN battle.dim_players p2 ON p2.player_id = fb.p2_id
-            CROSS JOIN LATERAL (VALUES (lower(p1.username), lower(p2.username)),
-                                       (lower(p2.username), lower(p1.username))) AS v(viewer, rival)
-            JOIN battle.fact_pokemon_performance fpp ON fpp.battle_id = fb.battle_id AND fpp.was_active
-            JOIN battle.dim_pokemon dp ON dp.pokemon_id = fpp.pokemon_id
-            WHERE fb.battle_id = %s
-            ORDER BY v.viewer, species_id
-            ON CONFLICT (username, species_id) DO UPDATE
-                SET species = EXCLUDED.species, first_seen_at = EXCLUDED.first_seen_at,
-                    battle_id = EXCLUDED.battle_id, opponent = EXCLUDED.opponent
-                WHERE EXCLUDED.first_seen_at < tournament.pokedex_seen.first_seen_at
-            RETURNING 1
-            """,
-            (battle_id,),
+            _POKEDEX_SEEN_SQL.format(where="df.format_name = %s AND NOT fb.is_bot_battle"),
+            (LEAGUE_FORMAT,),
         )
         return len(rows)
 

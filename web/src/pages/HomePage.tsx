@@ -15,13 +15,12 @@ import {
   useActiveSeason, useBattlesPerDay, useDexDetails, useDexEssentials, useLeaderboard, useMe, useMvp,
   usePlayerProfile, useRecentBattles, useRoster, useSummary,
 } from "@/lib/queries";
+import { WIDE_ROW } from "@/lib/layout";
 import { useSession } from "@/lib/session";
 
 /** Carnet | equipo. El carnet era de 380×485 (≈0,78 de ancho/alto); al crecer la fila con las cartas grandes (~590 px) crece también el ancho (26 %, entre 380 y 480 px) para mantener esa proporción. */
 const STATE_GRID = "lg:grid-cols-[clamp(380px,26%,480px)_minmax(0,1fr)]";
 const CARD_SKELETON = "min-h-[485px] rounded-[var(--radius-card)]";
-/** Toda la Home: en escritorio rompe el ancho de la página (max-w-6xl) hasta 1760px, centrada, para que carnet, equipo y secciones de abajo compartan borde izquierdo. */
-const WIDE_ROW = "lg:w-[min(calc(100vw_-_3rem),1760px)] lg:ml-[calc(50%_-_min(calc(50vw_-_1.5rem),880px))]";
 
 export function HomePage() {
   const { session, loading: sessionLoading } = useSession();

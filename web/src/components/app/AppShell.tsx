@@ -81,7 +81,7 @@ function TopBar({ scrolled }: { scrolled: boolean }) {
         scrolled ? "shadow-[0_1px_0_var(--separator)]" : "shadow-[0_1px_0_transparent]",
       )}
     >
-      {/* Siempre al ancho amplio de la Home (ver WIDE_ROW en HomePage): logo y menú pegados a la izquierda en todas las páginas. */}
+      {/* Siempre al ancho amplio de la Home (ver WIDE_ROW en lib/layout.ts): logo y menú pegados a la izquierda en todas las páginas. */}
       <div className="mx-auto flex h-14 max-w-[calc(1760px+3rem)] items-center gap-4 px-4 sm:px-6">
         <NavLink to="/" className="press flex items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label="BATS, inicio">
           <span className="font-heading text-title3 tracking-tight">BATS</span>

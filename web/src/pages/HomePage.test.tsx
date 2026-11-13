@@ -182,7 +182,7 @@ describe("HomePage · guardas de fuente", () => {
 
   it("la Home solo se ensancha en escritorio", () => {
     const src = leerFuente("pages/HomePage.tsx");
-    const clases = src.match(/const WIDE_ROW = "([^"]+)"/)?.[1] ?? "";
+    const clases = leerFuente("lib/layout.ts").match(/export const WIDE_ROW = "([^"]+)"/)?.[1] ?? "";
     expect(clases).not.toBe("");
     for (const c of clases.split(" ")) expect(c, c).toMatch(/^lg:/);
     expect(src).toMatch(/className=\{`flex flex-col gap-10 \$\{WIDE_ROW\}`\}/);

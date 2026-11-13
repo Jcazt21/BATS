@@ -1,9 +1,10 @@
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/app/PageHeader";
 import { EmptyState, ErrorState } from "@/components/app/States";
 import { DexCell } from "@/components/pokedex/DexCell";
 import { DexEntryModal } from "@/components/pokedex/DexEntryModal";
+import { DexPagination } from "@/components/pokedex/DexPagination";
 import { DexToolbar } from "@/components/pokedex/DexToolbar";
 import { PlayerPicker } from "@/components/pokedex/PlayerPicker";
 import { ProgressCard } from "@/components/pokedex/ProgressCard";
@@ -11,6 +12,7 @@ import { ProgressRing } from "@/components/pokedex/ProgressRing";
 import { SignInCard } from "@/components/SignInCard";
 import { buildCollection, collectionProgress, filterCollection, groupByTypes, type DexCell as Cell, type DexFilters } from "@/lib/dex/collection";
 import { speciesById } from "@/lib/dex/snapshot";
+import { clampPage, PAGE_SIZES, pageCount, paginate } from "@/lib/pagination";
 import type { PokemonType } from "@/lib/pokemon-types";
 import { useDexEssentials, useMe, usePlayerPokedex } from "@/lib/queries";
 import { useSession } from "@/lib/session";
@@ -45,6 +47,19 @@ export function PokedexPage() {
     () => filterCollection(cells, { query: deferredQuery, status, types, gen }),
     [cells, deferredQuery, status, types, gen],
   );
+
+  // Cambiar filtro, jugador o tamaño de página vuelve a la página 1.
+  const [pageSize, setPageSize] = useState<number>(PAGE_SIZES[0]);
+  const pageKey = JSON.stringify([username, deferredQuery, status, types, gen, pageSize]);
+  const [pageState, setPageState] = useState({ key: pageKey, page: 1 });
+  const totalPages = pageCount(visible.length, pageSize);
+  const page = clampPage(pageState.key === pageKey ? pageState.page : 1, totalPages);
+  const pageCells = useMemo(() => paginate(visible, page, pageSize), [visible, page, pageSize]);
+  const gridTop = useRef<HTMLDivElement>(null);
+  const goToPage = (next: number) => {
+    setPageState({ key: pageKey, page: clampPage(next, totalPages) });
+    gridTop.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   // Ficha abierta por URL: solo si esa casilla está descubierta (no revelar por la barra de direcciones).
   const openSpecies = speciesParam && dex.data ? speciesById(dex.data, speciesParam) : null;
@@ -86,7 +101,7 @@ export function PokedexPage() {
             <ProgressCard progress={progress} />
           </aside>
 
-          <div className="flex min-w-0 flex-col gap-4">
+          <div ref={gridTop} className="flex min-w-0 scroll-mt-4 flex-col gap-4">
             <DexToolbar
               query={query} onQuery={setQuery}
               status={status} onStatus={setStatus}
@@ -100,7 +115,7 @@ export function PokedexPage() {
               <EmptyState title="Nada por aquí" description="Prueba con otro filtro, o busca por número los que aún no descubriste." />
             ) : (
               <div className="flex flex-col gap-8">
-                {groupByTypes(visible, types).map((section) => (
+                {groupByTypes(pageCells, types).map((section) => (
                   <section key={section.key} aria-label={section.title ?? undefined} className="flex flex-col gap-3">
                     {section.title && (
                       <h2 className="flex items-baseline gap-2 border-b border-border pb-2 text-title3">
@@ -113,6 +128,11 @@ export function PokedexPage() {
                     </ul>
                   </section>
                 ))}
+                <DexPagination
+                  page={page} totalPages={totalPages} onPage={goToPage}
+                  pageSize={pageSize} onPageSize={setPageSize}
+                  total={visible.length}
+                />
               </div>
             )}
           </div>

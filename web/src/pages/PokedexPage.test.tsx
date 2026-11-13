@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
-import { mockViewport } from "@/lib/test-utils";
+import { abrirMenu, mockViewport } from "@/lib/test-utils";
 import type { Species } from "@/lib/dex/snapshot";
 import { PokedexPage } from "./PokedexPage";
 
@@ -125,6 +125,31 @@ describe("PokedexPage · grilla", () => {
     renderAt("/j/ronny/pokedex");
     expect(st.pokedexUser).toBe("ronny");
     expect(screen.getByRole("heading", { name: "Pokédex de ronny" })).toBeTruthy();
+  });
+});
+
+describe("PokedexPage · filtro por tipos", () => {
+  const elegir = async (nombre: string) => {
+    // El menú queda abierto tras elegir (multi-select): solo se abre si está cerrado.
+    if (!screen.queryByRole("menu")) await abrirMenu(screen.getByRole("button", { name: "Agregar tipo" }));
+    await userEvent.click(await screen.findByRole("menuitemcheckbox", { name: nombre }));
+  };
+
+  it("con un tipo filtra en una sola grilla", async () => {
+    renderAt("/pokedex");
+    await elegir("Dragón");
+    expect(within(grid()).getAllByRole("listitem")).toHaveLength(1);
+    expect(screen.queryByRole("heading", { level: 2 })).toBeNull();
+  });
+
+  it("con dos tipos separa en secciones: la combinación primero, luego solo cada uno", async () => {
+    renderAt("/pokedex");
+    await elegir("Fuego");
+    await elegir("Volador");
+    const titulos = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+    expect(titulos).toEqual(["Fuego y Volador1", "Solo Fuego2"]);
+    expect(within(screen.getByRole("list", { name: "Fuego y Volador" })).getAllByRole("listitem")).toHaveLength(1);
+    expect(within(screen.getByRole("list", { name: "Solo Fuego" })).getAllByRole("listitem")).toHaveLength(2);
   });
 });
 

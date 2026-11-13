@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCollection, collectionProgress, filterCollection, type DexFilters } from "./collection";
+import { buildCollection, collectionProgress, filterCollection, groupByTypes, type DexFilters } from "./collection";
 import type { DexEssentials, Species } from "./snapshot";
 import type { PokedexSighting } from "@/lib/api";
 
@@ -35,7 +35,7 @@ const seen = (species: string, at = "2026-11-10T00:00:00Z", opponent = "bea"): P
   species_id: species.toLowerCase().replace(/[^a-z0-9]/g, ""), species, first_seen_at: at, battle_id: `b-${species}`, opponent,
 });
 
-const ALL: DexFilters = { query: "", status: "all", type: null, gen: null };
+const ALL: DexFilters = { query: "", status: "all", types: [], gen: null };
 const cell = (cells: ReturnType<typeof buildCollection>, num: number) => cells.find((c) => c.num === num)!;
 
 describe("buildCollection", () => {
@@ -122,10 +122,14 @@ describe("filterCollection", () => {
     expect(filterCollection(cells, { ...ALL, status: "unknown" }).map((c) => c.num)).toEqual([6, 25, 26]);
   });
 
-  it("filtros de tipo y generación se combinan con AND", () => {
-    expect(filterCollection(cells, { ...ALL, type: "fire" }).map((c) => c.num)).toEqual([4, 5, 6]);
-    expect(filterCollection(cells, { ...ALL, type: "dragon", gen: 4 }).map((c) => c.num)).toEqual([445]);
-    expect(filterCollection(cells, { ...ALL, type: "fire", status: "unknown" }).map((c) => c.num)).toEqual([6]);
+  it("tipo, generación y estado se combinan con AND", () => {
+    expect(filterCollection(cells, { ...ALL, types: ["fire"] }).map((c) => c.num)).toEqual([4, 5, 6]);
+    expect(filterCollection(cells, { ...ALL, types: ["dragon"], gen: 4 }).map((c) => c.num)).toEqual([445]);
+    expect(filterCollection(cells, { ...ALL, types: ["fire"], status: "unknown" }).map((c) => c.num)).toEqual([6]);
+  });
+
+  it("con dos tipos muestra los que tienen cualquiera de ellos (OR)", () => {
+    expect(filterCollection(cells, { ...ALL, types: ["flying", "dragon"] }).map((c) => c.num)).toEqual([6, 445]);
   });
 });
 
@@ -144,5 +148,29 @@ describe("collectionProgress", () => {
 
   it("sin avistamientos no hay último descubierto", () => {
     expect(collectionProgress(buildCollection(DEX, [])).last).toBeUndefined();
+  });
+});
+
+describe("groupByTypes", () => {
+  const cells = buildCollection(DEX, []);
+  const nums = (g: ReturnType<typeof groupByTypes>) => g.map((s) => ({ title: s.title, nums: s.cells.map((c) => c.num) }));
+
+  it("con 0 o 1 tipo es una sola sección sin título", () => {
+    expect(nums(groupByTypes(cells, []))).toEqual([{ title: null, nums: [4, 5, 6, 25, 26, 445] }]);
+    const fire = filterCollection(cells, { ...ALL, types: ["fire"] });
+    expect(nums(groupByTypes(fire, ["fire"]))).toEqual([{ title: null, nums: [4, 5, 6] }]);
+  });
+
+  it("con dos tipos: primero la combinación exacta, luego solo uno y solo el otro", () => {
+    const both = filterCollection(cells, { ...ALL, types: ["fire", "flying"] });
+    expect(nums(groupByTypes(both, ["fire", "flying"]))).toEqual([
+      { title: "Fuego y Volador", nums: [6] },
+      { title: "Solo Fuego", nums: [4, 5] },
+    ]);
+  });
+
+  it("omite las secciones vacías", () => {
+    const sel = filterCollection(cells, { ...ALL, types: ["electric", "ghost"] });
+    expect(nums(groupByTypes(sel, ["electric", "ghost"]))).toEqual([{ title: "Solo Eléctrico", nums: [25, 26] }]);
   });
 });

@@ -10,7 +10,7 @@
  *  - El buscador por nombre solo encuentra casillas descubiertas; por número, cualquiera.
  */
 import type { PokedexSighting } from "@/lib/api";
-import type { PokemonType } from "@/lib/pokemon-types";
+import { typeLabel, type PokemonType } from "@/lib/pokemon-types";
 import { speciesById, toId, type DexEssentials, type Species } from "./snapshot";
 
 export type DexStatus = "seen" | "evolution" | "unknown";
@@ -32,9 +32,13 @@ export interface DexCell {
 export interface DexFilters {
   query: string;
   status: "all" | "discovered" | DexStatus;
-  type: PokemonType | null;
+  /** 0, 1 o 2 tipos (los pokémon tienen como mucho dos). Con varios, basta con tener uno (OR). */
+  types: PokemonType[];
   gen: number | null;
 }
+
+/** Una sección de la grilla; `title` null = sin encabezado (0 o 1 tipo elegido). */
+export interface DexSection { key: string; title: string | null; cells: DexCell[] }
 
 export interface DexProgress {
   discovered: number;
@@ -98,6 +102,7 @@ export function buildCollection(dex: DexEssentials, seen: PokedexSighting[]): De
 }
 
 const isDiscovered = (c: DexCell) => c.status !== "unknown";
+const hasType = (c: DexCell, t: PokemonType) => c.species.types.some((x) => toId(x) === t);
 
 /** "6", "#6", "006", "#006" → 6; cualquier otra cosa → null. */
 function parseNum(query: string): number | null {
@@ -119,7 +124,7 @@ export function filterCollection(cells: DexCell[], f: DexFilters): DexCell[] {
       if (!names.some((n) => n.toLowerCase().includes(q) || toId(n).includes(qId))) return false;
     }
     if (f.status === "discovered" ? !isDiscovered(c) : f.status !== "all" && c.status !== f.status) return false;
-    if (f.type && !c.species.types.some((t) => toId(t) === f.type)) return false;
+    if (f.types.length && !f.types.some((t) => hasType(c, t))) return false;
     if (f.gen !== null && c.species.gen !== f.gen) return false;
     return true;
   });
@@ -151,4 +156,19 @@ export function collectionProgress(cells: DexCell[]): DexProgress {
 /** 6 → "#006". Se arma en código: un literal "#006" lo confundiría el guard de colores con un hex. */
 export function dexNumber(num: number): string {
   return `#${String(num).padStart(3, "0")}`;
+}
+
+/**
+ * Con dos tipos elegidos, parte la grilla en: los que tienen los dos, solo el primero y solo el
+ * segundo (cada sección en el orden recibido; las vacías se omiten). Con 0 o 1 tipo, una sección.
+ */
+export function groupByTypes(cells: DexCell[], types: PokemonType[]): DexSection[] {
+  if (types.length < 2) return [{ key: "all", title: null, cells }];
+  const [a, b] = types;
+  const sections: DexSection[] = [
+    { key: `${a}+${b}`, title: `${typeLabel(a)} y ${typeLabel(b)}`, cells: cells.filter((c) => hasType(c, a) && hasType(c, b)) },
+    { key: a, title: `Solo ${typeLabel(a)}`, cells: cells.filter((c) => hasType(c, a) && !hasType(c, b)) },
+    { key: b, title: `Solo ${typeLabel(b)}`, cells: cells.filter((c) => hasType(c, b) && !hasType(c, a)) },
+  ];
+  return sections.filter((s) => s.cells.length > 0);
 }

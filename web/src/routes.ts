@@ -41,6 +41,7 @@ const ROUTES: [RegExp, AnyPage[]][] = [
   [/^\/stats\/pokemon\/[^/]+/, [pages.pokemonStats]],
   [/^\/pokedex\/?$/, [pages.pokedex]],
   [/^\/pokedex\/[^/]+/, [pages.pokedex]],
+  [/^\/j\/[^/]+\/pokedex(\/[^/]+)?\/?$/, [pages.pokedex]],
   [/^\/j\/[^/]+/, [pages.player]],
   [/^\/bans\/?$/, [pages.bans]],
   [/^\/equipo\/?$/, [pages.team]],

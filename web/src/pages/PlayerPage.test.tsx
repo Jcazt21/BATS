@@ -78,4 +78,9 @@ describe("PlayerPage", () => {
     const dialogo = await screen.findByRole("dialog", { name: "ash vs misty" });
     expect(within(dialogo).getByText(/detalle ash vs misty gana ash/)).toBeInTheDocument();
   });
+
+  it("enlaza a la Pokédex pública del jugador", () => {
+    renderPage();
+    expect(screen.getByRole("link", { name: /Ver Pokédex/ }).getAttribute("href")).toBe("/j/ash/pokedex");
+  });
 });

@@ -23,7 +23,7 @@ export function DexCell({ cell, onOpen }: { cell: Cell; onOpen: (cell: Cell) => 
       <span className="w-full truncate text-center text-subhead font-medium">{discovered ? cell.species.name : "???"}</span>
     </>
   );
-  const base = "relative flex flex-col items-center gap-1 rounded-2xl border bg-card p-3 [content-visibility:auto] [contain-intrinsic-size:auto_9.5rem]";
+  const base = "relative flex size-full flex-col items-center gap-1 rounded-2xl border bg-card p-3 [content-visibility:auto] [contain-intrinsic-size:auto_9.5rem]";
 
   if (!discovered) {
     return <div className={base} aria-label={`${dexNumber(cell.num)} sin descubrir`}>{body}</div>;

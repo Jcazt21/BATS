@@ -869,6 +869,7 @@ No requiere PostgreSQL. Genera CSV y muestra tablas en terminal.
 python3 -m bats_core db --apply-schema               # Aplica schema.sql (idempotente)
 python3 -m bats_core db --etl --logs-dir ../pokemon-showdown/logs     # Corre ETL completo
 python3 -m bats_core db --refresh-views              # Refresca MVs
+python3 -m bats_core db --backfill-pokedex           # Pokédex por cuenta desde las batallas ya cargadas (idempotente)
 python3 -m bats_core db --apply-schema --etl --logs-dir ../pokemon-showdown/logs  # Combinado
 python3 -m bats_core db --dsn postgresql://... --etl --logs-dir ../pokemon-showdown/logs  # DSN explícito
 ```

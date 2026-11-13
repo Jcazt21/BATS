@@ -66,7 +66,6 @@ export function PokedexPage() {
       <PageHeader
         title={title}
         subtitle="Cada pokémon que ves salir al campo en una batalla de liga queda registrado."
-        actions={<PlayerPicker viewing={userParam} me={me.data?.username} />}
       />
 
       {guest && (
@@ -80,6 +79,7 @@ export function PokedexPage() {
       ) : (
         <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <aside className="flex flex-col gap-4 lg:order-2">
+            <PlayerPicker viewing={userParam} me={me.data?.username} />
             <div className="flex justify-center rounded-2xl border bg-card p-4">
               <ProgressRing discovered={progress.discovered} total={progress.total} />
             </div>

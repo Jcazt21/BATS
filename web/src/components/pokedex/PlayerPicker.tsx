@@ -27,8 +27,8 @@ export function PlayerPicker({ viewing, me }: { viewing?: string; me?: string })
   const go = (id: string) => navigate(id === meId ? "/pokedex" : `/j/${encodeURIComponent(id)}/pokedex`);
 
   return (
-    <div className="flex w-full flex-col gap-1 sm:w-64">
-      <span aria-hidden className="px-1 text-caption text-muted-foreground">Ver la Pokédex de</span>
+    // Misma superficie y medidas que la barra de búsqueda (DexToolbar): quedan alineadas arriba.
+    <div className="rounded-3xl bg-card p-3 shadow-sm ring-1 ring-border">
       <Combobox
         ariaLabel="Ver la Pokédex de"
         items={items}
@@ -39,7 +39,9 @@ export function PlayerPicker({ viewing, me }: { viewing?: string; me?: string })
         onClear={viewingId && viewingId !== meId ? () => navigate("/pokedex") : undefined}
         clearLabel="Volver a mi Pokédex"
         className="w-full"
+        inputClassName="h-12 rounded-2xl bg-background/60 px-4 text-body"
       />
+      <p aria-hidden className="mt-1.5 px-1 text-caption text-muted-foreground">Ver la Pokédex de otro jugador</p>
     </div>
   );
 }

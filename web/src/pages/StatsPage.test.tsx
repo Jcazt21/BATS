@@ -20,6 +20,7 @@ vi.mock("@/lib/queries", () => ({
   useBattlesPerDay: () => ({ data: { days: [], last_7: 0, prev_7: 0 } }),
   useMe: () => ({ data: undefined }),
   useHeadToHead: () => ({ data: undefined, isPending: true }),
+  useCollectors: () => ({ isPending: false, data: [{ username: "ash", seen: [] }] }),
 }));
 
 const fila = (species: string, pick: number) => ({
@@ -111,6 +112,16 @@ describe("StatsPage · Jugadores", () => {
     expect(within(tabla).getByText("2V")).toBeInTheDocument();
     expect(within(tabla).getByRole("img", { name: "Forma: D, V, V" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Cara a cara" })).toBeInTheDocument();
+  });
+});
+
+describe("StatsPage · Coleccionistas", () => {
+  it("la pestaña muestra el ranking y aclara que no depende de la temporada", async () => {
+    renderPage();
+    await userEvent.click(screen.getByRole("tab", { name: "Coleccionistas" }));
+    expect(screen.getByText("La Pokédex es por cuenta: no cambia con la temporada.")).toBeInTheDocument();
+    const ranking = screen.getByRole("list", { name: "Ranking de coleccionistas" });
+    expect(within(ranking).getByRole("link", { name: /ash/ })).toHaveAttribute("href", "/j/ash/pokedex");
   });
 });
 

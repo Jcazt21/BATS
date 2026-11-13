@@ -13,6 +13,7 @@ import { EmptyState, ErrorState } from "@/components/app/States";
 import HoldButton from "@/components/app/HoldButton";
 import { SegmentedControl } from "@/components/app/SegmentedControl";
 import { PokemonUsageChart } from "@/components/stats/PokemonUsageChart";
+import { CollectorsRanking } from "@/components/stats/CollectorsRanking";
 import { FormDots } from "@/components/stats/FormDots";
 import { HeadToHead } from "@/components/stats/HeadToHead";
 import { PokemonUsageTable } from "@/components/stats/PokemonUsageTable";
@@ -138,7 +139,7 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
           </TabsContent>
 
           <TabsContent value="coleccionistas" className="flex flex-col gap-3">
-            <EmptyState title="Ranking de coleccionistas" description="Quién descubrió más especies en su Pokédex." />
+            <CollectorsRanking />
           </TabsContent>
         </Tabs>
       </Reveal>

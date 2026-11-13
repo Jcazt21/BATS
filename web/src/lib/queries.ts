@@ -21,6 +21,7 @@ export const keys = {
   pokedex: (s?: SeasonArg) => ["pokedex", seasonKey(s)] as const,
   pokedexEntry: (sp: string, s?: number) => ["pokedex", "entry", sp.toLowerCase(), s ?? "all"] as const,
   player: (u: string, s?: number) => ["player", u.toLowerCase(), s ?? "all"] as const,
+  playerPokedex: (u: string) => ["player", u.toLowerCase(), "pokedex"] as const,
   banRanking: ["ban", "ranking"] as const,
   banStatus: ["ban", "status"] as const,
   banCandidates: (min: number) => ["ban", "candidates", min] as const,
@@ -74,6 +75,9 @@ export const useBattleDetails = (battleId: string | null) =>
 /** Con `username` vacío no pide nada (p. ej. mientras aún no se sabe quién soy). */
 export const usePlayerProfile = (username: string, s?: number) =>
   useQuery({ queryKey: keys.player(username, s), queryFn: () => api.getPlayerProfile(username, s), enabled: !!username });
+/** Pokédex por cuenta (avistamientos). Sin `username` no pide nada. */
+export const usePlayerPokedex = (username?: string) =>
+  useQuery({ queryKey: keys.playerPokedex(username ?? ""), queryFn: () => api.getPlayerPokedex(username!), enabled: !!username });
 export const useRecentBattles = (limit = 8, s?: number) =>
   useQuery({ queryKey: ["stats", "recent", limit, s ?? "all"], queryFn: () => api.getRecentBattles(limit, s), refetchInterval: 60_000 });
 

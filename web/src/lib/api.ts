@@ -535,6 +535,15 @@ export const getBotBattleDetails = (battleId: string) => request<BattleDetailEnt
 
 export const getPlayerProfile = (username: string, seasonId?: number) =>
   request<PlayerProfile>(`/api/players/${encodeURIComponent(username)}`, { params: { season_id: seasonId } });
+
+/** Una especie que el jugador vio salir al campo en una batalla de liga (primer avistamiento). */
+export interface PokedexSighting {
+  species_id: string; species: string; first_seen_at: string; battle_id: string; opponent: string;
+}
+/** GET /api/players/{username}/pokedex: más reciente primero. */
+export interface PlayerPokedex { username: string; seen: PokedexSighting[] }
+export const getPlayerPokedex = (username: string) =>
+  request<PlayerPokedex>(`/api/players/${encodeURIComponent(username)}/pokedex`);
 export const getPokedex = (seasonId?: number) => request<PokedexList>("/api/pokedex", { params: { season_id: seasonId } });
 export const getPokedexEntry = (species: string, seasonId?: number) =>
   request<PokedexEntry>(`/api/pokedex/${encodeURIComponent(species)}`, { params: { season_id: seasonId } });

@@ -1,0 +1,23 @@
+/* Curva del bento: la línea se dibuja de izquierda a derecha y el área aparece después. */
+.bento-curve-line {
+  stroke-dasharray: 1;
+  animation: bento-curve-draw 900ms cubic-bezier(0.65, 0, 0.35, 1) 200ms both;
+}
+
+.bento-curve-area {
+  animation: bento-curve-fade 600ms ease 600ms both;
+}
+
+@keyframes bento-curve-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes bento-curve-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bento-curve-line, .bento-curve-area { animation: none; }
+}

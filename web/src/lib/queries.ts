@@ -74,6 +74,8 @@ export const useBattleDetails = (battleId: string | null) =>
 /** Con `username` vacío no pide nada (p. ej. mientras aún no se sabe quién soy). */
 export const usePlayerProfile = (username: string, s?: number) =>
   useQuery({ queryKey: keys.player(username, s), queryFn: () => api.getPlayerProfile(username, s), enabled: !!username });
+export const useBattlesPerDay = (days = 30, s?: number) =>
+  useQuery({ queryKey: ["stats", "battles-per-day", days, s ?? "all"], queryFn: () => api.getBattlesPerDay(days, s), refetchInterval: 60_000 });
 export const useRecentBattles = (limit = 8, s?: number) =>
   useQuery({ queryKey: ["stats", "recent", limit, s ?? "all"], queryFn: () => api.getRecentBattles(limit, s), refetchInterval: 60_000 });
 

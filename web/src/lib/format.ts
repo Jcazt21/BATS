@@ -38,3 +38,11 @@ export function haceCuanto(iso: string | null, now: Date = new Date()): string {
   if (diff === 1) return "ayer";
   return fmtDateShort(iso);
 }
+
+/** Variación de los últimos 7 días frente a los 7 previos ("+18%", "−5%"); sin base previa, el conteo a secas; sin actividad, "". */
+export function variacionSemanal(last7?: number, prev7?: number): string {
+  const last = last7 ?? 0;
+  const prev = prev7 ?? 0;
+  if (prev > 0) return `${last >= prev ? "+" : "−"}${Math.round((Math.abs(last - prev) / prev) * 100)}%`;
+  return last > 0 ? `+${last} esta semana` : "";
+}

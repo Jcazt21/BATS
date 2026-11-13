@@ -537,6 +537,13 @@ export interface RecentBattle {
 }
 export const getRecentBattles = (limit = 8, seasonId?: number) =>
   request<RecentBattle[]>("/api/stats/recent-battles", { params: { limit, season_id: seasonId } });
+export interface BattlesPerDay {
+  /** Ventana contigua de días que termina en la última batalla; `total` es el acumulado desde el inicio. */
+  days: { date: string; battles: number; total: number }[];
+  last_7: number; prev_7: number;
+}
+export const getBattlesPerDay = (days = 30, seasonId?: number) =>
+  request<BattlesPerDay>("/api/stats/battles-per-day", { params: { days, season_id: seasonId } });
 export const getBattleDetails = (battleId: string) => request<BattleDetailEntry[]>(`/api/stats/battles/${encodeURIComponent(battleId)}`);
 
 export const getBotSummary = () => request<BotSummaryEntry[]>("/api/stats/bot/summary");

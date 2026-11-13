@@ -4,6 +4,7 @@ BATS — Rutas de estadísticas: MVP top 5, pick rate y bot battles.
 Endpoints:
   GET /api/stats/mvp          → top 5 jugadores por total_mvp_score (excluye bot)
   GET /api/stats/pickrate     → pick rate y win rate por especie (excluye batallas bot)
+  GET /api/stats/battles-per-day → batallas por día (y acumuladas) para la curva del inicio
 
 mvp, pickrate y leaderboard leen SIEMPRE las vistas materializadas (con o sin
 ?season_id=); no recalculan la métrica sobre las tablas base. Las vistas las refresca
@@ -12,6 +13,7 @@ POST /api/ingest/refresh-views y un cron diario.
   GET /api/stats/bot/pokemon  → pokémon más usados contra el bot
   GET /api/stats/bot/battles  → historial de batallas contra el bot
 """
+from datetime import timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Query
@@ -225,6 +227,46 @@ def get_recent_battles(season_id: Optional[int] = Query(None), limit: int = Quer
         }
         for r in rows
     ]
+
+
+# ── Batallas por día ───────────────────────────────────────────────────────────
+
+@router.get("/battles-per-day")
+def get_battles_per_day(season_id: Optional[int] = Query(None), days: int = Query(30, ge=7, le=120)):
+    """
+    Batallas entre jugadores (sin bots) por día, en una ventana contigua de `days` días que termina
+    en la última fecha con batallas (así una temporada pasada también se ve completa). Cada día trae
+    `total`, el acumulado desde el inicio (incluye lo anterior a la ventana). `last_7` y `prev_7`
+    comparan los últimos 7 días de la ventana con los 7 previos. Opcional: ?season_id=X
+    """
+    sf, sp = _season_filter(season_id)
+    with get_db() as db:
+        rows = db.fetchall(
+            f"""
+            SELECT fb.battle_date AS day, COUNT(*) AS n
+            FROM battle.fact_battles fb
+            JOIN battle.dim_players p1 ON p1.player_id = fb.p1_id
+            JOIN battle.dim_players p2 ON p2.player_id = fb.p2_id
+            WHERE NOT fb.is_bot_battle AND NOT p1.is_bot AND NOT p2.is_bot {sf}
+            GROUP BY fb.battle_date
+            ORDER BY fb.battle_date
+            """,
+            sp,
+        )
+    if not rows:
+        return {"days": [], "last_7": 0, "prev_7": 0}
+    per_day = {r["day"]: int(r["n"]) for r in rows}
+    end = rows[-1]["day"]
+    start = end - timedelta(days=days - 1)
+    running = sum(n for d, n in per_day.items() if d < start)
+    series = []
+    for i in range(days):
+        d = start + timedelta(days=i)
+        running += per_day.get(d, 0)
+        series.append({"date": iso(d), "battles": per_day.get(d, 0), "total": running})
+    last_7 = sum(x["battles"] for x in series[-7:])
+    prev_7 = sum(x["battles"] for x in series[-14:-7])
+    return {"days": series, "last_7": last_7, "prev_7": prev_7}
 
 
 # ── Bot Battle Endpoints ───────────────────────────────────────────────────────

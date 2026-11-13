@@ -1,0 +1,14 @@
+/* Barras de las tarjetas del bento: crecen desde la base al montarse; la resaltada usa el acento del mes. */
+.bento-bar {
+  transform-origin: 50% 100%;
+  animation: bento-bar-grow 520ms var(--mb-spring, ease-out) calc(120ms + var(--i) * 45ms) both;
+}
+
+@keyframes bento-bar-grow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bento-bar { animation: none; }
+}

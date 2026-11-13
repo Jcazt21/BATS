@@ -24,6 +24,7 @@ import { errorMessage } from "@/lib/http";
 import { speciesById } from "@/lib/dex/snapshot";
 import { WIDE_ROW } from "@/lib/layout";
 import { streakLabel } from "@/lib/match-result";
+import { fichaHref } from "@/lib/stats-links";
 import { useBattlesPerDay, useDexEssentials, useLeaderboard, useMe, useMvp, usePokemonStats, useSeasons, useSummary } from "@/lib/queries";
 import { useToast } from "@/lib/toast";
 import { num, pct } from "@/lib/format";
@@ -42,12 +43,12 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
   const leaderboard = useLeaderboard(season);
   const mvp = useMvp(season);
   const pokemonStats = usePokemonStats(season);
-  const perDay = useBattlesPerDay(30, sid);
+  const perDay = useBattlesPerDay(30, season);
   const dex = useDexEssentials();
   const me = useMe();
   const dexNum = (species: string) => (dex.data ? speciesById(dex.data, species)?.num : undefined);
   // Datos de la temporada anterior mientras llegan los de la elegida.
-  const refreshing = [summary, leaderboard, mvp, pokemonStats].some((q) => q.isPlaceholderData);
+  const refreshing = [summary, leaderboard, mvp, pokemonStats, perDay].some((q) => q.isPlaceholderData);
   // Al llegar los datos de la temporada elegida el contenido se remonta y entra con un fundido; mientras
   // tanto se sigue viendo (atenuado) lo anterior. Ajuste de estado durante el render: sin efectos ni parpadeo.
   const [settledSid, setSettledSid] = useState(sid);
@@ -73,7 +74,7 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
 
   const mvpCols: Column<MvpEntry>[] = [
     { key: "mon", header: "Pokémon", primary: true, sortValue: (r) => r.species, cell: (r) => (
-      <Link to={`/stats/pokemon/${encodeURIComponent(r.species)}`} className="inline-flex items-center gap-2 font-medium hover:underline"><PokemonSprite species={r.species} size={36} />{r.species}</Link>) },
+      <Link to={fichaHref(r.species, seasonChoice)} className="inline-flex items-center gap-2 font-medium hover:underline"><PokemonSprite species={r.species} size={36} />{r.species}</Link>) },
     { key: "player", header: "Jugador", sortValue: (r) => r.player, cell: (r) => r.player },
     { key: "mvp", header: "MVP", align: "right", sortValue: (r) => Number(r.total_mvp_score), cell: (r) => num(Number(r.total_mvp_score), 1) },
     { key: "kills", header: "KOs", align: "right", sortValue: (r) => r.total_kills, cell: (r) => r.total_kills },

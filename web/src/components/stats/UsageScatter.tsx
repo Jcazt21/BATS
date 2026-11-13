@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { CartesianGrid, ReferenceLine, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from "recharts";
 import type { SeasonChoice } from "@/components/app/SeasonSelect";
+import MagicBento from "@/components/effects/MagicBento";
 import type { PokedexRow } from "@/lib/api";
 import { TICK_CAPTION } from "@/lib/chart";
 import { num } from "@/lib/format";
@@ -21,8 +22,8 @@ export function UsageScatter({ rows, temporada }: { rows: PokedexRow[]; temporad
   const bajos = pts.filter((p) => p.wr < 50);
   const abrir = (p: { payload?: ScatterPoint }) => { if (p.payload) navigate(fichaHref(p.payload.species, temporada)); };
 
-  return (
-    <figure className="rounded-[var(--radius-card)] bg-card p-4 shadow-sm ring-1 ring-border" aria-label="Uso contra win rate de los pokémon">
+  const figura = (
+    <figure className="flex flex-1 flex-col" aria-label="Uso contra win rate de los pokémon">
       <div className="h-[22rem]">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
@@ -44,6 +45,8 @@ export function UsageScatter({ rows, temporada }: { rows: PokedexRow[]; temporad
       </figcaption>
     </figure>
   );
+
+  return <MagicBento columns={1} rowHeight={120} items={[{ id: "scatter", label: "Uso contra win rate", content: figura }]} />;
 }
 
 function Punto({ active, payload }: { active?: boolean; payload?: { payload: ScatterPoint }[] }) {

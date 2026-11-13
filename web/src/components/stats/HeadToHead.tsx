@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { PokemonArtwork } from "@/components/app/PokemonArtwork";
 import { EmptyState, ErrorState, LoadingState } from "@/components/app/States";
+import MagicBento from "@/components/effects/MagicBento";
 import { Combobox, type ComboboxItem } from "@/components/ui/combobox";
 import type { HeadToHead as H2H, LeaderboardEntry } from "@/lib/api";
 import { haceCuanto } from "@/lib/format";
@@ -40,10 +41,10 @@ export function HeadToHead({ players, me, season, dexNum }: {
   const d = q.data;
   const nombre = (id?: string | null) => (id ? nombres.get(id) ?? id : "");
 
-  return (
-    <section aria-labelledby="h2h-title" className="flex flex-col gap-4 rounded-[var(--radius-card)] bg-card p-4 shadow-sm ring-1 ring-border sm:p-5">
+  const contenido = (
+    <div className="flex flex-col gap-4">
       <div className="flex items-baseline justify-between gap-3 border-b border-border pb-3">
-        <h2 id="h2h-title" className="text-title3">Cara a cara</h2>
+        <h2 className="text-title3">Cara a cara</h2>
         <p className="text-footnote text-muted-foreground">Historial directo</p>
       </div>
 
@@ -86,8 +87,11 @@ export function HeadToHead({ players, me, season, dexNum }: {
             </div>
           </>
         )}
-    </section>
+    </div>
   );
+
+  // Misma tarjeta (borde con brillo y spotlight en hover) que el bento de la página.
+  return <MagicBento columns={1} rowHeight={120} items={[{ id: "h2h", label: "Cara a cara", content: contenido }]} />;
 }
 
 function Lado({ nombre, victorias, gana }: { nombre: string; victorias: number; gana: boolean }) {

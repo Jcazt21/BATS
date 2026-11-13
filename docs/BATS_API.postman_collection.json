@@ -365,6 +365,43 @@
               ]
             }
           }
+        },
+        {
+          "name": "Pokémon · uso por especie",
+          "request": {
+            "method": "GET",
+            "description": "Uso por especie: pick %, bring %, win rate, KOs y MVP medios y survival_pct. Opcional ?season_id=X.",
+            "url": {
+              "raw": "{{base_url}}/api/stats/pokemon",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "stats",
+                "pokemon"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Pokémon · ficha",
+          "request": {
+            "method": "GET",
+            "description": "Ficha de una especie: quién la usa, survival_pct y sets más comunes (solo rosters públicos). Opcional ?season_id=X. 404 si no aparece en la liga.",
+            "url": {
+              "raw": "{{base_url}}/api/stats/pokemon/Garchomp",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "stats",
+                "pokemon",
+                "Garchomp"
+              ]
+            }
+          }
         }
       ]
     },

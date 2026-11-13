@@ -7,6 +7,7 @@ import { abrirMenu, mockViewport } from "@/lib/test-utils";
 
 type Q = { data?: unknown; isPending?: boolean; isError?: boolean; isSuccess?: boolean; isPlaceholderData?: boolean; error?: unknown; refetch?: () => void };
 const st = vi.hoisted(() => ({
+  perDayArgs: [] as unknown[][], perDayPlaceholder: false,
   seasons: {} as Q, summary: {} as Q, leaderboard: {} as Q, mvp: {} as Q, pokemonStats: {} as Q, species: {} as Q, refreshing: false,
 }));
 
@@ -17,7 +18,10 @@ vi.mock("@/lib/queries", () => ({
   useMvp: () => st.mvp,
   usePokemonStats: () => st.pokemonStats,
   useDexEssentials: () => st.species,
-  useBattlesPerDay: () => ({ data: { days: [], last_7: 0, prev_7: 0 } }),
+  useBattlesPerDay: (...a: unknown[]) => {
+    st.perDayArgs.push(a);
+    return { data: { days: [], last_7: 0, prev_7: 0 }, isPlaceholderData: st.perDayPlaceholder };
+  },
   useMe: () => ({ data: undefined }),
   useHeadToHead: () => ({ data: undefined, isPending: true }),
   useCollectors: () => ({ isPending: false, data: [{ username: "ash", seen: [] }] }),
@@ -32,6 +36,8 @@ const renderPage = () => render(<MemoryRouter><StatsPage /></MemoryRouter>);
 
 beforeEach(() => {
   mockViewport(false);
+  st.perDayArgs = [];
+  st.perDayPlaceholder = false;
   st.refreshing = false;
   st.seasons = { isSuccess: true, data: [
     { season_id: 3, season_name: "T3", is_active: true }, { season_id: 2, season_name: "T2", is_active: false },
@@ -112,6 +118,25 @@ describe("StatsPage · Jugadores", () => {
     expect(within(tabla).getByText("2V")).toBeInTheDocument();
     expect(within(tabla).getByRole("img", { name: "Forma: D, V, V" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Cara a cara" })).toBeInTheDocument();
+  });
+});
+
+describe("StatsPage · temporada en los datos nuevos", () => {
+  it("batallas por día se piden con la temporada resuelta y cuentan para el atenuado", () => {
+    st.perDayPlaceholder = true;
+    const { container } = renderPage();
+    expect(st.perDayArgs.at(-1)).toEqual([30, 3]);
+    expect(container.querySelector("[aria-busy='true']")).toBeInTheDocument();
+  });
+
+  it("los enlaces del Top de MVP conservan la temporada elegida", async () => {
+    mockViewport(true);
+    renderPage();
+    await abrirMenu(screen.getByRole("button", { name: /Temporada/ }));
+    await userEvent.click(await screen.findByRole("menuitemradio", { name: "T2" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Pokémon" }));
+    const top = screen.getByRole("table", { name: "Top de MVP" });
+    expect(within(top).getByRole("link", { name: /Gengar/ })).toHaveAttribute("href", "/stats/pokemon/Gengar?temporada=2");
   });
 });
 

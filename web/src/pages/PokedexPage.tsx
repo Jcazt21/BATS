@@ -61,7 +61,9 @@ export function PokedexPage() {
   // Ficha abierta por URL: solo si esa casilla está descubierta (no revelar por la barra de direcciones).
   const openSpecies = speciesParam && dex.data ? speciesById(dex.data, speciesParam) : null;
   const openCell = openSpecies ? cells.find((c) => c.num === openSpecies.num) : undefined;
-  const dataReady = dex.isSuccess && (!username || pokedex.isSuccess || pokedex.isError);
+  // Con sesión, hasta saber quién soy no hay Pokédex que mirar: no decidir (ni redirigir) antes.
+  const waitingForMe = !userParam && (sessionLoading || (!!session && !me.data && !me.isError));
+  const dataReady = dex.isSuccess && !waitingForMe && (!username || pokedex.isSuccess || pokedex.isError);
   if (speciesParam && dataReady && (!openCell || openCell.status === "unknown")) {
     return <Navigate to={base} replace />;
   }

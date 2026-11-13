@@ -34,13 +34,19 @@ export function PokemonSilhouette({ species, revealed = false, color = "var(--si
       <img
         src={url}
         alt=""
+        aria-hidden
+        loading="lazy"
+        decoding="async"
         draggable={false}
         className={cn(img, revealed ? "opacity-0" : "opacity-100")}
         style={{ filter: `url(#${filterId})` }}
       />
       <img
         src={url}
-        alt={revealed ? species : "Pokémon sin descubrir"}
+        alt={revealed ? species : ""}
+        aria-hidden={!revealed || undefined}
+        loading="lazy"
+        decoding="async"
         draggable={false}
         className={cn(img, revealed ? "opacity-100" : "opacity-0")}
       />

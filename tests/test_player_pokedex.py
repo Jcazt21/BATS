@@ -79,6 +79,21 @@ class TestPlayerPokedex(unittest.TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json(), {"username": self.sin, "seen": []})
 
+    def test_jugador_con_batallas_sin_cuenta_ni_avistamientos(self):
+        """Tiene perfil público (jugó batallas) aunque el admin no le haya creado cuenta."""
+        nick = f"Pelea{self.tag}"
+        with BATSDatabase(DSN) as db:
+            db.execute("INSERT INTO battle.dim_players (username) VALUES (%s)", (nick,))
+            db.commit()
+        try:
+            res = self.client.get(f"/api/players/{nick.lower()}/pokedex")
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(res.json(), {"username": nick.lower(), "seen": []})
+        finally:
+            with BATSDatabase(DSN) as db:
+                db.execute("DELETE FROM battle.dim_players WHERE username = %s", (nick,))
+                db.commit()
+
     def test_jugador_inexistente(self):
         res = self.client.get(f"/api/players/nadie{self.tag}/pokedex")
         self.assertEqual(res.status_code, 404)

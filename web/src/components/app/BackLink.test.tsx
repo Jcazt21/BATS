@@ -20,9 +20,9 @@ const montar = (entries: string[], index: number) =>
 
 describe("BackLink", () => {
   it("si hay una página previa en la app vuelve a ella (no al fallback)", async () => {
-    montar(["/pokedex/Gengar", "/j/ash"], 1);
+    montar(["/stats/pokemon/Gengar", "/j/ash"], 1);
     await userEvent.click(screen.getByRole("link", { name: /Estadísticas/ }));
-    expect(screen.getByTestId("loc")).toHaveTextContent("/pokedex/Gengar");
+    expect(screen.getByTestId("loc")).toHaveTextContent("/stats/pokemon/Gengar");
   });
 
   it("si se entró directo (sin historial) va al fallback", async () => {

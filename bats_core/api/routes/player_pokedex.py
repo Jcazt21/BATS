@@ -29,9 +29,16 @@ def get_player_pokedex(username: str):
             """,
             (user,),
         )
-        # Sin avistamientos: 200 vacío si el jugador existe (tiene cuenta), 404 si no.
+        # Sin avistamientos: 200 vacío si el jugador existe (tiene cuenta o ya jugó batallas,
+        # es decir, tiene perfil público), 404 si no.
         if not rows and not db.fetchone(
-            "SELECT 1 FROM tournament.player_accounts WHERE LOWER(username) = %s", (user,)
+            """
+            SELECT 1 FROM tournament.player_accounts WHERE LOWER(username) = %s
+            UNION ALL
+            SELECT 1 FROM battle.dim_players WHERE LOWER(username) = %s
+            LIMIT 1
+            """,
+            (user, user),
         ):
             raise HTTPException(status_code=404, detail="Jugador no encontrado.")
     return {

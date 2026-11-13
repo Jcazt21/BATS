@@ -13,6 +13,7 @@ import { speciesById } from "@/lib/dex/snapshot";
 import { isPokemonType, type PokemonType } from "@/lib/pokemon-types";
 import { useDexEssentials } from "@/lib/queries";
 import { num, pct } from "@/lib/format";
+import type { SeasonChoice } from "@/components/app/SeasonSelect";
 
 // Fuera del componente: identidad estable, así el ordenamiento de DataList no se recalcula en cada tecla.
 const COLS: Column<PokedexRow>[] = [
@@ -26,8 +27,10 @@ const COLS: Column<PokedexRow>[] = [
   { key: "mvp", header: "MVP medio", align: "right", hideOnMobile: true, sortValue: (r) => r.avg_mvp, cell: (r) => num(r.avg_mvp, 1) },
 ];
 
-export function PokemonUsageTable({ query }: {
+export function PokemonUsageTable({ query, temporada = "active" }: {
   query: { data?: PokedexList; isPending?: boolean; isError?: boolean; error?: unknown; refetch: () => unknown };
+  /** Temporada elegida en Estadísticas: la ficha debe mostrar la misma ("active" = la activa). */
+  temporada?: SeasonChoice;
 }) {
   const [params, setParams] = useSearchParams();
   const tipoParam = params.get("tipo");
@@ -46,7 +49,8 @@ export function PokemonUsageTable({ query }: {
     }, { replace: true });
   }
 
-  const ficha = (r: PokedexRow) => `/stats/pokemon/${encodeURIComponent(r.species)}`;
+  const ficha = (r: PokedexRow) =>
+    `/stats/pokemon/${encodeURIComponent(r.species)}${temporada === "active" ? "" : `?temporada=${temporada}`}`;
 
   const rows = useMemo(
     () => (query.data?.species ?? []).filter((r) => {

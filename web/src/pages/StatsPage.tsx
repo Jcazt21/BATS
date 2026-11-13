@@ -111,7 +111,7 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
           </TabsContent>
 
           <TabsContent value="uso" className="flex flex-col gap-3">
-            <PokemonUsageTable query={pokemonStats} />
+            <PokemonUsageTable query={pokemonStats} temporada={seasonChoice} />
           </TabsContent>
         </Tabs>
       </Reveal>

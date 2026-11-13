@@ -59,16 +59,6 @@ export interface MvpEntry {
   avg_mvp_per_battle: number;
 }
 
-export interface PickRateEntry {
-  species:       string;
-  battles_used:  number;
-  total_slots:   number;
-  usage_pct:     number;
-  avg_kills:     number;
-  avg_mvp_score: number;
-  win_rate_pct:  number;
-}
-
 export interface BotSummaryEntry {
   username:      string;
   total_battles: number;
@@ -517,7 +507,6 @@ export const getActiveSeason = () => request<ActiveSeasonInfo>("/api/teams/activ
 export const getPublicSeasons = () => request<PublicSeasonEntry[]>("/api/stats/seasons");
 export const getLeagueSummary = (seasonId?: number) => request<LeagueSummary>("/api/stats/summary", { params: { season_id: seasonId } });
 export const getMvpTop5 = (seasonId?: number) => request<MvpEntry[]>("/api/stats/mvp", { params: { season_id: seasonId } });
-export const getPickRate = (seasonId?: number) => request<PickRateEntry[]>("/api/stats/pickrate", { params: { season_id: seasonId } });
 export const getLeaderboard = (seasonId?: number) => request<LeaderboardEntry[]>("/api/stats/leaderboard", { params: { season_id: seasonId } });
 /** Batalla del feed de actividad. Empate: `winner` y `loser` son null. */
 export interface RecentBattle {

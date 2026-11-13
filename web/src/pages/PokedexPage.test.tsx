@@ -167,4 +167,20 @@ describe("PokedexPage · ficha en modal", () => {
     expect(screen.getByTestId("loc").textContent).toBe("/pokedex");
     expect(within(grid()).queryByRole("button", { name: /Charizard/ })).toBeNull();
   });
+
+  it("entrar directo con sesión mientras aún no se sabe quién soy no redirige; abre al resolverse", () => {
+    st.me = { isPending: true, isSuccess: false, data: undefined };
+    st.pokedex = { isPending: true, isSuccess: false, data: undefined };
+    const view = renderAt("/pokedex/charizard");
+    expect(screen.getByTestId("loc").textContent).toBe("/pokedex/charizard");
+    st.me = { isSuccess: true, data: { username: "jazar", email: "x", is_admin: false } };
+    st.pokedex = { isSuccess: true, data: { username: "jazar", seen: [seen("Charizard", "2026-11-05T00:00:00Z")] } };
+    view.rerender(
+      <MemoryRouter initialEntries={["/pokedex/charizard"]}>
+        <Routes><Route path="/pokedex/:species" element={<PokedexPage />} /></Routes>
+        <Ubicacion />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("dialog")).toBeTruthy();
+  });
 });

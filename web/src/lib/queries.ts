@@ -16,7 +16,6 @@ export const keys = {
   seasons: ["seasons"] as const,
   summary: (s?: SeasonArg) => ["stats", "summary", seasonKey(s)] as const,
   mvp: (s?: SeasonArg) => ["stats", "mvp", seasonKey(s)] as const,
-  pickrate: (s?: SeasonArg) => ["stats", "pickrate", seasonKey(s)] as const,
   leaderboard: (s?: SeasonArg) => ["stats", "leaderboard", seasonKey(s)] as const,
   pokemonStats: (s?: SeasonArg) => ["pokemon-stats", seasonKey(s)] as const,
   pokemonStatsEntry: (sp: string, s?: number) => ["pokemon-stats", "entry", sp.toLowerCase(), s ?? "all"] as const,
@@ -61,8 +60,6 @@ export const useSummary = (s?: SeasonArg) =>
   useQuery({ queryKey: keys.summary(s), queryFn: () => api.getLeagueSummary(s ?? undefined), placeholderData: keepPreviousData, enabled: s !== null });
 export const useMvp = (s?: SeasonArg) =>
   useQuery({ queryKey: keys.mvp(s), queryFn: () => api.getMvpTop5(s ?? undefined), placeholderData: keepPreviousData, enabled: s !== null });
-export const usePickRate = (s?: SeasonArg) =>
-  useQuery({ queryKey: keys.pickrate(s), queryFn: () => api.getPickRate(s ?? undefined), placeholderData: keepPreviousData, enabled: s !== null });
 export const useLeaderboard = (s?: SeasonArg) =>
   useQuery({ queryKey: keys.leaderboard(s), queryFn: () => api.getLeaderboard(s ?? undefined), placeholderData: keepPreviousData, enabled: s !== null });
 export const usePokemonStats = (s?: SeasonArg) =>

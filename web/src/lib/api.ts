@@ -111,6 +111,9 @@ export interface BattleEntry {
   winner:      string | null;
 }
 
+/** Resultado de un jugador en una batalla: W = victoria, L = derrota, T = empate (la UI muestra V / D / E). */
+export type MatchResult = "W" | "L" | "T";
+
 export interface LeaderboardEntry {
   username:         string;
   total_battles:    number;
@@ -119,6 +122,9 @@ export interface LeaderboardEntry {
   ties:             number;
   win_rate_pct:     number;
   total_survivors:  number;
+  /** Últimas 5 batallas, de la más vieja a la más nueva. */
+  form:             MatchResult[];
+  streak:           { type: MatchResult | null; length: number };
 }
 
 export interface SeasonEntry {

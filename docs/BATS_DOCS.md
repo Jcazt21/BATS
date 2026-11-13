@@ -547,7 +547,7 @@ El secret del JWT se deriva de: `SHA-256(BATS_VOTER_SALT)`. Expira en 24h.
 | `GET` | `/api/stats/summary` | KPIs globales (total batallas, jugadores, avg turnos, top win rate). Acepta `?season_id=X` |
 | `GET` | `/api/stats/mvp` | Top 5 pokémon por MVP Score acumulado. Acepta `?season_id=X` |
 | `GET` | `/api/stats/pickrate` | Pick rate y win rate de las 20 especies más usadas. Acepta `?season_id=X` |
-| `GET` | `/api/stats/leaderboard` | Leaderboard de jugadores con V/D/E (`wins`, `losses`, `ties`; `win_rate_pct` = victorias / batallas). Acepta `?season_id=X` |
+| `GET` | `/api/stats/leaderboard` | Leaderboard de jugadores con V/D/E (`wins`, `losses`, `ties`; `win_rate_pct` = victorias / batallas), `form` (últimas 5 como `W`/`L`/`T`, de la más vieja a la más nueva) y `streak` `{type, length}` (un empate corta la racha). Forma y racha salen en vivo de `fact_battles`. Acepta `?season_id=X` |
 | `GET` | `/api/stats/bot/summary` | Rendimiento de jugadores vs bot |
 | `GET` | `/api/stats/bot/pokemon` | Pokémon más usados contra el bot |
 | `GET` | `/api/stats/bot/battles` | Historial de batallas vs bot (últimas 50) |

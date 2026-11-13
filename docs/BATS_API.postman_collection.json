@@ -195,7 +195,8 @@
                 "stats",
                 "leaderboard"
               ]
-            }
+            },
+            "description": "V/D/E por jugador (wins, losses, ties) más form (últimas 5: W/L/T, de la más vieja a la más nueva) y streak {type, length}, calculadas en vivo desde fact_battles. Acepta ?season_id=X."
           }
         },
         {

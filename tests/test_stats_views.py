@@ -244,6 +244,38 @@ class TestStatsDesdeVistas(unittest.TestCase):
             self.assertEqual(int(r["losses"]), int(r["total_battles"]) - int(r["wins"]) - 1, u)
             self.assertTrue(_near(r["win_rate_pct"], 100 * int(r["wins"]) / int(r["total_battles"])), u)
 
+    def test_leaderboard_forma_y_racha(self):
+        """Forma (últimas 5, de la más vieja a la más nueva) y racha, calculadas en vivo desde fact_battles."""
+        from bats_core.api.form import form, result_for, streak
+        with BATSDatabase(DSN) as db:
+            rows = db.fetchall(
+                """
+                SELECT COALESCE(fb.season_id, 0) AS season_id, fb.winner_id, fb.p1_id, fb.p2_id
+                FROM battle.fact_battles fb
+                JOIN battle.dim_players a ON a.player_id = fb.p1_id
+                JOIN battle.dim_players b ON b.player_id = fb.p2_id
+                WHERE NOT fb.is_bot_battle AND NOT a.is_bot AND NOT b.is_bot
+                ORDER BY fb.battle_date DESC, fb.logged_at DESC
+                """)
+            users = {r["player_id"]: r["username"] for r in db.fetchall("SELECT player_id, username FROM battle.dim_players")}
+        for sid in self._seasons():
+            with self.subTest(season=sid):
+                exp: dict[str, list] = defaultdict(list)
+                for b in rows:
+                    if sid is not None and b["season_id"] != sid:
+                        continue
+                    for pid in (b["p1_id"], b["p2_id"]):
+                        exp[users[pid]].append(result_for(b["winner_id"], pid))
+                got = self.client.get("/api/stats/leaderboard", params={"season_id": sid} if sid else {}).json()
+                for r in got:
+                    self.assertEqual(r["form"], form(exp[r["username"]]), r["username"])
+                    self.assertEqual(r["streak"], streak(exp[r["username"]]), r["username"])
+        # Temporada 0: la batalla más reciente de Ash es el empate del 2031-01-09.
+        ash = {r["username"]: r for r in self.client.get(
+            "/api/stats/leaderboard", params={"season_id": self.season_ids[0]}).json()}["Ash"]
+        self.assertEqual(ash["form"][-1], "T")
+        self.assertEqual(ash["streak"], {"type": "T", "length": 1})
+
     def test_perfil_separa_empates(self):
         rec = self.client.get("/api/players/ash").json()["record"]
         self.assertEqual(rec["ties"], 1)

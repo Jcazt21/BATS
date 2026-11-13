@@ -13,6 +13,7 @@ POST /api/ingest/refresh-views y un cron diario.
   GET /api/stats/bot/pokemon  → pokémon más usados contra el bot
   GET /api/stats/bot/battles  → historial de batallas contra el bot
 """
+from collections import defaultdict
 from datetime import timedelta
 from typing import Optional
 
@@ -20,6 +21,7 @@ from fastapi import APIRouter, Query
 
 from ..common import iso
 from ..db import get_db
+from ..form import Result, form, result_for, streak
 
 router = APIRouter(prefix="/api/stats", tags=["stats"])
 
@@ -191,7 +193,35 @@ def get_leaderboard(season_id: Optional[int] = Query(None)):
             """,
             mvp,
         )
+        recent = _results_by_player(db, season_id)
+    # Forma y racha salen en vivo de fact_battles (la vista se refresca una vez al día), solo para
+    # los jugadores que ya están en la clasificación.
+    for r in rows:
+        results = recent.get(r["username"].lower(), [])
+        r["form"] = form(results)
+        r["streak"] = streak(results)
     return rows
+
+
+def _results_by_player(db, season_id: Optional[int]) -> dict[str, list[Result]]:
+    """Resultados de cada jugador (username en minúsculas), de la batalla más reciente a la más vieja."""
+    sf, sp = _season_filter(season_id)
+    rows = db.fetchall(
+        f"""
+        SELECT fb.winner_id, fb.p1_id, fb.p2_id, p1.username AS p1, p2.username AS p2
+        FROM battle.fact_battles fb
+        JOIN battle.dim_players p1 ON p1.player_id = fb.p1_id
+        JOIN battle.dim_players p2 ON p2.player_id = fb.p2_id
+        WHERE NOT fb.is_bot_battle AND NOT p1.is_bot AND NOT p2.is_bot {sf}
+        ORDER BY fb.battle_date DESC, fb.logged_at DESC
+        """,
+        sp,
+    )
+    out: dict[str, list[Result]] = defaultdict(list)
+    for b in rows:
+        out[b["p1"].lower()].append(result_for(b["winner_id"], b["p1_id"]))
+        out[b["p2"].lower()].append(result_for(b["winner_id"], b["p2_id"]))
+    return out
 
 
 # ── Actividad reciente ────────────────────────────────────────────────────────

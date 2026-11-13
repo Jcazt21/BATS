@@ -713,7 +713,9 @@
       "losses": 8,
       "ties": 0,
       "win_rate_pct": 66.7,
-      "total_survivors": 41
+      "total_survivors": 41,
+      "form": ["W", "W", "L", "W", "W"],
+      "streak": {"type": "W", "length": 2}
     },
     {
       "username": "ronny",
@@ -722,7 +724,9 @@
       "losses": 8,
       "ties": 1,
       "win_rate_pct": 59.1,
-      "total_survivors": 33
+      "total_survivors": 33,
+      "form": ["L", "W", "T", "W", "W"],
+      "streak": {"type": "W", "length": 2}
     },
     {
       "username": "kael",
@@ -731,7 +735,9 @@
       "losses": 10,
       "ties": 0,
       "win_rate_pct": 50.0,
-      "total_survivors": 28
+      "total_survivors": 28,
+      "form": ["W", "L", "L", "W", "L"],
+      "streak": {"type": "L", "length": 1}
     },
     {
       "username": "mili",
@@ -740,7 +746,9 @@
       "losses": 10,
       "ties": 0,
       "win_rate_pct": 44.4,
-      "total_survivors": 22
+      "total_survivors": 22,
+      "form": ["L", "L", "W", "L", "L"],
+      "streak": {"type": "L", "length": 2}
     },
     {
       "username": "tono",
@@ -749,7 +757,9 @@
       "losses": 13,
       "ties": 0,
       "win_rate_pct": 18.8,
-      "total_survivors": 12
+      "total_survivors": 12,
+      "form": ["W", "L", "W", "L", "W"],
+      "streak": {"type": "W", "length": 1}
     }
   ],
   "mvp": [

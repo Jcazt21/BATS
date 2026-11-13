@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { motion, type Transition } from "motion/react";
-import { BarChart3, BookOpen, House, LogOut, Monitor, Moon, Newspaper, ShieldBan, ShieldCheck, Sun, UserRound, Users } from "lucide-react";
+import { BarChart3, BookOpen, House, LogOut, Monitor, Moon, Newspaper, Pencil, ShieldBan, ShieldCheck, Sun, UserRound, Users } from "lucide-react";
 import { GlobalSearch } from "@/components/app/GlobalSearch";
 import { OfflineNotice } from "@/components/app/OfflineNotice";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { RouteOutlet } from "@/components/app/RouteOutlet";
+import { TrainerAvatarPicker } from "@/components/home/TrainerAvatarPicker";
 import { PlayerAvatar } from "@/components/app/PlayerAvatar";
 import { ResponsiveSheet } from "@/components/app/ResponsiveSheet";
 import { SignInCard } from "@/components/SignInCard";
@@ -151,6 +152,7 @@ function UserMenu() {
   const me = useMe();
   const navigate = useNavigate();
   const [signingIn, setSigningIn] = useState(false);
+  const [pickingAvatar, setPickingAvatar] = useState(false);
 
   if (!session) {
     return (
@@ -165,20 +167,24 @@ function UserMenu() {
 
   const name = me.data?.username ?? session.user.email ?? "Yo";
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label="Cuenta" />}>
-        <PlayerAvatar name={name} size={30} />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuGroup>
-          <DropdownMenuLabel>{name}</DropdownMenuLabel>
-          {me.data && <DropdownMenuItem onClick={() => navigate(`/j/${encodeURIComponent(me.data!.username)}`)}><UserRound /> Mi perfil</DropdownMenuItem>}
-          {me.data?.is_admin && <DropdownMenuItem onClick={() => navigate("/admin/stats")}><ShieldCheck /> Administración</DropdownMenuItem>}
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => void signOut()}><LogOut /> Salir</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<Button variant="ghost" size="icon" aria-label="Cuenta" />}>
+          <PlayerAvatar name={name} trainer={me.data?.avatar} size={30} />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuGroup>
+            <DropdownMenuLabel>{name}</DropdownMenuLabel>
+            {me.data && <DropdownMenuItem onClick={() => navigate(`/j/${encodeURIComponent(me.data!.username)}`)}><UserRound /> Mi perfil</DropdownMenuItem>}
+            {me.data && <DropdownMenuItem onClick={() => setPickingAvatar(true)}><Pencil /> Editar carnet</DropdownMenuItem>}
+            {me.data?.is_admin && <DropdownMenuItem onClick={() => navigate("/admin/stats")}><ShieldCheck /> Administración</DropdownMenuItem>}
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => void signOut()}><LogOut /> Salir</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <TrainerAvatarPicker open={pickingAvatar} onOpenChange={setPickingAvatar} />
+    </>
   );
 }
 

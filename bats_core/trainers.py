@@ -1,0 +1,140 @@
+"""
+BATS — Catálogo curado de sprites de entrenador (los de Pokémon Showdown).
+
+Fuente única: la API valida contra `CATALOG` el avatar que elige el jugador y el frontend lo
+lee de `GET /api/trainers`, así no hay lista duplicada que se desincronice. Cada `id` es el nombre
+del PNG en `play.pokemonshowdown.com/sprites/trainers/{id}.png` (todos verificados).
+Para añadir uno basta con agregarlo aquí.
+"""
+
+# (id, etiqueta, categoría)
+CATALOG: tuple[tuple[str, str, str], ...] = (
+    # Protagonistas
+    ("red", "Rojo", "Protagonistas"),
+    ("blue", "Azul", "Protagonistas"),
+    ("yellow", "Amarillo", "Protagonistas"),
+    ("silver", "Plata", "Protagonistas"),
+    ("ethan", "Ethan", "Protagonistas"),
+    ("lyra", "Lyra", "Protagonistas"),
+    ("lucas", "Lucas", "Protagonistas"),
+    ("dawn", "Dawn", "Protagonistas"),
+    ("hilbert", "Hilbert", "Protagonistas"),
+    ("hilda", "Hilda", "Protagonistas"),
+    ("nate", "Nate", "Protagonistas"),
+    ("rosa", "Rosa", "Protagonistas"),
+    ("wally", "Wally", "Protagonistas"),
+    ("ash", "Ash", "Protagonistas"),
+    ("barry", "Barry", "Protagonistas"),
+    ("n", "N", "Protagonistas"),
+    ("hugh", "Hugh", "Protagonistas"),
+    # Campeones y Alto Mando
+    ("lance", "Lance", "Campeones y Alto Mando"),
+    ("steven", "Steven", "Campeones y Alto Mando"),
+    ("wallace", "Wallace", "Campeones y Alto Mando"),
+    ("cynthia", "Cynthia", "Campeones y Alto Mando"),
+    ("alder", "Alder", "Campeones y Alto Mando"),
+    ("iris", "Iris", "Campeones y Alto Mando"),
+    ("will", "Will", "Campeones y Alto Mando"),
+    ("koga", "Koga", "Campeones y Alto Mando"),
+    ("bruno", "Bruno", "Campeones y Alto Mando"),
+    ("karen", "Karen", "Campeones y Alto Mando"),
+    ("aaron", "Aaron", "Campeones y Alto Mando"),
+    ("bertha", "Bertha", "Campeones y Alto Mando"),
+    ("flint", "Flint", "Campeones y Alto Mando"),
+    ("lucian", "Lucian", "Campeones y Alto Mando"),
+    ("shauntal", "Shauntal", "Campeones y Alto Mando"),
+    ("grimsley", "Grimsley", "Campeones y Alto Mando"),
+    ("caitlin", "Caitlin", "Campeones y Alto Mando"),
+    ("marshal", "Marshal", "Campeones y Alto Mando"),
+    # Líderes de gimnasio
+    ("brock", "Brock", "Líderes de gimnasio"),
+    ("misty", "Misty", "Líderes de gimnasio"),
+    ("ltsurge", "Teniente Surge", "Líderes de gimnasio"),
+    ("erika", "Erika", "Líderes de gimnasio"),
+    ("sabrina", "Sabrina", "Líderes de gimnasio"),
+    ("blaine", "Blaine", "Líderes de gimnasio"),
+    ("janine", "Janine", "Líderes de gimnasio"),
+    ("falkner", "Falkner", "Líderes de gimnasio"),
+    ("bugsy", "Bugsy", "Líderes de gimnasio"),
+    ("whitney", "Whitney", "Líderes de gimnasio"),
+    ("morty", "Morty", "Líderes de gimnasio"),
+    ("chuck", "Chuck", "Líderes de gimnasio"),
+    ("jasmine", "Jasmine", "Líderes de gimnasio"),
+    ("pryce", "Pryce", "Líderes de gimnasio"),
+    ("clair", "Clair", "Líderes de gimnasio"),
+    ("roxanne", "Roxanne", "Líderes de gimnasio"),
+    ("brawly", "Brawly", "Líderes de gimnasio"),
+    ("wattson", "Wattson", "Líderes de gimnasio"),
+    ("flannery", "Flannery", "Líderes de gimnasio"),
+    ("norman", "Norman", "Líderes de gimnasio"),
+    ("winona", "Winona", "Líderes de gimnasio"),
+    ("tate", "Tate", "Líderes de gimnasio"),
+    ("liza", "Liza", "Líderes de gimnasio"),
+    ("juan", "Juan", "Líderes de gimnasio"),
+    ("roark", "Roark", "Líderes de gimnasio"),
+    ("gardenia", "Gardenia", "Líderes de gimnasio"),
+    ("maylene", "Maylene", "Líderes de gimnasio"),
+    ("fantina", "Fantina", "Líderes de gimnasio"),
+    ("candice", "Candice", "Líderes de gimnasio"),
+    ("byron", "Byron", "Líderes de gimnasio"),
+    ("volkner", "Volkner", "Líderes de gimnasio"),
+    ("cilan", "Cilan", "Líderes de gimnasio"),
+    ("chili", "Chili", "Líderes de gimnasio"),
+    ("cress", "Cress", "Líderes de gimnasio"),
+    ("lenora", "Lenora", "Líderes de gimnasio"),
+    ("burgh", "Burgh", "Líderes de gimnasio"),
+    ("elesa", "Elesa", "Líderes de gimnasio"),
+    ("clay", "Clay", "Líderes de gimnasio"),
+    ("skyla", "Skyla", "Líderes de gimnasio"),
+    ("brycen", "Brycen", "Líderes de gimnasio"),
+    ("drayden", "Drayden", "Líderes de gimnasio"),
+    ("clemont", "Clemont", "Líderes de gimnasio"),
+    # Villanos
+    ("giovanni", "Giovanni", "Villanos"),
+    ("archer", "Archer", "Villanos"),
+    ("ariana", "Ariana", "Villanos"),
+    ("proton", "Proton", "Villanos"),
+    ("petrel", "Petrel", "Villanos"),
+    ("cyrus", "Cyrus", "Villanos"),
+    ("mars", "Mars", "Villanos"),
+    ("jupiter", "Jupiter", "Villanos"),
+    ("saturn", "Saturn", "Villanos"),
+    ("ghetsis", "Ghetsis", "Villanos"),
+    ("colress", "Colress", "Villanos"),
+    ("zinzolin", "Zinzolin", "Villanos"),
+    ("rood", "Rood", "Villanos"),
+    ("rocketgrunt", "Recluta Rocket", "Villanos"),
+    ("galacticgrunt", "Recluta Galáctico", "Villanos"),
+    # Clases de entrenador
+    ("acetrainer", "As (H)", "Entrenadores"),
+    ("acetrainerf", "As (M)", "Entrenadores"),
+    ("backpacker", "Mochilero", "Entrenadores"),
+    ("beauty", "Belleza", "Entrenadores"),
+    ("blackbelt", "Cinturón negro", "Entrenadores"),
+    ("dragontamer", "Domadragones", "Entrenadores"),
+    ("gentleman", "Caballero", "Entrenadores"),
+    ("hiker", "Montañero", "Entrenadores"),
+    ("idol", "Idol", "Entrenadores"),
+    ("lass", "Chica", "Entrenadores"),
+    ("ninjaboy", "Niño ninja", "Entrenadores"),
+    ("nurse", "Enfermera", "Entrenadores"),
+    ("pilot", "Piloto", "Entrenadores"),
+    ("pokemonranger", "Pokémon Ranger", "Entrenadores"),
+    ("psychic", "Médium", "Entrenadores"),
+    ("sailor", "Marinero", "Entrenadores"),
+    ("scientist", "Científico", "Entrenadores"),
+    ("skier", "Esquiador", "Entrenadores"),
+    ("swimmer", "Nadador", "Entrenadores"),
+    ("veteran", "Veterano", "Entrenadores"),
+    ("youngster", "Joven", "Entrenadores"),
+)
+
+IDS: frozenset[str] = frozenset(t[0] for t in CATALOG)
+
+
+def is_valid(trainer_id: str) -> bool:
+    return trainer_id in IDS
+
+
+def catalog() -> list[dict]:
+    return [{"id": i, "label": label, "category": cat} for i, label, cat in CATALOG]

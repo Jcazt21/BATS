@@ -399,6 +399,8 @@ export interface AdminBlogPost extends BlogPostSummary {
 
 export interface PlayerProfile {
   username:   string;
+  /** Id del sprite de entrenador elegido; `null` = sin elegir. */
+  avatar?:    string | null;
   first_seen: string | null;
   last_seen:  string | null;
   record: {
@@ -495,8 +497,17 @@ export const getBanStatus = () => request<BanStatus>("/api/ban/status");
 export const getBanCandidates = (minBattles = 3) =>
   request<BanCandidate[]>("/api/ban/candidates", { params: { min_battles: minBattles } });
 
-export interface Me { username: string; email: string; is_admin: boolean }
+export interface Me { username: string; email: string; is_admin: boolean; avatar: string | null }
 export const getMe = () => request<Me>("/api/me", { auth: true });
+
+/** Sprite de entrenador del carnet (catálogo curado de Showdown); `null` vuelve a las iniciales. */
+export const updateAvatar = (avatar: string | null) =>
+  request<{ avatar: string | null }>("/api/me", { method: "PATCH", body: { avatar }, auth: true, fallback: "Error al guardar el sprite" });
+
+export interface TrainerSprite { id: string; label: string; category: string }
+export const getTrainers = () => request<TrainerSprite[]>("/api/trainers");
+/** PNG del sprite, servido por la API (Showdown no manda CORS). */
+export const trainerPath = (id: string) => `/api/trainers/${encodeURIComponent(id)}`;
 
 // ── Reglas y temporada activa ─────────────────────────────────────────────────
 
@@ -515,6 +526,13 @@ export interface RecentBattle {
 }
 export const getRecentBattles = (limit = 8, seasonId?: number) =>
   request<RecentBattle[]>("/api/stats/recent-battles", { params: { limit, season_id: seasonId } });
+export interface BattlesPerDay {
+  /** Ventana contigua de días que termina en la última batalla; `total` es el acumulado desde el inicio. */
+  days: { date: string; battles: number; total: number }[];
+  last_7: number; prev_7: number;
+}
+export const getBattlesPerDay = (days = 30, seasonId?: number) =>
+  request<BattlesPerDay>("/api/stats/battles-per-day", { params: { days, season_id: seasonId } });
 export const getBattleDetails = (battleId: string) => request<BattleDetailEntry[]>(`/api/stats/battles/${encodeURIComponent(battleId)}`);
 
 export const getBotSummary = () => request<BotSummaryEntry[]>("/api/stats/bot/summary");

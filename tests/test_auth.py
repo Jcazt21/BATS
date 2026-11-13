@@ -202,11 +202,14 @@ class TestRutasReales(unittest.TestCase):
         from bats_core.api import auth as auth_mod
         real_app.dependency_overrides[auth_mod.require_player] = lambda: {
             "user_id": "u", "email": "ash@x.test", "username": "Ash", "is_admin": True}
+        db = mock.MagicMock()
+        db.__enter__.return_value.fetchone.return_value = {"avatar": None}
         try:
-            r = self.client.get("/api/me")
+            with mock.patch("bats_core.api.routes.me.get_db", return_value=db):
+                r = self.client.get("/api/me")
         finally:
             real_app.dependency_overrides.pop(auth_mod.require_player, None)
-        self.assertEqual(r.json(), {"username": "Ash", "email": "ash@x.test", "is_admin": True})
+        self.assertEqual(r.json(), {"username": "Ash", "email": "ash@x.test", "is_admin": True, "avatar": None})
 
     def test_rutas_de_equipo_exigen_sesion(self):
         for method, path in [

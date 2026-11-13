@@ -75,6 +75,8 @@ export const usePlayerProfile = (username: string, s?: number) =>
 /** Pokédex por cuenta (avistamientos). Sin `username` no pide nada. */
 export const usePlayerPokedex = (username?: string) =>
   useQuery({ queryKey: keys.playerPokedex(username ?? ""), queryFn: () => api.getPlayerPokedex(username!), enabled: !!username });
+export const useBattlesPerDay = (days = 30, s?: number) =>
+  useQuery({ queryKey: ["stats", "battles-per-day", days, s ?? "all"], queryFn: () => api.getBattlesPerDay(days, s), refetchInterval: 60_000 });
 export const useRecentBattles = (limit = 8, s?: number) =>
   useQuery({ queryKey: ["stats", "recent", limit, s ?? "all"], queryFn: () => api.getRecentBattles(limit, s), refetchInterval: 60_000 });
 
@@ -90,6 +92,19 @@ export const useBlogPosts = () => useQuery({ queryKey: keys.blog, queryFn: api.g
 export const useBlogPost = (slug: string) => useQuery({ queryKey: keys.blogPost(slug), queryFn: () => api.getBlogPost(slug) });
 
 // ── Con sesión ────────────────────────────────────────────────────────────────
+
+/** Catálogo de sprites de entrenador: casi no cambia, se guarda para toda la sesión. */
+export const useTrainers = () =>
+  useQuery({ queryKey: ["trainers"], queryFn: api.getTrainers, staleTime: Infinity, gcTime: Infinity });
+
+/** Guarda el sprite del carnet y refresca `me` y los perfiles (el carnet lee el suyo de ahí). */
+export function useUpdateAvatar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.updateAvatar,
+    onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: keys.me }), qc.invalidateQueries({ queryKey: ["player"] })]),
+  });
+}
 
 /** Quién soy (nombre de jugador y si soy admin). Solo se pide con sesión abierta. */
 export function useMe() {

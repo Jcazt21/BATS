@@ -1,7 +1,7 @@
 """
 tests/test_pokedex_seen.py
 ==========================
-Pokédex por cuenta: la tabla tournament.pokedex_seen (v13) y cómo la sigue el
+Pokédex por cuenta: la tabla tournament.pokedex_seen (v14) y cómo la sigue el
 rename de cuentas. Necesita una base DESECHABLE en BATS_TEST_DSN:
 
     BATS_TEST_DSN=postgresql://localhost/bats_test python -m pytest tests/test_pokedex_seen.py -v

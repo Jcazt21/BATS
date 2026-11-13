@@ -2,21 +2,21 @@ import { describe, expect, it } from "vitest";
 import { cardBackgroundUrl } from "./card-backgrounds";
 import { POKEMON_TYPES } from "./pokemon-types";
 
-/** Todos los fondos posibles de un tipo (se recorre el rango del sorteo). */
-const posibles = (t: (typeof POKEMON_TYPES)[number]) => new Set([0, 0.2, 0.34, 0.5, 0.67, 0.8, 0.999].map((r) => cardBackgroundUrl(t, r)));
+/** Todos los fondos posibles de un tipo (se recorre el rango del sorteo en pasos finos). */
+const posibles = (t: (typeof POKEMON_TYPES)[number]) => new Set(Array.from({ length: 200 }, (_, i) => cardBackgroundUrl(t, i / 200)));
 
 describe("fondos de la ventana del artwork", () => {
-  it("cada uno de los 18 tipos tiene fondos, y exactamente 3 posibles", () => {
+  it("cada uno de los 18 tipos tiene al menos 3 fondos posibles, todos PNG", () => {
     for (const t of POKEMON_TYPES) {
       const urls = posibles(t);
-      expect(urls.size, t).toBe(3);
+      expect(urls.size, t).toBeGreaterThanOrEqual(3);
       for (const u of urls) expect(u, t).toMatch(/\.png$/);
     }
   });
 
-  it("aunque la carpeta tenga más de 3 imágenes (hielo tiene 8), solo salen 3", () => {
-    expect(posibles("ice").size).toBe(3);
-    expect(posibles("grass").size).toBe(3);
+  it("el sorteo usa todas las imágenes de la carpeta (hielo tiene 8), no solo las 3 primeras", () => {
+    expect(posibles("ice").size).toBe(8);
+    expect(posibles("grass").size).toBeGreaterThan(3);
   });
 
   it("Planta, Bicho y Normal comparten carpeta; el resto usa la suya", () => {

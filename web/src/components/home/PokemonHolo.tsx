@@ -6,14 +6,23 @@ import type { RosterPokemon } from "@/lib/api";
 import { ART_WINDOW, CARD_SIZE, SPRITE_OVERFLOW, SPRITE_SATURATION, SPRITE_SCALE, renderCardImage } from "@/lib/card-image";
 import { resolveOverlaySprite, type OverlaySprite } from "@/lib/sprite-overlay";
 import { cardBackgroundUrl } from "@/lib/card-backgrounds";
-import { parseTypes, typeLabel } from "@/lib/pokemon-types";
+import { parseTypes, typeLabel, type PokemonType } from "@/lib/pokemon-types";
+import type { HoloPreset } from "@/components/home/holo-presets";
+
+/** Foil de cada carta según el tipo principal del pokémon. */
+const PRESET_BY_TYPE: Record<PokemonType, HoloPreset> = {
+  normal: "glitter", fire: "swirl", water: "cosmos", electric: "bursts", grass: "stars", ice: "shards",
+  fighting: "gold", poison: "cosmos", ground: "gold", flying: "rainbow", psychic: "swirl", bug: "stars",
+  rock: "shards", ghost: "cosmos", dragon: "rainbow", dark: "shards", steel: "glitter", fairy: "stars",
+};
 
 /**
  * Lo que la carta necesita de un pokémon. Un pokémon del roster lo cumple tal cual; la Pokédex arma
  * uno con el set más usado de la liga. `moves` debe ser estable entre renders (memoizado): es
  * dependencia del efecto que dibuja la carta.
  */
-export type HoloPokemon = Pick<RosterPokemon, "name" | "types" | "held_item" | "ability" | "moves">;
+export type HoloPokemon = Pick<RosterPokemon, "name" | "types" | "held_item" | "ability" | "moves">
+  & Partial<Pick<RosterPokemon, "nature" | "evs">>;
 
 /**
  * Sprite (3D o Gen 5, animado si existe) sobre la ventana del artwork. Es una `<img>` dentro de la cara de la
@@ -41,6 +50,7 @@ function SpriteOverlay({ sprite, width }: { sprite: OverlaySprite; width: number
       }}
     >
       <img
+        data-holo-sprite=""
         src={sprite.url}
         alt=""
         draggable={false}
@@ -74,23 +84,24 @@ export function PokemonHolo({ pokemon: p, dexNum, sprite, moveType, width, idle 
       // Primero el sprite: la textura solo omite el artwork si hay una capa que lo sustituya. Sin red o sin sprite, cae al artwork de siempre.
       const overlay = sprite ? await resolveOverlaySprite(sprite, { animate: !reduceMotion }) : null;
       const background = cardBackgroundUrl(parseTypes(p.types)[0], roll);
-      const image = await renderCardImage({ name: p.name, types: p.types, dexNum, overlay: !!overlay, background, heldItem: p.held_item, ability: p.ability, moves });
+      const image = await renderCardImage({ name: p.name, types: p.types, dexNum, overlay: !!overlay, background, heldItem: p.held_item, ability: p.ability, nature: p.nature, evs: p.evs, moves });
       if (vivo) setFace({ image, sprite: overlay });
     })();
     return () => { vivo = false; };
-  }, [p.name, p.types, dexNum, sprite, reduceMotion, roll, p.held_item, p.ability, p.moves, moveType]);
+  }, [p.name, p.types, dexNum, sprite, reduceMotion, roll, p.held_item, p.ability, p.nature, p.evs, p.moves, moveType]);
 
   const tipos = parseTypes(p.types).map(typeLabel).join(", ");
   return (
     <div className="relative size-full">
       <span className="sr-only">
-        {p.name}{tipos ? `. ${tipos}` : ""}{p.held_item ? `. ${p.held_item}` : ""}{p.ability ? `. ${p.ability}` : ""}{p.moves.length ? `. Movimientos: ${p.moves.join(", ")}` : ""}
+        {p.name}{tipos ? `. ${tipos}` : ""}{p.held_item ? `. ${p.held_item}` : ""}{p.ability ? `. ${p.ability}` : ""}{p.nature ? `. Naturaleza ${p.nature}` : ""}{p.moves.length ? `. Movimientos: ${p.moves.join(", ")}` : ""}
       </span>
       <div aria-hidden="true" className="size-full">
         {face?.image ? (
           <HoloCard
-            image={face.image} preset="edge" intensity={0.7} edgeSparkle={0.12} frame={3} glare={0.2}
+            image={face.image} preset={PRESET_BY_TYPE[parseTypes(p.types)[0]] ?? "bursts"} intensity={0.30} edgeSparkle={0.12} frame={3} glare={0.2}
             width={width} radius={width * 0.044} idle={idle} shadow={false}
+            animateSprite={face.sprite?.animated}
             overlay={face.sprite ? <SpriteOverlay sprite={face.sprite} width={width} /> : undefined}
           />
         ) : (

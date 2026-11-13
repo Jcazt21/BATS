@@ -12,6 +12,9 @@ export interface CardFace {
   /** URL (del mismo origen) de la imagen de fondo de la ventana del artwork. */
   background?: string;
   heldItem?: string | null;
+  nature?: string | null;
+  /** EVs por stat (claves como en Showdown: HP, Atk, Def, SpA, SpD, Spe). Solo se imprimen los distintos de cero. */
+  evs?: Record<string, number>;
   ability?: string | null;
   /** Movimientos; `type` es el tipo del movimiento en inglés ("Ice") si se conoce. */
   moves?: { name: string; type?: string }[];
@@ -92,6 +95,19 @@ function fit(ctx: CanvasRenderingContext2D, text: string, max: number): string {
   return `${t}…`;
 }
 
+/** Icono de tipo recortado en cuadrado redondeado. Fondo menos saturado: una capa gris en modo "saturation" quita ~15 % de color (el glifo blanco no cambia). */
+function drawTypeIcon(ctx: CanvasRenderingContext2D, icon: HTMLImageElement, x: number, y: number, size: number, radius: number) {
+  ctx.save();
+  roundRect(ctx, x, y, size, size, radius);
+  ctx.clip();
+  ctx.drawImage(icon, x, y, size, size);
+  ctx.globalCompositeOperation = "saturation";
+  ctx.globalAlpha = 0.15;
+  ctx.fillStyle = "gray";
+  ctx.fillRect(x, y, size, size);
+  ctx.restore();
+}
+
 async function draw(face: CardFace): Promise<string | null> {
   const canvas = document.createElement("canvas");
   canvas.width = W * SCALE;
@@ -107,7 +123,10 @@ async function draw(face: CardFace): Promise<string | null> {
   ].filter(Boolean)).catch(() => undefined);
   const art = !face.overlay && face.dexNum ? await loadArtwork(face.dexNum) : null;
   const background = face.background ? await loadBackground(face.background) : null;
-  const moveTypes = [...new Set((face.moves ?? []).map((m) => m.type?.toLowerCase()).filter((t): t is PokemonType => !!t && isPokemonType(t)))];
+  const moveTypes = [...new Set([
+    ...parseTypes(face.types),
+    ...(face.moves ?? []).map((m) => m.type?.toLowerCase()).filter((t): t is PokemonType => !!t && isPokemonType(t)),
+  ])];
   const icons = new Map(await Promise.all(moveTypes.map(async (t) => [t, await loadTypeIcon(t)] as const)));
 
   const types = parseTypes(face.types);
@@ -130,26 +149,38 @@ async function draw(face: CardFace): Promise<string | null> {
 
   const maxW = W - 2 * pad;
 
-  // Cabecera: nombre y, debajo, chips de tipo. A la izquierda: en el abanico lo que queda a la vista es ese lado.
-  ctx.fillStyle = "#111111";
-  ctx.font = `700 44px ${FONT}`;
-  ctx.fillText(fit(ctx, face.name, maxW), pad, FRAME + 56);
-
-  ctx.font = `500 20px ${FONT}`;
+  // Cabecera: nombre con los iconos de tipo a su lado. A la izquierda: en el abanico lo que queda a la vista es ese lado.
   const chipH = CHIP_H;
   const chipY = CHIP_Y;
+  const iconTypes = types.filter((t) => icons.get(t));
+  const iconsW = iconTypes.length * (chipH + 8);
+  ctx.fillStyle = "#111111";
+  ctx.font = `700 44px ${FONT}`;
+  const nameText = fit(ctx, face.name, maxW - iconsW);
+  ctx.fillText(nameText, pad, FRAME + 56);
+  let ix = pad + ctx.measureText(nameText).width + 14;
+  for (const t of iconTypes) {
+    // Centrado en vertical con las mayúsculas del nombre; el nombre del tipo queda en el texto accesible de la carta.
+    drawTypeIcon(ctx, icons.get(t)!, ix, FRAME + 56 - 32 + 1, chipH, 8);
+    ix += chipH + 8;
+  }
+
+  // Debajo: chips de texto solo para los tipos sin icono, y la naturaleza.
+  ctx.font = `500 20px ${FONT}`;
   let x = pad;
-  for (const t of types) {
-    const w = ctx.measureText(typeLabel(t)).width + 28;
+  const chip = (label: string, fill: string, color: string) => {
+    const w = ctx.measureText(label).width + 28;
     roundRect(ctx, x, chipY, w, chipH, chipH / 2);
-    ctx.fillStyle = "rgba(17,17,17,0.82)";
+    ctx.fillStyle = fill;
     ctx.fill();
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = color;
     ctx.textAlign = "center";
-    ctx.fillText(typeLabel(t), x + w / 2, chipY + 21);
+    ctx.fillText(label, x + w / 2, chipY + 21);
     ctx.textAlign = "left";
     x += w + 10;
-  }
+  };
+  for (const t of types) if (!icons.get(t)) chip(typeLabel(t), "rgba(17,17,17,0.82)", "#ffffff");
+  if (face.nature) chip(face.nature, "rgba(0,0,0,0.25)", "rgba(255,255,255,0.92)");
 
   // Ventana del artwork.
   const { x: winX, y: winY, w: winW, h: winH } = ART_WINDOW;
@@ -195,10 +226,17 @@ async function draw(face: CardFace): Promise<string | null> {
 
   // Movimientos: panel oscuro con una fila por movimiento y un punto del color de su tipo.
   const moves = (face.moves ?? []).filter((m) => m.name).slice(0, 4);
+  const evLine = Object.entries(face.evs ?? {})
+    .filter(([, v]) => v > 0)
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => `${v} ${k}`)
+    .join(" · ");
   if (moves.length) {
-    const rowH = 56;
-    const top = H - FRAME - 12 - rowH * moves.length - 14;
-    roundRect(ctx, pad - 12, top, maxW + 24, rowH * moves.length + 14, 16);
+    // Con línea de EVs las filas se compactan para que quepa sin mover el resto de la carta.
+    const rowH = evLine ? 50 : 56;
+    const evH = evLine ? 30 : 0;
+    const top = H - FRAME - 12 - rowH * moves.length - 14 - evH;
+    roundRect(ctx, pad - 12, top, maxW + 24, rowH * moves.length + 14 + evH, 16);
     ctx.fillStyle = "rgba(0,0,0,0.16)";
     ctx.fill();
     moves.forEach((m, i) => {
@@ -206,16 +244,7 @@ async function draw(face: CardFace): Promise<string | null> {
       const type = m.type?.toLowerCase();
       const icon = type && isPokemonType(type) ? icons.get(type) : null;
       if (icon) {
-        ctx.save();
-        roundRect(ctx, pad, cy - 14, 28, 28, 6);
-        ctx.clip();
-        ctx.drawImage(icon, pad, cy - 14, 28, 28);
-        // Fondo menos saturado: una capa gris en modo "saturation" quita ~15 % de color (el glifo blanco no cambia).
-        ctx.globalCompositeOperation = "saturation";
-        ctx.globalAlpha = 0.15;
-        ctx.fillStyle = "gray";
-        ctx.fillRect(pad, cy - 14, 28, 28);
-        ctx.restore();
+        drawTypeIcon(ctx, icon, pad, cy - 14, 28, 6);
       } else {
         ctx.beginPath();
         ctx.arc(pad + 14, cy, 9, 0, Math.PI * 2);
@@ -226,6 +255,11 @@ async function draw(face: CardFace): Promise<string | null> {
       ctx.font = `500 26px ${FONT}`;
       ctx.fillText(fit(ctx, m.name, maxW - 44), pad + 42, cy + 9);
     });
+    if (evLine) {
+      ctx.fillStyle = "rgba(255,255,255,0.6)";
+      ctx.font = `500 16px ${FONT}`;
+      ctx.fillText(fit(ctx, `EVs  ${evLine}`, maxW), pad, top + 7 + rowH * moves.length + 22);
+    }
   }
 
   return canvas.toDataURL("image/jpeg", 0.92);

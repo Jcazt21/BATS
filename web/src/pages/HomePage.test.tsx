@@ -9,15 +9,17 @@ type Q = { data?: unknown; isPending?: boolean; isError?: boolean; error?: unkno
 const st = vi.hoisted(() => ({
   session: null as unknown,
   sessionLoading: false,
-  season: {} as Q, summary: {} as Q, leaderboard: {} as Q, mvp: {} as Q, ban: {} as Q, recent: {} as Q, dex: {} as Q,
+  season: {} as Q, summary: {} as Q, leaderboard: {} as Q, mvp: {} as Q, ban: {} as Q, recent: {} as Q, perDay: {} as Q, dex: {} as Q,
   me: {} as Q, profile: {} as Q, roster: {} as Q, elig: {} as Q,
 }));
 
 vi.mock("@/lib/session", () => ({ useSession: () => ({ session: st.session, loading: st.sessionLoading }) }));
 vi.mock("@/lib/queries", () => ({
   useActiveSeason: () => st.season, useSummary: () => st.summary, useLeaderboard: () => st.leaderboard,
-  useMvp: () => st.mvp, useBanStatus: () => st.ban, useRecentBattles: () => st.recent, useDexEssentials: () => st.dex, useDexDetails: () => ({ data: undefined }),
+  useMvp: () => st.mvp, useBanStatus: () => st.ban, useRecentBattles: () => st.recent, useBattlesPerDay: () => st.perDay, useDexEssentials: () => st.dex, useDexDetails: () => ({ data: undefined }),
   useMe: () => st.me, usePlayerProfile: () => st.profile, useRoster: () => st.roster, useEligibility: () => st.elig,
+  // Selector de sprite del carnet: montado pero cerrado, solo necesita que los hooks existan.
+  useTrainers: () => ({ isPending: false, isError: false, data: [] }), useUpdateAvatar: () => ({ mutate: () => {}, isPending: false, isError: false }),
 }));
 
 const mon = (id: number, name: string, types: string, extra = {}) => ({
@@ -38,6 +40,7 @@ beforeEach(() => {
   ] };
   st.mvp = { isPending: false, data: [{ species: "Gengar", player: "ash", total_kills: 4, total_mvp_score: "12" }], refetch: () => {} };
   st.ban = { isPending: false, data: { total_authorized: 8, total_voted: 3, total_votes_cast: 3, voting_open: true } };
+  st.perDay = { isPending: false, data: { days: [{ date: "2026-04-05", battles: 1, total: 11 }, { date: "2026-04-06", battles: 1, total: 12 }], last_7: 2, prev_7: 1 } };
   st.recent = { isPending: false, data: [{ battle_id: "b1", date: null, winner: "ash", loser: "kronos", players: ["ash", "kronos"], turns: 17, end_type: "normal" }], refetch: () => {} };
   const sp = (id: string, num: number, types: string[]) => ({
     id, name: id, num, types, bst: 500, baseStats: {}, color: "Blue", eggGroups: [], gen: 1, tags: [], abilities: [],
@@ -66,12 +69,11 @@ describe("HomePage · sin sesión", () => {
     const tarjeta = screen.getByRole("region", { name: "Tu estado" });
     expect(within(tarjeta).getByRole("link", { name: /Entrar/ })).toHaveAttribute("href", "/equipo");
     expect(screen.queryByRole("region", { name: "Tu carnet" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("list", { name: "Pendientes" })).not.toBeInTheDocument();
   });
 
   it("la liga sigue visible: resumen, tipo del mes, MVP y actividad", () => {
     renderPage();
-    expect(screen.getByRole("region", { name: "Resumen" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Batallas" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Tipo del mes" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "MVP" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Actividad" })).toHaveTextContent("ash");
@@ -107,35 +109,12 @@ describe("HomePage · con sesión", () => {
     expect(within(equipo).queryByRole("link", { name: "Editar" })).not.toBeInTheDocument();
   });
 
-  it("pendientes: voto, validez del equipo y rotaciones", () => {
-    renderPage();
-    const pend = screen.getByRole("list", { name: "Pendientes" });
-    expect(pend).toHaveTextContent("Falta tu voto");
-    expect(within(pend).getByRole("link", { name: "Votar" })).toHaveAttribute("href", "/bans");
-    expect(pend).toHaveTextContent("Cumple las reglas del mes");
-    expect(pend).toHaveTextContent("Te quedan 2");
-  });
-
-  it("si ya votaste lo dice y no ofrece votar", () => {
-    st.elig = { isPending: false, data: { can_vote: false, reason: "already_voted" } };
-    renderPage();
-    const pend = screen.getByRole("list", { name: "Pendientes" });
-    expect(pend).toHaveTextContent("Ya votaste");
-    expect(within(pend).queryByRole("link", { name: "Votar" })).not.toBeInTheDocument();
-  });
-
   it("sin equipo registrado lo dice y lleva a registrarlo", () => {
     st.roster = { isPending: false, isError: true, error: new ApiError(404, "sin equipo") };
     renderPage();
     expect(screen.getByText("Aún no registras tu equipo", { selector: "h3" })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /Registrar/ })[0]).toHaveAttribute("href", "/equipo");
     expect(screen.queryByRole("region", { name: "Tu equipo" })).not.toBeInTheDocument();
-  });
-
-  it("equipo con errores avisa cuántas reglas corregir", () => {
-    st.roster = { isPending: false, data: { pool: [mon(1, "Gengar", "Ghost")], max_team_size: 8, lineup_set: false, rotations_remaining: 3, max_rotations: 3, validation: { state: "errors", errors: ["a", "b"] } } };
-    renderPage();
-    expect(screen.getByRole("list", { name: "Pendientes" })).toHaveTextContent("2 reglas por corregir");
   });
 
   it("mientras carga el equipo muestra un esqueleto del mismo tamaño", () => {
@@ -147,11 +126,20 @@ describe("HomePage · con sesión", () => {
 });
 
 describe("HomePage · listas", () => {
-  it("resumen: cuatro cifras que llevan a /stats", () => {
+  it("resumen: curva de batallas, jugadores y barras de win rate", () => {
     renderPage();
-    const resumen = screen.getByRole("region", { name: "Resumen" });
-    expect(within(resumen).getAllByRole("link")).toHaveLength(4);
-    expect(within(resumen).getByRole("link", { name: /Batallas/ })).toHaveAttribute("href", "/stats");
+    expect(within(screen.getByRole("region", { name: "Jugadores" })).getByRole("link")).toHaveAttribute("href", "/stats");
+    const batallas = screen.getByRole("region", { name: "Batallas" });
+    expect(batallas).toHaveTextContent("12");
+    expect(batallas).toHaveTextContent("+100%");
+    expect(within(batallas).getByRole("img", { name: /^Batallas acumuladas:/ })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /^Win rate por jugador:/ })).toBeInTheDocument();
+  });
+
+  it("sin batallas la tarjeta de la curva lo dice", () => {
+    st.perDay = { isPending: false, data: { days: [], last_7: 0, prev_7: 0 } };
+    renderPage();
+    expect(within(screen.getByRole("region", { name: "Batallas" })).getByText("Aún no hay batallas.")).toBeInTheDocument();
   });
 
   it("MVP y actividad vacíos muestran un EmptyState", () => {

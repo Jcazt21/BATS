@@ -209,6 +209,29 @@ class TestStatsDesdeVistas(unittest.TestCase):
         self.assertEqual(len(self.client.get("/api/stats/recent-battles", params={"limit": 2}).json()), 2)
         self.assertEqual(self.client.get("/api/stats/recent-battles", params={"limit": 0}).status_code, 422)
 
+    def test_battles_per_day(self):
+        """Curva del inicio: ventana contigua que termina en la última batalla, con acumulado y comparación de 7 días."""
+        got = self.client.get("/api/stats/battles-per-day",
+                              params={"season_id": self.season_ids[1], "days": 7}).json()
+        self.assertEqual([d["date"][:10] for d in got["days"]],
+                         [f"2031-02-{n:02d}" for n in range(2, 9)])
+        self.assertEqual([d["battles"] for d in got["days"]], [0, 0, 0, 1, 1, 1, 1])
+        self.assertEqual([d["total"] for d in got["days"]], [0, 0, 0, 1, 2, 3, 4])
+        self.assertEqual((got["last_7"], got["prev_7"]), (4, 0))
+        # Sin filtro, el acumulado arrastra las batallas anteriores a la ventana (8 en total).
+        todo = self.client.get("/api/stats/battles-per-day", params={"days": 7}).json()
+        self.assertEqual(todo["days"][-1]["total"] - todo["days"][0]["total"] + todo["days"][0]["battles"], 4)
+        self.assertGreaterEqual(todo["days"][-1]["total"], 8)
+        self.assertEqual(self.client.get("/api/stats/battles-per-day", params={"days": 3}).status_code, 422)
+        # Temporada sin batallas: serie vacía, no error.
+        with BATSDatabase(DSN) as db:
+            vacia = db.fetchone(
+                "INSERT INTO tournament.seasons (season_name, type_of_month, start_date) VALUES (%s, 'Ice', '2031-03-01') "
+                "RETURNING season_id", (f"Vacia-{self.tag}",))["season_id"]
+        self.season_ids.append(vacia)
+        self.assertEqual(self.client.get("/api/stats/battles-per-day", params={"season_id": vacia}).json(),
+                         {"days": [], "last_7": 0, "prev_7": 0})
+
     def test_perfil_trae_insignias(self):
         """Ash gana 5 de 8: ya tiene la primera victoria; ninguna racha de 5."""
         prof = self.client.get("/api/players/Ash").json()

@@ -33,6 +33,9 @@ uniform float uRadius;
 uniform float uGlare;
 uniform vec3 uFoil;
 uniform float uReady;
+uniform sampler2D uSprite;
+uniform vec4 uSpriteRect;
+uniform float uSpriteOn;
 
 out vec4 outColor;
 
@@ -226,6 +229,16 @@ void main() {
     return;
   }
   vec3 art = uReady > 0.5 ? pow(sampled.rgb, vec3(2.2)) : vec3(0.12);
+  // El sprite (<img> del overlay) se sube como textura para que el foil lo trate como parte de la carta.
+  if (uSpriteOn > 0.5) {
+    vec2 suv = (uv - uSpriteRect.xy) / uSpriteRect.zw;
+    if (suv.x >= 0.0 && suv.x <= 1.0 && suv.y >= 0.0 && suv.y <= 1.0) {
+      vec4 sp = texture(uSprite, suv);
+      vec3 sc = sp.rgb / max(sp.a, 0.001);
+      sc = clamp(mix(vec3(dot(sc, vec3(0.299, 0.587, 0.114))), sc, 1.3), 0.0, 1.0);
+      art = mix(art, pow(sc, vec3(2.2)), sp.a);
+    }
+  }
 
   mat3 rx = mat3(1.0, 0.0, 0.0, 0.0, cos(uTilt.x), sin(uTilt.x), 0.0, -sin(uTilt.x), cos(uTilt.x));
   mat3 ry = mat3(cos(uTilt.y), 0.0, -sin(uTilt.y), 0.0, 1.0, 0.0, sin(uTilt.y), 0.0, cos(uTilt.y));
@@ -315,7 +328,7 @@ const compile = (gl: WebGL2RenderingContext, type: number, source: string) => {
 
 const UNIFORMS = [
   "uArt", "uSize", "uAspect", "uTilt", "uLight", "uDistance", "uPreset", "uIntensity",
-  "uScale", "uEdge", "uFrame", "uRadius", "uGlare", "uFoil", "uReady",
+  "uScale", "uEdge", "uFrame", "uRadius", "uGlare", "uFoil", "uReady", "uSprite", "uSpriteRect", "uSpriteOn",
 ] as const;
 
 interface Settings {
@@ -356,6 +369,8 @@ export interface HoloCardProps {
   shadow?: boolean;
   /** Contenido sobre la cara frontal (se inclina con la carta), p. ej. un sprite animado. */
   overlay?: ReactNode;
+  /** El sprite del overlay (`<img data-holo-sprite>`) es un GIF animado: mantiene el bucle de dibujo vivo. */
+  animateSprite?: boolean;
   className?: string;
   style?: CSSProperties;
 }
@@ -377,6 +392,7 @@ export default function HoloCard({
   idle = true,
   shadow = true,
   overlay,
+  animateSprite = false,
   className = "",
   style,
 }: HoloCardProps) {
@@ -387,9 +403,12 @@ export default function HoloCard({
   const settingsRef = useRef<Settings | null>(null);
   const pointerRef = useRef({ x: 0.5, y: 0.5, inside: false });
   const wakeRef = useRef<(() => void) | null>(null);
+  const animateSpriteRef = useRef(false);
   const loadRef = useRef<((src: string) => void) | null>(null);
   const [ratio, setRatio] = useState(CARD_RATIO);
   const [ready, setReady] = useState(false);
+
+  animateSpriteRef.current = animateSprite;
 
   // Antes de los demás efectos: el bucle de dibujo lee siempre los ajustes más recientes.
   useLayoutEffect(() => {
@@ -426,6 +445,8 @@ export default function HoloCard({
     let buffer: WebGLBuffer | null = null;
     const uniforms: Partial<Record<(typeof UNIFORMS)[number], WebGLUniformLocation | null>> = {};
     let textureReady = false;
+    let spriteTexture: WebGLTexture | null = null;
+    let spriteBroken = false;
 
     if (gl) {
       const vertex = compile(gl, gl.VERTEX_SHADER, VERTEX);
@@ -456,6 +477,15 @@ export default function HoloCard({
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
+        spriteTexture = gl.createTexture();
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, spriteTexture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 0, 0]));
+        gl.activeTexture(gl.TEXTURE0);
         for (const name of UNIFORMS) uniforms[name] = gl.getUniformLocation(program, name);
       }
     }
@@ -471,6 +501,8 @@ export default function HoloCard({
     let visible = true;
     let alive = true;
     let calm = 0;
+    // Con sprite en textura hay que volver a subir el fotograma: un GIF sigue animándose aunque la luz esté quieta.
+    let spriteAnimated = false;
 
     const draw = () => {
       const s = settingsRef.current;
@@ -485,6 +517,38 @@ export default function HoloCard({
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, texture);
       gl.uniform1i(uniforms.uArt ?? null, 0);
+      gl.uniform1i(uniforms.uSprite ?? null, 1);
+      let spriteOn = 0;
+      const face = canvas.parentElement;
+      const sprite = face?.querySelector<HTMLImageElement>("img[data-holo-sprite]") ?? null;
+      if (face && sprite && !spriteBroken && sprite.complete && sprite.naturalWidth > 0) {
+        // offsetLeft/Top ignoran el transform 3D del rotor; getBoundingClientRect no.
+        let x = 0;
+        let y = 0;
+        for (let el: HTMLElement | null = sprite; el && el !== face; el = el.offsetParent as HTMLElement | null) {
+          x += el.offsetLeft;
+          y += el.offsetTop;
+        }
+        try {
+          gl.activeTexture(gl.TEXTURE1);
+          gl.bindTexture(gl.TEXTURE_2D, spriteTexture);
+          const filter = sprite.style.imageRendering === "pixelated" ? gl.NEAREST : gl.LINEAR;
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
+          gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+          gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, sprite);
+          gl.activeTexture(gl.TEXTURE0);
+          gl.uniform4f(uniforms.uSpriteRect ?? null, x / face.clientWidth, y / face.clientHeight, sprite.offsetWidth / face.clientWidth, sprite.offsetHeight / face.clientHeight);
+          spriteOn = 1;
+          spriteAnimated = true;
+        } catch {
+          // Imagen de otro origen sin CORS: el <img> se queda visible, sin foil.
+          spriteBroken = true;
+          if (sprite.parentElement) sprite.parentElement.style.zIndex = "2";
+          gl.activeTexture(gl.TEXTURE0);
+        }
+      }
+      gl.uniform1f(uniforms.uSpriteOn ?? null, spriteOn);
       gl.uniform2f(uniforms.uSize ?? null, w, h);
       gl.uniform1f(uniforms.uAspect ?? null, h / w);
       gl.uniform2f(uniforms.uTilt ?? null, (state.tiltX * Math.PI) / 180, (state.tiltY * Math.PI) / 180);
@@ -553,7 +617,7 @@ export default function HoloCard({
         (Math.abs(state.lightVX) + Math.abs(state.lightVY)) * 60 +
         Math.abs(state.tiltX - targetX) + Math.abs(state.tiltY - targetY);
       calm = motion > 0.02 ? 0 : calm + dt;
-      if (!visible || (!drifting && !pointer.inside && calm > 0.3)) return;
+      if (!visible || (!drifting && !pointer.inside && !(spriteAnimated && animateSpriteRef.current) && calm > 0.3)) return;
       raf = requestAnimationFrame(tick);
     };
 
@@ -624,6 +688,7 @@ export default function HoloCard({
       visibility.disconnect();
       if (gl) {
         gl.deleteTexture(texture);
+        gl.deleteTexture(spriteTexture);
         gl.deleteBuffer(buffer);
         gl.deleteProgram(program);
       }

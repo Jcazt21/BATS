@@ -100,7 +100,7 @@ describe("TeamCard", () => {
       moveType: (m: string) => ({ "Knock Off": "Dark", "Icicle Crash": "Ice" })[m],
     });
     await waitFor(() => expect(renderCardImage).toHaveBeenCalledWith({
-      name: "Weavile", types: "Dark / Ice", dexNum: 461, overlay: false, background: expect.stringMatching(/card-backgrounds\/dark\/.*\.png$/), heldItem: "Choice Band", ability: "Pressure",
+      name: "Weavile", types: "Dark / Ice", dexNum: 461, overlay: false, background: expect.stringMatching(/card-backgrounds\/dark\/.*\.png$/), heldItem: "Choice Band", ability: "Pressure", nature: null, evs: {},
       moves: [{ name: "Knock Off", type: "Dark" }, { name: "Icicle Crash", type: "Ice" }],
     }));
   });

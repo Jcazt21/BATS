@@ -2,7 +2,8 @@
   "me": {
     "username": "jazar",
     "email": "dev@bats.local",
-    "is_admin": false
+    "is_admin": false,
+    "avatar": "cynthia"
   },
   "season": {
     "season_id": 1,

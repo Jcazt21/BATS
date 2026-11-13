@@ -120,6 +120,11 @@ class AddAccountRequest(BaseModel):
     user_id:  Optional[str] = None
 
 
+class UpdateAvatarRequest(BaseModel):
+    """PATCH /api/me — sprite de entrenador del carnet. `null` quita el sprite (vuelven las iniciales)."""
+    avatar: Optional[str] = Field(None, max_length=40)
+
+
 class UpdatePlayerAccountRequest(BaseModel):
     """
     PATCH /api/admin/players/{id} — todos los campos son opcionales.

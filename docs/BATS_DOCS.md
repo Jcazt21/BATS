@@ -688,6 +688,21 @@ esos campos se ignora.
 | `GET` | `/api/dex/meta` | — | Metadatos del snapshot del dex importado en la base (`ps_commit`, fecha, nº de especies) |
 | `POST` | `/api/ingest/roster-validation` | token de ingesta | Guarda el veredicto del `TeamValidator` real de Showdown para cada roster (lo llama el plugin `bats-ingest` tras sincronizar `/api/teams/rosters`) |
 
+### `/api/me` y `/api/trainers/*` — Sprite de entrenador del carnet
+
+El jugador elige un sprite de entrenador de Showdown que se ve en su carnet (Home), en su perfil y en el menú de cuenta.
+Se guarda en `tournament.player_accounts.avatar` (migración `v13.sql`; `NULL` = iniciales). El catálogo curado vive en
+`bats_core/trainers.py` (fuente única: la API valida contra él y el frontend lo lee de `GET /api/trainers`).
+
+| Método | Ruta | Auth | Descripción |
+|---|---|---|---|
+| `GET` | `/api/me` | sesión | `{username, email, is_admin, avatar}` |
+| `PATCH` | `/api/me` | sesión | `{"avatar": id \| null}`; 422 si el id no está en el catálogo. La cuenta sale de la sesión, nunca del body |
+| `GET` | `/api/trainers` | — | Catálogo `[{id, label, category}]` |
+| `GET` | `/api/trainers/{id}` | — | PNG del sprite (proxy a `play.pokemonshowdown.com/sprites/trainers/{id}.png`, solo ids del catálogo) |
+
+`GET /api/players/{username}` también devuelve `avatar`.
+
 ### `/api/admin/rosters`
 
 | Método | Ruta | Auth | Descripción |
@@ -786,7 +801,7 @@ tournament.bans             -- Bans oficiales confirmados por el admin
 tournament.roster           -- Equipo registrado por jugador por temporada
 tournament.roster_pokemon   -- Pokémon en el pool del equipo (max 8)
 tournament.roster_lineup    -- Los 6 activos del equipo en la batalla actual
-tournament.pokedex_seen     -- Pokédex por cuenta: primer avistamiento de cada especie por jugador (v13)
+tournament.pokedex_seen     -- Pokédex por cuenta: primer avistamiento de cada especie por jugador (v14)
 ```
 
 ### Vistas

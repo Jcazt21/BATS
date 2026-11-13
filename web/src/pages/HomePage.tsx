@@ -1,13 +1,10 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { EmptyState, ErrorState } from "@/components/app/States";
-import { ActionsRow } from "@/components/home/ActionsRow";
 import { GuestHero } from "@/components/home/GuestHero";
-import { LeaguePulse } from "@/components/home/LeaguePulse";
-import { MonthRulesList } from "@/components/home/MonthRulesList";
-import { MvpList } from "@/components/home/MvpList";
-import { RecentActivity } from "@/components/home/RecentActivity";
+import { HomeBento } from "@/components/home/HomeBento";
 import { TeamCard } from "@/components/home/TeamCard";
+import { TrainerAvatarPicker } from "@/components/home/TrainerAvatarPicker";
 import { TrainerCard } from "@/components/home/TrainerCard";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,7 +12,7 @@ import { checkTeam, type BuilderMon } from "@/lib/dex/validate";
 import { speciesById, toId } from "@/lib/dex/snapshot";
 import { ApiError } from "@/lib/http";
 import {
-  useActiveSeason, useBanStatus, useDexDetails, useDexEssentials, useEligibility, useLeaderboard, useMe, useMvp,
+  useActiveSeason, useBattlesPerDay, useDexDetails, useDexEssentials, useLeaderboard, useMe, useMvp,
   usePlayerProfile, useRecentBattles, useRoster, useSummary,
 } from "@/lib/queries";
 import { useSession } from "@/lib/session";
@@ -32,14 +29,14 @@ export function HomePage() {
   const summary = useSummary();
   const leaderboard = useLeaderboard();
   const mvp = useMvp();
-  const ban = useBanStatus();
   const recent = useRecentBattles(8);
+  const perDay = useBattlesPerDay();
   const dex = useDexEssentials();
   const dexDetails = useDexDetails();
   const me = useMe();
   const profile = usePlayerProfile(me.data?.username ?? "");
   const roster = useRoster();
-  const elig = useEligibility();
+  const [pickingAvatar, setPickingAvatar] = useState(false);
 
   // Número de Pokédex desde el dex local (la misma fuente de verdad del teambuilder).
   const dexNum = useCallback(
@@ -79,7 +76,6 @@ export function HomePage() {
   }, [dex.data, season.data, roster.data]);
 
   const seasonName = season.data?.season_name;
-  const showTop = !sessionLoading && !!session;
 
   return (
     <div className={`flex flex-col gap-10 ${WIDE_ROW}`}>
@@ -102,7 +98,11 @@ export function HomePage() {
             </>
           ) : (
             <>
-              <TrainerCard username={username} season={seasonName} rank={rank} totalPlayers={leaderboard.data?.length} profile={profile.data} />
+              <TrainerCard
+                username={username} season={seasonName} rank={rank} totalPlayers={leaderboard.data?.length} profile={profile.data}
+                avatar={me.data?.avatar} onEditAvatar={() => setPickingAvatar(true)}
+              />
+              <TrainerAvatarPicker open={pickingAvatar} onOpenChange={setPickingAvatar} />
               {roster.isPending ? <Skeleton className={CARD_SKELETON} /> :
                 noTeam ? (
                   <div className="flex flex-col items-center justify-center rounded-[var(--radius-card)] border border-border lg:min-h-[485px]">
@@ -119,17 +119,11 @@ export function HomePage() {
         </section>
       )}
 
-      {showTop && !me.isError && (
-        <ActionsRow ban={ban.data} elig={elig.data} roster={roster.data} noTeam={noTeam} className="-mt-4" />
-      )}
-
-      <LeaguePulse summary={summary.data} loading={summary.isPending} />
-
-      <div className="grid gap-10 lg:grid-cols-3">
-        <MonthRulesList typeOfMonth={season.data?.type_of_month} rows={rules?.rows} checked={rules?.checked ?? false} loading={season.isPending} />
-        <MvpList query={mvp} dexNum={dexNum} />
-        <RecentActivity query={recent} />
-      </div>
+      <HomeBento
+        leaderboard={leaderboard.data} perDay={perDay.data} summary={summary.data} summaryLoading={summary.isPending}
+        typeOfMonth={season.data?.type_of_month} rules={rules?.rows} rulesChecked={rules?.checked ?? false} rulesLoading={season.isPending}
+        mvp={mvp} recent={recent} dexNum={dexNum}
+      />
     </div>
   );
 }

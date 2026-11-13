@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { Pencil } from "lucide-react";
 import { ReflectiveCard } from "@/components/ui/reflective-card";
-import { initials, num, pct } from "@/lib/format";
-import type { PlayerProfile } from "@/lib/api";
+import { num, pct } from "@/lib/format";
+import { trainerPath, type PlayerProfile } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export interface TrainerCardProps {
@@ -11,6 +12,10 @@ export interface TrainerCardProps {
   rank?: number | null;
   totalPlayers?: number;
   profile?: PlayerProfile;
+  /** Id del sprite de entrenador elegido (de `useMe`; el perfil público también lo trae). */
+  avatar?: string | null;
+  /** Si se pasa, el sprite se vuelve un botón para cambiarlo (solo en el carnet propio). */
+  onEditAvatar?: () => void;
   className?: string;
 }
 
@@ -56,7 +61,7 @@ const MONTH_FALLBACK = "linear-gradient(165deg,oklch(0.5 0.09 var(--month-h,210)
  * y el puesto como marca de agua. Sin WebGL2 se ve el degradado del mes.
  * Los datos ya vienen calculados (récord, racha e insignias salen del servidor).
  */
-export function TrainerCard({ username, season, rank, totalPlayers, profile, className }: TrainerCardProps) {
+export function TrainerCard({ username, season, rank, totalPlayers, profile, avatar, onEditAvatar, className }: TrainerCardProps) {
   const streak = profile?.streak;
   const { tint, radius } = useMonthLook();
   return (
@@ -73,6 +78,8 @@ export function TrainerCard({ username, season, rank, totalPlayers, profile, cla
       aria-label="Tu carnet"
       className="relative flex h-full w-full flex-col justify-between font-card text-white [container-type:inline-size]"
     >
+      {avatar && <TrainerBackdrop id={avatar} />}
+
       {rank != null && (
         <span aria-hidden="true" className="pointer-events-none absolute -bottom-[70px] -left-3.5 select-none text-[420px] font-bold leading-none tracking-[-0.07em] text-white/[.12]">
           #{rank}
@@ -81,9 +88,17 @@ export function TrainerCard({ username, season, rank, totalPlayers, profile, cla
 
       <header className="relative flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-xl border border-white/25 bg-white/15 text-base font-bold">
-            {initials(username)}
-          </span>
+          {onEditAvatar && (
+            <button
+              type="button"
+              onClick={onEditAvatar}
+              aria-label="Cambiar sprite de entrenador"
+              title="Cambiar sprite de entrenador"
+              className="grid size-7 shrink-0 place-items-center rounded-full bg-white/20 text-white focus-visible:outline-2 focus-visible:outline-white"
+            >
+              <Pencil className="size-3.5" />
+            </button>
+          )}
           <span className="truncate text-caption uppercase tracking-[.14em] text-white/90">Entrenador PGL</span>
         </div>
         {season && <span className="shrink-0 text-caption uppercase tracking-[.14em] text-white/90">{season}</span>}
@@ -123,6 +138,40 @@ export function TrainerCard({ username, season, rank, totalPlayers, profile, cla
       </ul>
     </section>
     </ReflectiveCard>
+  );
+}
+
+const FADE_MASK = "linear-gradient(to left,#000 35%,transparent 98%),linear-gradient(to bottom,#000 40%,transparent 68%)";
+
+/**
+ * Sprite grande colgando de la esquina superior derecha: halo borroso detrás y sprite nítido
+ * que se funde hacia la izquierda y hacia abajo antes de las estadísticas. La capa ocupa toda
+ * la placa (anula el padding del contenido) para que los desplazamientos midan desde su borde.
+ */
+function TrainerBackdrop({ id }: { id: string }) {
+  const src = trainerPath(id);
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute" style={{ inset: "calc(-1 * var(--rc-pad))" }}>
+      <img
+        src={src}
+        alt=""
+        className="absolute h-full w-auto opacity-40 [filter:blur(22px)_saturate(1.3)]"
+        style={{ right: -40, top: -20 }}
+      />
+      <img
+        src={src}
+        alt=""
+        className="absolute h-[94%] w-auto opacity-[.88] [image-rendering:pixelated]"
+        style={{
+          right: -26,
+          top: -10,
+          WebkitMaskImage: FADE_MASK,
+          WebkitMaskComposite: "source-in",
+          maskImage: FADE_MASK,
+          maskComposite: "intersect",
+        }}
+      />
+    </div>
   );
 }
 

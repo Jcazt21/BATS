@@ -16,7 +16,7 @@ from ..paths import ENV_FILE
 
 load_dotenv(ENV_FILE)
 
-from .routes import ban, admin, stats, seasons, etl_cleaner, leaguesettings, teams, ingest, rules, players, player_pokedex, pokemon_stats, me, dex, blog, sprites  # noqa: E402
+from .routes import ban, admin, stats, seasons, etl_cleaner, leaguesettings, teams, ingest, rules, players, player_pokedex, pokemon_stats, me, dex, blog, sprites, trainers  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +53,7 @@ app.include_router(pokemon_stats.router)
 app.include_router(me.router)
 app.include_router(dex.router)
 app.include_router(sprites.router)
+app.include_router(trainers.router)
 app.include_router(blog.router)
 app.include_router(blog.admin_router)
 

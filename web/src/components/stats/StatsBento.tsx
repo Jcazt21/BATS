@@ -5,6 +5,7 @@ import MagicBento, { type MagicBentoItem } from "@/components/effects/MagicBento
 import { BentoBars } from "@/components/home/BentoBars";
 import { BentoCurve } from "@/components/home/BentoCurve";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import type { BattlesPerDay, LeaderboardEntry, LeagueSummary, MvpEntry, PokedexRow } from "@/lib/api";
 import { num, pct, variacionSemanal } from "@/lib/format";
 import { fichaHref } from "@/lib/stats-links";
@@ -24,6 +25,7 @@ export interface StatsBentoProps {
 
 /** Cabecera del bento de Estadísticas: cifras de la liga en la temporada elegida, con el lenguaje del Inicio. */
 export function StatsBento({ summary, summaryLoading, leaderboard, perDay, topPokemon, mvp, temporada, dexNum }: StatsBentoProps) {
+  const phone = !useMediaQuery("(min-width: 768px)");
   const winrates = [...(leaderboard ?? [])].sort((a, b) => b.win_rate_pct - a.win_rate_pct).slice(0, 8).map((p) => ({
     label: p.username, value: p.win_rate_pct, text: pct(p.win_rate_pct, 1),
   }));
@@ -65,7 +67,53 @@ export function StatsBento({ summary, summaryLoading, leaderboard, perDay, topPo
     },
   ];
 
+  if (phone) {
+    // Teléfono: cifras chicas en 2 columnas y destacados bajos, sin la curva ni las barras (~450 px en vez de ~1250).
+    const chicas: MagicBentoItem[] = [
+      { label: "Batallas", colSpan: 6, content: <Mini etiqueta="Batallas" valor={num(summary?.total_battles)} pista={variacionSemanal(perDay?.last_7, perDay?.prev_7)} loading={summaryLoading} /> },
+      { label: "Mejor win rate", colSpan: 6, content: <Mini etiqueta="Mejor win rate" valor={pct(summary?.top_win_rate, 1)} pista="mín. 3 batallas" loading={summaryLoading} /> },
+      { label: "Jugadores", colSpan: 6, content: <Mini etiqueta="Jugadores" valor={num(summary?.total_players)} loading={summaryLoading} /> },
+      { label: "Turnos por batalla", colSpan: 6, content: <Mini etiqueta="Turnos por batalla" valor={num(summary?.avg_turns, 1)} loading={summaryLoading} /> },
+      {
+        label: "Pokémon más usado", colSpan: 6,
+        content: topPokemon ? <DestacadoMini to={fichaHref(topPokemon.species, temporada)} species={topPokemon.species} dexNum={dexNum(topPokemon.species)} eyebrow="Más usado" cifra={pct(topPokemon.pick_pct, 1)} />
+          : <Vacio titulo="Más usado" texto="Aún no hay pokémon." />,
+      },
+      {
+        label: "MVP de la temporada", colSpan: 6,
+        content: mvp ? <DestacadoMini to={fichaHref(mvp.species, temporada)} species={mvp.species} dexNum={dexNum(mvp.species)} eyebrow={`MVP · ${mvp.player}`} cifra={num(Number(mvp.total_mvp_score), 1)} />
+          : <Vacio titulo="MVP" texto="Aún no hay MVP." />,
+      },
+    ];
+    return <MagicBento items={chicas} columns={12} minColumns={2} rowHeight={84} gap={10} role="group" aria-label="Resumen de la temporada" />;
+  }
+
   return <MagicBento items={items} columns={12} rowHeight={128} gap={12} role="group" aria-label="Resumen de la temporada" />;
+}
+
+function Mini({ etiqueta, valor, pista, loading }: { etiqueta: string; valor: string; pista?: string; loading?: boolean }) {
+  return (
+    <div className="flex min-w-0 flex-1 flex-col justify-center">
+      <p className="truncate text-caption text-muted-foreground">{etiqueta}</p>
+      {loading ? <Skeleton className="mt-1 h-7 w-14" /> : <p className="mt-1 font-card-mono text-[26px] font-medium leading-none tabular">{valor}</p>}
+      {pista && <p className="mt-1 truncate text-caption text-muted-foreground">{pista}</p>}
+    </div>
+  );
+}
+
+function DestacadoMini({ to, species, dexNum, eyebrow, cifra }: { to: string; species: string; dexNum?: number; eyebrow: string; cifra: string }) {
+  return (
+    <Link to={to} className="press -m-2 flex min-w-0 flex-1 items-center gap-2.5 rounded-2xl p-2 outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-secondary p-1">
+        <PokemonArtwork name={species} dexNum={dexNum} className="text-caption" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-caption text-muted-foreground">{eyebrow}</span>
+        <span className="block truncate text-subhead font-semibold">{species}</span>
+        <span className="block font-card-mono text-[18px] font-medium leading-tight tabular">{cifra}</span>
+      </span>
+    </Link>
+  );
 }
 
 function Destacado({ to, species, dexNum, eyebrow, cifra, detalle }: {

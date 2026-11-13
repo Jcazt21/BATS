@@ -162,3 +162,27 @@ describe("DataList · orden en móvil (mobileSort)", () => {
     for (const chip of within(ordenar()).getAllByRole("radio")) expect(chip.className).toMatch(/before:-inset-y-/);
   });
 });
+
+describe("DataList · mobileRow", () => {
+  type R = { id: string; n: number };
+  const cols: Column<R>[] = [
+    { key: "id", header: "Nombre", primary: true, cell: (r) => r.id },
+    { key: "n", header: "Número", cell: (r) => r.n },
+  ];
+
+  it("en el teléfono usa la fila compacta en vez de la tarjeta etiqueta/valor", () => {
+    mockViewport(false);
+    render(<DataList caption="Lista" rows={[{ id: "a", n: 1 }]} columns={cols} rowKey={(r) => r.id}
+      mobileRow={(r) => <p>compacta {r.id}-{r.n}</p>} />);
+    const lista = screen.getByRole("list", { name: "Lista" });
+    expect(within(lista).getByText("compacta a-1")).toBeInTheDocument();
+    expect(within(lista).queryByText("Número")).not.toBeInTheDocument();
+  });
+
+  it("en escritorio la ignora y muestra la tabla", () => {
+    render(<DataList caption="Lista" rows={[{ id: "a", n: 1 }]} columns={cols} rowKey={(r) => r.id}
+      mobileRow={(r) => <p>compacta {r.id}</p>} />);
+    expect(screen.getByRole("table", { name: "Lista" })).toBeInTheDocument();
+    expect(screen.queryByText("compacta a")).not.toBeInTheDocument();
+  });
+});

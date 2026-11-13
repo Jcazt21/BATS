@@ -2,7 +2,7 @@ import { POKEMON_TYPES, typeLabel, type PokemonType } from "@/lib/pokemon-types"
 import { cn } from "@/lib/utils";
 
 /** Chips de tipo (radiogroup): "Todos" o uno. Flechas mueven la selección, como en `SegmentedControl`. */
-export function TypeFilter({ value, onChange }: { value: PokemonType | null; onChange: (v: PokemonType | null) => void }) {
+export function TypeFilter({ value, onChange, className }: { value: PokemonType | null; onChange: (v: PokemonType | null) => void; className?: string }) {
   const opciones: (PokemonType | null)[] = [null, ...POKEMON_TYPES];
 
   function onKey(e: React.KeyboardEvent, i: number) {
@@ -14,7 +14,7 @@ export function TypeFilter({ value, onChange }: { value: PokemonType | null; onC
   }
 
   return (
-    <div role="radiogroup" aria-label="Filtrar por tipo" className="flex flex-wrap gap-2">
+    <div role="radiogroup" aria-label="Filtrar por tipo" className={cn("flex flex-wrap gap-2", className)}>
       {opciones.map((t, i) => {
         const on = t === value;
         return (

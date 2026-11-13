@@ -24,7 +24,7 @@ export function UsageScatter({ rows, temporada }: { rows: PokedexRow[]; temporad
 
   const figura = (
     <figure className="flex flex-1 flex-col" aria-label="Uso contra win rate de los pokémon">
-      <div className="h-[22rem]">
+      <div className="h-64 md:h-[22rem]">
         <ResponsiveContainer width="100%" height="100%">
           <ScatterChart margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
             <CartesianGrid stroke="var(--separator)" />

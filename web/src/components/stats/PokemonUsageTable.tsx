@@ -29,6 +29,23 @@ const COLS: Column<PokedexRow>[] = [
   { key: "mvp", header: "MVP medio", align: "right", hideOnMobile: true, sortValue: (r) => r.avg_mvp, cell: (r) => num(r.avg_mvp, 1) },
 ];
 
+/** Teléfono: una línea por especie (la fila entera abre la ficha). */
+const usageRow = (r: PokedexRow) => (
+  <div className="flex min-h-11 items-center gap-3">
+    <PokemonSprite species={r.species} size={36} />
+    <span className="min-w-0 flex-1">
+      <span className="block truncate font-semibold">{r.species}</span>
+      <span className="block truncate text-caption text-muted-foreground">
+        Win rate {pct(r.win_rate_pct, 1)} · Supervivencia {pct(r.survival_pct, 1)}
+      </span>
+    </span>
+    <span className="flex w-16 shrink-0 flex-col items-end gap-1">
+      <span className="font-card-mono text-subhead tabular"><span className="sr-only">Pick rate </span>{pct(r.pick_pct, 1)}</span>
+      <Meter label={`Pick rate de ${r.species}`} value={r.pick_pct} className="w-full" />
+    </span>
+  </div>
+);
+
 export function PokemonUsageTable({ query, temporada = "active" }: {
   query: { data?: PokedexList; isPending?: boolean; isError?: boolean; error?: unknown; refetch: () => unknown };
   /** Temporada elegida en Estadísticas: la ficha debe mostrar la misma ("active" = la activa). */
@@ -71,12 +88,16 @@ export function PokemonUsageTable({ query, temporada = "active" }: {
           <Search aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar pokémon" aria-label="Buscar pokémon" className="rounded-full pl-10" />
         </div>
-        {species.isSuccess && <TypeFilter value={tipo} onChange={(t) => setParam("tipo", t)} />}
+        {/* En el teléfono los 19 chips van en una sola fila desplazable en vez de ocupar ~250 px. */}
+        {species.isSuccess && (
+          <TypeFilter value={tipo} onChange={(t) => setParam("tipo", t)}
+            className="-mx-4 flex-nowrap overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:pb-0" />
+        )}
       </div>
 
       {query.isError ? <ErrorState error={query.error} onRetry={() => query.refetch()} /> : (
         <DataList
-          caption="Pokémon de la liga" rows={rows} columns={COLS} rowKey={(r) => r.species} mobileSort
+          caption="Pokémon de la liga" rows={rows} columns={COLS} rowKey={(r) => r.species} mobileSort mobileRow={usageRow}
           loading={query.isPending} defaultSort={{ key: "pick", dir: "desc" }}
           rowHref={ficha}
           rowPrefetch={ficha}

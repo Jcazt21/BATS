@@ -37,6 +37,8 @@ interface Props<T> {
   caption: string;
   /** En móvil (tarjetas) ofrece chips "Ordenar por" para las columnas ordenables. */
   mobileSort?: boolean;
+  /** En móvil reemplaza la tarjeta genérica (título + pares etiqueta/valor) por una fila compacta propia. */
+  mobileRow?: (row: T) => ReactNode;
   className?: string;
 }
 
@@ -44,7 +46,7 @@ interface Props<T> {
  * Una sola lista de datos con dos presentaciones: tabla en pantallas anchas y tarjetas
  * en el móvil. Sin desplazamiento horizontal y sin duplicar código por página.
  */
-export function DataList<T>({ rows, columns, rowKey, onRowClick, rowHref, rowPrefetch, defaultSort, loading, empty, caption, mobileSort, className }: Props<T>) {
+export function DataList<T>({ rows, columns, rowKey, onRowClick, rowHref, rowPrefetch, defaultSort, loading, empty, caption, mobileSort, mobileRow, className }: Props<T>) {
   // Solo se monta una presentación (tabla o tarjetas): montar las dos duplicaba filas, celdas y sprites.
   const wide = useMediaQuery("(min-width: 768px)");
   const [sort, setSort] = useState(defaultSort);
@@ -128,24 +130,28 @@ export function DataList<T>({ rows, columns, rowKey, onRowClick, rowHref, rowPre
       {!wide && <ul className="divide-y divide-separator" aria-label={caption}>
         {sorted.map((row, i) => (
           // Fuera de pantalla no se maqueta ni se pinta: el scroll de listas largas (Pokédex) no se atasca.
-          <li key={rowKey(row)} style={rowAnim(i).style} className={cn("[contain-intrinsic-size:auto_5.5rem] [content-visibility:auto]", rowAnim(i).className)}>
+          <li key={rowKey(row)} style={rowAnim(i).style} className={cn(mobileRow ? "[contain-intrinsic-size:auto_3.75rem]" : "[contain-intrinsic-size:auto_5.5rem]", "[content-visibility:auto]", rowAnim(i).className)}>
             <div
               role={onRowClick ? "button" : undefined}
               tabIndex={onRowClick ? 0 : undefined}
               data-prefetch={rowPrefetch?.(row)}
               onClick={onRowClick ? (e) => activate(e, row) : undefined}
               onKeyDown={onRowClick ? (e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), onRowClick(row)) : undefined}
-              className={cn("flex flex-col gap-2 px-4 py-3", clickable)}
+              className={cn(mobileRow ? "px-4 py-2.5" : "flex flex-col gap-2 px-4 py-3", clickable)}
             >
-              <div className="text-headline">{withLink(row, primary.cell(row))}</div>
-              <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                {secondary.map((c) => (
-                  <div key={c.key} className="flex min-w-0 flex-col">
-                    <dt className="text-caption text-muted-foreground">{c.header}</dt>
-                    <dd className="tabular truncate text-subhead">{c.cell(row)}</dd>
-                  </div>
-                ))}
-              </dl>
+              {mobileRow ? mobileRow(row) : (
+                <>
+                  <div className="text-headline">{withLink(row, primary.cell(row))}</div>
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                    {secondary.map((c) => (
+                      <div key={c.key} className="flex min-w-0 flex-col">
+                        <dt className="text-caption text-muted-foreground">{c.header}</dt>
+                        <dd className="tabular truncate text-subhead">{c.cell(row)}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </>
+              )}
             </div>
           </li>
         ))}

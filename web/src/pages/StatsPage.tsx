@@ -69,6 +69,35 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
       cell: (r) => <span className="font-card-mono tabular">{streakLabel(r.streak)}</span> },
     { key: "surv", header: "Supervivientes", align: "right", hideOnMobile: true, sortValue: (r) => r.total_survivors, cell: (r) => r.total_survivors },
   ];
+  /** Teléfono: una línea por jugador (posición, avatar, nombre, V-D-E, win rate y racha) en vez de 6 pares etiqueta/valor. */
+  const leaderboardRow = (r: Ranked) => (
+    <div className="flex min-h-11 items-center gap-3">
+      <span className="w-5 shrink-0 text-right font-card-mono text-subhead tabular text-muted-foreground"><span className="sr-only">Posición </span>{r._rank}</span>
+      <PlayerAvatar name={r.username} size={32} />
+      <span className="min-w-0 flex-1">
+        <Link to={`/j/${encodeURIComponent(r.username)}`} className="block truncate font-semibold hover:underline">{r.username}</Link>
+        <span className="block font-card-mono text-caption tabular text-muted-foreground">
+          <span className="sr-only">Victorias, derrotas y empates: </span>{r.wins}-{r.losses}-{r.ties}
+        </span>
+      </span>
+      <span className="flex w-16 shrink-0 flex-col items-end gap-1">
+        <span className="font-card-mono text-subhead tabular">{pct(r.win_rate_pct)}</span>
+        <Meter label={`Win rate de ${r.username}`} value={r.win_rate_pct} className="w-full" tone={r.win_rate_pct >= 50 ? "success" : "primary"} />
+      </span>
+      <span className="w-9 shrink-0 text-right font-card-mono text-footnote tabular"><span className="sr-only">Racha </span>{streakLabel(r.streak)}</span>
+    </div>
+  );
+  const mvpRow = (r: MvpEntry) => (
+    <div className="flex min-h-11 items-center gap-3">
+      <PokemonSprite species={r.species} size={36} />
+      <span className="min-w-0 flex-1">
+        <Link to={fichaHref(r.species, seasonChoice)} className="block truncate font-semibold hover:underline">{r.species}</Link>
+        <span className="block truncate text-caption text-muted-foreground">de {r.player} · {r.total_kills} KOs</span>
+      </span>
+      <span className="font-card-mono text-subhead tabular"><span className="sr-only">MVP </span>{num(Number(r.total_mvp_score), 1)}</span>
+    </div>
+  );
+
   // La posición sale del orden de origen (victorias), no del orden que elija el usuario
   const ranked: Ranked[] = (leaderboard.data ?? []).map((r, i) => ({ ...r, _rank: i + 1 }));
 
@@ -114,7 +143,7 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
 
           <TabsContent value="jugadores" className="flex flex-col gap-6">
             {leaderboard.isError ? <ErrorState error={leaderboard.error} onRetry={() => leaderboard.refetch()} /> : (
-              <DataList caption="Clasificación de jugadores" rows={ranked} columns={leaderboardCols} rowKey={(r) => r.username} mobileSort
+              <DataList caption="Clasificación de jugadores" rows={ranked} columns={leaderboardCols} rowKey={(r) => r.username} mobileSort mobileRow={leaderboardRow}
                 loading={leaderboard.isPending} defaultSort={{ key: "wins", dir: "desc" }}
                 empty={<EmptyState title="Aún no hay batallas" description="Cuando se juegue la primera aparecerá aquí." />} />
             )}
@@ -129,7 +158,7 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
             <section aria-labelledby="top-mvp" className="flex flex-col gap-3">
               <h2 id="top-mvp" className="px-1 text-title3">Top de MVP</h2>
               {mvp.isError ? <ErrorState error={mvp.error} onRetry={() => mvp.refetch()} /> : (
-                <DataList caption="Top de MVP" rows={mvp.data ?? []} columns={mvpCols} rowKey={(r) => `${r.species}-${r.player}`} mobileSort loading={mvp.isPending}
+                <DataList caption="Top de MVP" rows={mvp.data ?? []} columns={mvpCols} rowKey={(r) => `${r.species}-${r.player}`} mobileSort mobileRow={mvpRow} loading={mvp.isPending}
                   empty={<EmptyState title="Sin datos de MVP" />} />
               )}
             </section>

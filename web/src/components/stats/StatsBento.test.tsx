@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { StatsBento, type StatsBentoProps } from "./StatsBento";
 import { num, pct } from "@/lib/format";
+import { mockViewport } from "@/lib/test-utils";
 
 const base: StatsBentoProps = {
   summary: { total_battles: 12, total_players: 4, avg_turns: 18.5, top_win_rate: 75 } as StatsBentoProps["summary"],
@@ -19,7 +20,9 @@ const base: StatsBentoProps = {
 const renderBento = (props: Partial<StatsBentoProps> = {}) =>
   render(<MemoryRouter><StatsBento {...base} {...props} /></MemoryRouter>);
 
-describe("StatsBento", () => {
+describe("StatsBento · escritorio", () => {
+  beforeEach(() => mockViewport(true));
+
   it("muestra batallas, el pokémon más usado enlazado a su ficha y el MVP", () => {
     renderBento();
     const usado = screen.getByRole("region", { name: "Pokémon más usado" });
@@ -50,6 +53,30 @@ describe("StatsBento", () => {
     expect(screen.getByText("Aún no hay jugadores.")).toBeInTheDocument();
     expect(screen.getByText("Aún no hay pokémon.")).toBeInTheDocument();
     expect(screen.getByText("Aún no hay MVP.")).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/NaN|undefined/);
+  });
+});
+
+describe("StatsBento · teléfono", () => {
+  beforeEach(() => mockViewport(false));
+
+  it("muestra cifras chicas y destacados compactos, sin la curva ni las barras", () => {
+    renderBento({ temporada: 2 });
+    const bento = screen.getByRole("group", { name: "Resumen de la temporada" });
+    expect(within(bento).getByRole("region", { name: "Batallas" })).toHaveTextContent("12");
+    expect(within(bento).getByRole("region", { name: "Batallas" })).toHaveTextContent("esta semana");
+    expect(within(bento).getByRole("region", { name: "Turnos por batalla" })).toHaveTextContent(num(18.5, 1));
+    expect(within(bento).getByRole("link", { name: /Scizor-Mega/ })).toHaveAttribute("href", "/stats/pokemon/Scizor-Mega?temporada=2");
+    expect(within(bento).getByRole("region", { name: "MVP de la temporada" })).toHaveTextContent("misty");
+    expect(screen.queryByRole("img", { name: /Batallas acumuladas|Win rate por jugador/ })).not.toBeInTheDocument();
+  });
+
+  it("temporada sin batallas: ningún NaN ni undefined", () => {
+    const { container } = renderBento({
+      summary: { total_battles: 0, total_players: 0, avg_turns: null, top_win_rate: null } as unknown as StatsBentoProps["summary"],
+      leaderboard: [], perDay: { days: [], last_7: 0, prev_7: 0 }, topPokemon: undefined, mvp: undefined,
+    });
+    expect(screen.getByText("Aún no hay pokémon.")).toBeInTheDocument();
     expect(container.textContent).not.toMatch(/NaN|undefined/);
   });
 });

@@ -20,6 +20,8 @@ export interface MagicBentoProps extends Omit<HTMLAttributes<HTMLDivElement>, "c
   items: MagicBentoItem[];
   /** Columnas en pantallas anchas; los `colSpan` se escalan al bajar a 2 o 1 columnas. */
   columns?: number;
+  /** Columnas mínimas en pantallas angostas (por defecto 1). Con 2, el teléfono muestra dos tarjetas por fila. */
+  minColumns?: number;
   rowHeight?: number;
   gap?: number;
   /** Radio de las tarjetas en px (por defecto el de las tarjetas de la app). */
@@ -42,7 +44,7 @@ const PAIR = 560;
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
 export default function MagicBento({
-  items, columns = 4, rowHeight = 160, gap = 12, radius = 28, glowColor = "var(--primary)",
+  items, columns = 4, minColumns = 1, rowHeight = 160, gap = 12, radius = 28, glowColor = "var(--primary)",
   enableBorderGlow = true, enableSpotlight = true, spotlightRadius = 320, clickEffect = true,
   intro = true, disableAnimations = false, className = "", style, ...rest
 }: MagicBentoProps) {
@@ -52,7 +54,7 @@ export default function MagicBento({
   const engineRef = useRef<{ sync: () => void } | null>(null);
   const [cols, setCols] = useState(columns);
 
-  const settings = { columns, enableBorderGlow, enableSpotlight, spotlightRadius: Math.max(40, spotlightRadius), clickEffect, intro, disableAnimations };
+  const settings = { columns, minColumns, enableBorderGlow, enableSpotlight, spotlightRadius: Math.max(40, spotlightRadius), clickEffect, intro, disableAnimations };
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
@@ -204,7 +206,8 @@ export default function MagicBento({
     const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(() => {
       const width = root.clientWidth;
       const max = settingsRef.current.columns;
-      setCols(width >= WIDE ? max : width >= PAIR ? Math.min(2, max) : 1);
+      const min = Math.min(settingsRef.current.minColumns, max);
+      setCols(Math.max(min, width >= WIDE ? max : width >= PAIR ? Math.min(2, max) : 1));
       dirty = true;
       wake();
     });

@@ -10,6 +10,7 @@ import { EmptyState, ErrorState } from "@/components/app/States";
 import MagicBento, { type MagicBentoItem } from "@/components/effects/MagicBento";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { ApiError } from "@/lib/http";
 import { WIDE_ROW } from "@/lib/layout";
 import { useActiveSeason, usePokemonStatsEntry } from "@/lib/queries";
@@ -24,6 +25,8 @@ export function PokemonStatsPage() {
   // Misma temporada que la lista de origen: "all" = todas, un número = esa, nada = la activa.
   const sid = temporada === "all" ? undefined : temporada && Number.isInteger(Number(temporada)) ? Number(temporada) : season.data?.season_id;
   const q = usePokemonStatsEntry(species, sid);
+  // Teléfono: cifras en 2 columnas y tarjetas con alto automático (sin el alto fijo de escritorio).
+  const phone = !useMediaQuery("(min-width: 768px)");
 
   const back = (
     <Link
@@ -52,7 +55,7 @@ export function PokemonStatsPage() {
     {
       id: "pick",
       label: "Pick rate",
-      colSpan: 2,
+      colSpan: phone ? 5 : 2,
       rowSpan: 1,
       content: (
         <Cifra
@@ -66,7 +69,7 @@ export function PokemonStatsPage() {
     {
       id: "bring",
       label: "Bring rate",
-      colSpan: 2,
+      colSpan: phone ? 5 : 2,
       rowSpan: 1,
       content: (
         <Cifra
@@ -80,14 +83,14 @@ export function PokemonStatsPage() {
     {
       id: "win",
       label: "Win rate",
-      colSpan: 2,
+      colSpan: phone ? 5 : 2,
       rowSpan: 1,
       content: <Cifra label="Win rate" value={pct(d?.win_rate_pct, 1)} loading={q.isPending} />,
     },
     {
       id: "mvp",
       label: "MVP medio",
-      colSpan: 2,
+      colSpan: phone ? 5 : 2,
       rowSpan: 1,
       content: (
         <Cifra
@@ -101,7 +104,7 @@ export function PokemonStatsPage() {
     {
       id: "survival",
       label: "Supervivencia",
-      colSpan: 2,
+      colSpan: phone ? 10 : 2,
       rowSpan: 1,
       content: (
         <Cifra
@@ -119,7 +122,7 @@ export function PokemonStatsPage() {
       id: "users",
       label: "Quién lo usa",
       colSpan: 6,
-      rowSpan: 2,
+      rowSpan: phone ? 1 : 2,
       content: (
         <Seccion title="Quién lo usa">
           {q.isPending ? (
@@ -154,7 +157,7 @@ export function PokemonStatsPage() {
       id: "sets",
       label: "Sets registrados",
       colSpan: 6,
-      rowSpan: 2,
+      rowSpan: phone ? 1 : 2,
       content: (
         <Seccion
           title="Sets registrados"
@@ -202,7 +205,7 @@ export function PokemonStatsPage() {
         </div>
       </div>
 
-      <MagicBento items={statItems} columns={10} rowHeight={148} gap={12} role="group" aria-label="Rendimiento" />
+      <MagicBento items={statItems} columns={10} minColumns={2} rowHeight={phone ? 96 : 148} gap={phone ? 10 : 12} role="group" aria-label="Rendimiento" />
 
       {d && d.bring_pct != null && d.pick_pct != null && d.bring_pct > d.pick_pct + 5 && (
         <p className="rounded-2xl bg-info-soft px-4 py-3 text-subhead text-info" role="note">
@@ -210,7 +213,7 @@ export function PokemonStatsPage() {
         </p>
       )}
 
-      <MagicBento items={detailItems} columns={12} rowHeight={160} gap={12} role="group" aria-label="Uso y sets" />
+      <MagicBento items={detailItems} columns={12} rowHeight={phone ? 96 : 160} gap={phone ? 10 : 12} role="group" aria-label="Uso y sets" />
     </div>
   );
 }
@@ -218,14 +221,14 @@ export function PokemonStatsPage() {
 /** Cifra de rendimiento dentro de una celda MagicBento, con número grande estilo HomeBento. */
 function Cifra({ label, value, hint, loading }: { label: string; value: ReactNode; hint?: ReactNode; loading?: boolean }) {
   return (
-    <div className="flex flex-1 flex-col justify-between gap-2">
-      <p className="text-footnote font-medium text-muted-foreground">{label}</p>
+    <div className="flex flex-1 flex-col justify-between gap-1.5 md:gap-2">
+      <p className="truncate text-footnote font-medium text-muted-foreground">{label}</p>
       {loading ? (
-        <Skeleton className="h-11 w-24" />
+        <Skeleton className="h-8 w-20 md:h-11 md:w-24" />
       ) : (
-        <p className="font-card-mono text-[44px] font-medium leading-none tabular text-foreground">{value}</p>
+        <p className="font-card-mono text-[30px] font-medium leading-none tabular text-foreground md:text-[44px]">{value}</p>
       )}
-      <p className="min-h-4 text-caption text-muted-foreground">{hint}</p>
+      <p className="min-h-4 truncate text-caption text-muted-foreground">{hint}</p>
     </div>
   );
 }

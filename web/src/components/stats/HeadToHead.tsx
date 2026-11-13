@@ -48,12 +48,12 @@ export function HeadToHead({ players, me, season, dexNum }: {
         <p className="text-footnote text-muted-foreground">Historial directo</p>
       </div>
 
-      <div className="grid grid-cols-1 items-center gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
         <Combobox ariaLabel="Jugador A" items={opciones(b)} value={a ?? null} onChange={(id) => setElegidos((e) => ({ ...e, a: id }))}
-          placeholder="Busca un jugador" emptyText="Ningún jugador con ese nombre" className="w-full" inputClassName="h-11 rounded-2xl px-4" />
+          placeholder="Busca un jugador" emptyText="Ningún jugador con ese nombre" className="w-full" inputClassName="h-11 rounded-2xl px-3 sm:px-4" />
         <span aria-hidden="true" className="text-center text-footnote font-semibold text-muted-foreground">vs</span>
         <Combobox ariaLabel="Jugador B" items={opciones(a)} value={b ?? null} onChange={(id) => setElegidos((e) => ({ ...e, b: id }))}
-          placeholder="Busca un jugador" emptyText="Ningún jugador con ese nombre" className="w-full" inputClassName="h-11 rounded-2xl px-4" />
+          placeholder="Busca un jugador" emptyText="Ningún jugador con ese nombre" className="w-full" inputClassName="h-11 rounded-2xl px-3 sm:px-4" />
       </div>
 
       {q.isError ? <ErrorState error={q.error} onRetry={() => q.refetch()} /> :
@@ -64,7 +64,7 @@ export function HeadToHead({ players, me, season, dexNum }: {
           <>
             <div role="group" aria-label="Marcador" className="flex items-center justify-center gap-4">
               <Lado nombre={nombre(d.a)} victorias={d.wins_a} gana={d.wins_a > d.wins_b} />
-              <span aria-hidden="true" className="font-card-mono text-[40px] leading-none text-muted-foreground">–</span>
+              <span aria-hidden="true" className="font-card-mono text-[28px] leading-none text-muted-foreground sm:text-[40px]">–</span>
               <Lado nombre={nombre(d.b)} victorias={d.wins_b} gana={d.wins_b > d.wins_a} />
             </div>
             {d.ties > 0 && <p className="-mt-2 text-center text-footnote text-muted-foreground">{d.ties} {d.ties === 1 ? "empate" : "empates"}</p>}
@@ -97,7 +97,7 @@ export function HeadToHead({ players, me, season, dexNum }: {
 function Lado({ nombre, victorias, gana }: { nombre: string; victorias: number; gana: boolean }) {
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center">
-      <span className={cn("font-card-mono text-[56px] font-medium leading-none tabular", !gana && "text-muted-foreground")}>{victorias}</span>
+      <span className={cn("font-card-mono text-[40px] font-medium leading-none tabular sm:text-[56px]", !gana && "text-muted-foreground")}>{victorias}</span>
       <Link to={`/j/${encodeURIComponent(nombre)}`} className="mt-2 max-w-full truncate rounded text-subhead font-semibold outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring">{nombre}</Link>
     </div>
   );
@@ -105,11 +105,11 @@ function Lado({ nombre, victorias, gana }: { nombre: string; victorias: number; 
 
 function Asesino({ jugador, killer, dexNum }: { jugador: string; killer: Killer; dexNum?: (species: string) => number | undefined }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-2xl bg-secondary/60 p-3 text-center">
+    <div className="flex flex-col items-center gap-1 rounded-2xl bg-secondary/60 p-2.5 text-center sm:gap-2 sm:p-3">
       <p className="text-caption text-muted-foreground">Más KOs de {jugador}</p>
       {killer ? (
         <>
-          <span className="grid size-16 place-items-center"><PokemonArtwork name={killer.species} dexNum={dexNum?.(killer.species)} className="text-caption" /></span>
+          <span className="grid size-11 place-items-center sm:size-16"><PokemonArtwork name={killer.species} dexNum={dexNum?.(killer.species)} className="text-caption" /></span>
           <p className="max-w-full truncate text-subhead font-semibold">{killer.species}</p>
           <p className="font-card-mono text-footnote tabular text-muted-foreground">{killer.kills} KOs</p>
         </>

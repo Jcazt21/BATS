@@ -922,7 +922,15 @@ Cada punto es una tarea con sus tests actualizados:
   `mode` e `identify` y cada `Ruta` lleva `publica?` (solo `health`); los tests de F0.4 que usan
   rutas protegidas pasan `mode: () => 'all'`. `identify` (JWT) llega en la fase 2; sin él,
   `admins` queda cerrado. CI: se añadieron `test_arena_flags.py` y `test_vercel_config.py` al
-  pytest del job backend. Pendiente: `npx vercel build` y deploy en preview (puerta [HUMANO]).
+  pytest del job backend. Pendiente: puerta [HUMANO] en producción.
+- 2026-11-14 · Fase 0 · Preview (`vercel deploy`, iad1) validó las 3 hipótesis sin `includeFiles`:
+  `GET /api/motor/health` → `ok: true`, engine 0.11.0, Node 24.22.3; `replay_ms` 107 (frío) y 45
+  (caliente); primera petición ~4.5 s de pared medida con `vercel curl` (incluye red y
+  autenticación; no es el frío puro), siguientes ~1.4 s. `/api/health` sigue respondiendo.
+  Bundles: `api/motor` 2.98 MB, `api/index` 78.39 MB (falta compararlo con producción actual).
+  Hallazgo: Vercel rechaza `excludeFiles` de más de 256 caracteres; se compactó con llaves
+  anidadas y `test_vercel_config.py` lo vigila. `vercel build` local falla con "Request failed"
+  (builder de Python, probable red); el deploy remoto compila bien.
 
 ---
 

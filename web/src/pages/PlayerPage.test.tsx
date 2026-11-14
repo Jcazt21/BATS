@@ -24,7 +24,7 @@ vi.mock("@/components/app/BattleDetail", () => ({
 
 const perfil = {
   username: "ash", first_seen: null, last_seen: null,
-  record: { battles: 5, wins: 3, losses: 2, win_rate_pct: 60, forfeits: 0, survivors: 8 },
+  record: { battles: 5, wins: 3, losses: 2, ties: 0, win_rate_pct: 60, forfeits: 0, survivors: 8 },
   mvp: { total: 10, kills: 7 }, streak: { type: "win", length: 3 }, top_pokemon: [],
   recent: [{ battle_id: "b1", date: "2026-10-01", opponent: "misty", won: true, turns: 12, end_type: "normal" }],
   roster: null,
@@ -48,6 +48,15 @@ beforeEach(() => {
 });
 
 describe("PlayerPage", () => {
+  it("el récord muestra los empates aparte solo cuando los hay", () => {
+    const { unmount } = renderPage();
+    expect(screen.getByText("3–2")).toBeInTheDocument();
+    unmount();
+    st.profile = { isPending: false, data: { ...perfil, record: { ...perfil.record, battles: 6, ties: 1 } } };
+    renderPage();
+    expect(screen.getByText("3–2–1")).toBeInTheDocument();
+  });
+
   it("el encabezado está alineado a la grilla: es hijo directo de la página, no está anidado en un flex", () => {
     const { container } = renderPage();
     const pagina = container.firstElementChild!;
@@ -55,9 +64,9 @@ describe("PlayerPage", () => {
   });
 
   it("volver regresa a la página previa y, entrando directo, a /stats", async () => {
-    renderPage(["/pokedex/Gengar", "/j/ash"], 1);
+    renderPage(["/stats/pokemon/Gengar", "/j/ash"], 1);
     await userEvent.click(screen.getByRole("link", { name: /Estadísticas/ }));
-    expect(screen.getByTestId("loc")).toHaveTextContent("/pokedex/Gengar");
+    expect(screen.getByTestId("loc")).toHaveTextContent("/stats/pokemon/Gengar");
   });
 
   it("selector de temporada: por defecto la activa; elegir otra o 'Todas' repite la consulta", async () => {
@@ -77,5 +86,10 @@ describe("PlayerPage", () => {
     await userEvent.click(screen.getByRole("button", { name: /vs misty/ }));
     const dialogo = await screen.findByRole("dialog", { name: "ash vs misty" });
     expect(within(dialogo).getByText(/detalle ash vs misty gana ash/)).toBeInTheDocument();
+  });
+
+  it("enlaza a la Pokédex pública del jugador", () => {
+    renderPage();
+    expect(screen.getByRole("link", { name: /Ver Pokédex/ }).getAttribute("href")).toBe("/j/ash/pokedex");
   });
 });

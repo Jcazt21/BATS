@@ -547,11 +547,15 @@ El secret del JWT se deriva de: `SHA-256(BATS_VOTER_SALT)`. Expira en 24h.
 | `GET` | `/api/stats/summary` | KPIs globales (total batallas, jugadores, avg turnos, top win rate). Acepta `?season_id=X` |
 | `GET` | `/api/stats/mvp` | Top 5 pokémon por MVP Score acumulado. Acepta `?season_id=X` |
 | `GET` | `/api/stats/pickrate` | Pick rate y win rate de las 20 especies más usadas. Acepta `?season_id=X` |
-| `GET` | `/api/stats/leaderboard` | Leaderboard de jugadores con W/L. Acepta `?season_id=X` |
+| `GET` | `/api/stats/leaderboard` | Leaderboard de jugadores con V/D/E (`wins`, `losses`, `ties`; `win_rate_pct` = victorias / batallas), `form` (últimas 5 como `W`/`L`/`T`, de la más vieja a la más nueva) y `streak` `{type, length}` (un empate corta la racha). Forma y racha salen en vivo de `fact_battles`. Acepta `?season_id=X` |
+| `GET` | `/api/stats/head-to-head?a=&b=` | Cara a cara entre dos jugadores (usernames sin distinguir mayúsculas): `wins_a`, `wins_b`, `ties`, las últimas `limit` batallas (5 por defecto, 1–20; `winner` null = empate) y `top_killer` `{a, b}` (especie con más KOs de cada uno en esos duelos). Los conteos cubren todas las batallas. 400 si `a == b`, 404 si un jugador no existe. Acepta `?season_id=X` |
+| `GET` | `/api/stats/collectors` | Ranking de coleccionistas: `[{username, seen}]` con los avistamientos crudos de `tournament.pokedex_seen` (mismo formato que `/api/players/{username}/pokedex`) de cada jugador con al menos uno. El frontend calcula el progreso con `buildCollection` + `collectionProgress`, igual que la Pokédex. No depende de la temporada |
 | `GET` | `/api/stats/bot/summary` | Rendimiento de jugadores vs bot |
 | `GET` | `/api/stats/bot/pokemon` | Pokémon más usados contra el bot |
 | `GET` | `/api/stats/bot/battles` | Historial de batallas vs bot (últimas 50) |
 | `GET` | `/api/stats/battles/{battle_id}` | Detalle de pokémon de una batalla |
+| `GET` | `/api/stats/pokemon` | Uso por especie: pick %, bring %, win rate, kills y MVP medios y `survival_pct` (veces que terminó vivo / veces que salió al campo, en vivo desde `fact_pokemon_performance`). Acepta `?season_id=X` |
+| `GET` | `/api/stats/pokemon/{species}` | Ficha de una especie: quién la usa, `survival_pct` y sus sets más comunes (solo de rosters públicos). Acepta `?season_id=X` |
 | `GET` | `/api/stats/bot/battles/{battle_id}` | Detalle de una batalla vs bot |
 
 **Optimización:** sin `?season_id`, usa vistas materializadas (`mv_pick_rate`, `mv_player_stats`, etc.) para máxima velocidad. Con filtro de temporada hace queries a las tablas base.
@@ -632,6 +636,27 @@ API resuelve identidad y rol en `tournament.player_accounts`.
 
 ---
 
+### `/api/players/{username}/pokedex` — Pokédex por cuenta (pública)
+
+`GET /api/players/{username}/pokedex` devuelve las especies que el jugador vio salir al campo en batallas de liga, de la más reciente a la más antigua. El username no distingue mayúsculas.
+
+```json
+{ "username": "ana",
+  "seen": [ { "species_id": "scizormega", "species": "Scizor-Mega",
+              "first_seen_at": "2026-11-10T00:00:00+00:00", "battle_id": "gen9pinchesgueysleague-1008", "opponent": "bea" } ] }
+```
+
+- `200` con `seen: []` si el jugador tiene cuenta pero aún no vio nada; `404` si no tiene cuenta ni avistamientos.
+- El backend solo guarda hechos (`tournament.pokedex_seen`). La agrupación por número nacional, las preevoluciones descubiertas, los filtros y el progreso los calcula el frontend con el dex estático (`web/src/lib/dex/collection.ts`).
+
+Reglas de la Pokédex por cuenta:
+
+- Cuenta solo lo que **salió al campo** (`was_active`), propio o del rival. La banca no cuenta.
+- Solo batallas de **liga** (`LEAGUE_FORMAT`, `bats_core/league.py`); ni sparring ni batallas contra el bot.
+- Una casilla por número nacional: ver una forma (Scizor-Mega, Raichu-Alola) descubre la casilla de su número.
+- Ver una especie descubre también su cadena de preevoluciones, solo hacia atrás (ver Charizard descubre a Charmeleon y Charmander). Las megas heredan la cadena de su especie base.
+- El buscador encuentra por nombre solo a los descubiertos; por número, a cualquiera. La ficha `/pokedex/:species` de una casilla no descubierta redirige a la grilla.
+
 ### `/api/teams/*` — Equipos de Torneo (teambuilder)
 
 **⚠️ Sección reescrita** (la versión anterior describía rutas por `{username}` en la URL; la
@@ -678,7 +703,7 @@ Se guarda en `tournament.player_accounts.avatar` (migración `v13.sql`; `NULL` =
 | `GET` | `/api/trainers` | — | Catálogo `[{id, label, category}]` |
 | `GET` | `/api/trainers/{id}` | — | PNG del sprite (proxy a `play.pokemonshowdown.com/sprites/trainers/{id}.png`, solo ids del catálogo) |
 
-`GET /api/players/{username}` también devuelve `avatar`.
+`GET /api/players/{username}` también devuelve `avatar`. `record.ties` cuenta los empates y `record.losses` ya no los incluye (v15).
 
 ### `/api/admin/rosters`
 
@@ -778,6 +803,7 @@ tournament.bans             -- Bans oficiales confirmados por el admin
 tournament.roster           -- Equipo registrado por jugador por temporada
 tournament.roster_pokemon   -- Pokémon en el pool del equipo (max 8)
 tournament.roster_lineup    -- Los 6 activos del equipo en la batalla actual
+tournament.pokedex_seen     -- Pokédex por cuenta: primer avistamiento de cada especie por jugador (v14)
 ```
 
 ### Vistas
@@ -790,7 +816,7 @@ tournament.v_ban_ranking     -- Ranking de votos por temporada
 -- Vistas Materializadas (refrescadas solo después del ETL)
 battle.mv_pick_rate           -- Pick rate y win rate por especie y formato
 battle.mv_mvp_leaderboard     -- Ranking MVP por (jugador, pokémon, formato)
-battle.mv_player_stats        -- W/L/winrate por jugador
+battle.mv_player_stats        -- V/E/winrate por jugador (`ties` desde v15: winner_id IS NULL)
 battle.mv_ban_candidates      -- Especies con win_rate > 70% (candidatos a ban)
 battle.mv_bot_summary         -- Rendimiento de jugadores vs bot
 battle.mv_bot_pokemon         -- Pokémon usados por jugadores vs bot
@@ -845,6 +871,7 @@ No requiere PostgreSQL. Genera CSV y muestra tablas en terminal.
 python3 -m bats_core db --apply-schema               # Aplica schema.sql (idempotente)
 python3 -m bats_core db --etl --logs-dir ../pokemon-showdown/logs     # Corre ETL completo
 python3 -m bats_core db --refresh-views              # Refresca MVs
+python3 -m bats_core db --backfill-pokedex           # Pokédex por cuenta desde las batallas ya cargadas (idempotente)
 python3 -m bats_core db --apply-schema --etl --logs-dir ../pokemon-showdown/logs  # Combinado
 python3 -m bats_core db --dsn postgresql://... --etl --logs-dir ../pokemon-showdown/logs  # DSN explícito
 ```
@@ -910,6 +937,7 @@ Jugador desafía al bot en PS
         → detectar is_bot_battle (si PGL-Bot participa → skip stats)
         → INSERT fact_battles
         → INSERT fact_pokemon_performance (activos + banca)
+        → _record_pokedex_seen (solo liga, sin bot: tournament.pokedex_seen)
         → _detect_ban_violations (si hay season_id)
         → etl_log status="ok"
         → COMMIT

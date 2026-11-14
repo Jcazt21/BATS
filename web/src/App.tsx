@@ -15,7 +15,7 @@ import { HomePage } from "@/pages/HomePage";
 
 // Cada página se carga cuando se visita (o antes, al intuir que se va a visitar: ver routes.ts).
 const {
-  blog: BlogPage, blogPost: BlogPostPage, stats: StatsPage, pokedex: PokedexPage, pokedexEntry: PokedexEntryPage, player: PlayerPage, bans: BansPage, team: TeamPage,
+  blog: BlogPage, blogPost: BlogPostPage, stats: StatsPage, pokedex: PokedexPage, pokemonStats: PokemonStatsPage, player: PlayerPage, bans: BansPage, team: TeamPage,
   login: LoginPage, adminLayout: AdminLayout, statsBot: StatsBotPage, battles: BattlesPage, adminBans: AdminBansPage,
   seasons: SeasonsPage, players: PlayersPage, rosters: RostersPage, ingest: IngestPage, fairPlay: FairPlayPage,
   leagueSettings: LeagueSettingsPage, adminBlog: BlogAdminPage,
@@ -46,9 +46,12 @@ export default function App() {
                       <Route path="/blog" element={<BlogPage />} />
                       <Route path="/blog/:slug" element={<BlogPostPage />} />
                       <Route path="/stats" element={<StatsPage />} />
+                      <Route path="/stats/pokemon/:species" element={<PokemonStatsPage />} />
                       <Route path="/pokedex" element={<PokedexPage />} />
-                      <Route path="/pokedex/:species" element={<PokedexEntryPage />} />
+                      <Route path="/pokedex/:species" element={<PokedexPage />} />
                       <Route path="/j/:username" element={<PlayerPage />} />
+                      <Route path="/j/:username/pokedex" element={<PokedexPage />} />
+                      <Route path="/j/:username/pokedex/:species" element={<PokedexPage />} />
                       <Route path="/bans" element={<BansPage />} />
                       <Route path="/equipo" element={<TeamPage />} />
                     </Route>

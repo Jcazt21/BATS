@@ -45,4 +45,15 @@ describe("useScrollRestoration", () => {
     act(() => navigate("/pokedex?q=pika"));
     expect(scrollTo).not.toHaveBeenCalled();
   });
+
+  it("abrir y cerrar la ficha de la Pokédex (modal con URL) no mueve el scroll de la grilla", () => {
+    render(<MemoryRouter initialEntries={["/pokedex"]}><Probe /></MemoryRouter>);
+    scrollWindow(900);
+    scrollTo.mockClear();
+    act(() => navigate("/pokedex/charizard"));
+    expect(scrollTo).not.toHaveBeenCalled();
+    act(() => navigate("/j/ash/pokedex"));
+    act(() => navigate("/j/ash/pokedex/pikachu"));
+    expect(scrollTo).toHaveBeenCalledTimes(1);
+  });
 });

@@ -80,7 +80,7 @@ describe("GlobalSearch", () => {
     await userEvent.keyboard("/");
     await userEvent.type(await screen.findByRole("combobox"), "ge");
     await userEvent.click(screen.getByRole("option", { name: /Gengar/ }));
-    expect(screen.getByTestId("loc")).toHaveTextContent("/pokedex/Gengar");
+    expect(screen.getByTestId("loc")).toHaveTextContent("/stats/pokemon/Gengar");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -89,7 +89,7 @@ describe("GlobalSearch", () => {
     await userEvent.keyboard("/");
     await userEvent.type(await screen.findByRole("combobox"), "ge");
     await userEvent.keyboard("{ArrowDown}{Enter}");
-    expect(screen.getByTestId("loc")).toHaveTextContent("/pokedex/Geodude");
+    expect(screen.getByTestId("loc")).toHaveTextContent("/stats/pokemon/Geodude");
   });
 
   it("sin coincidencias lo dice", async () => {

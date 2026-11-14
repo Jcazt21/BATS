@@ -59,16 +59,6 @@ export interface MvpEntry {
   avg_mvp_per_battle: number;
 }
 
-export interface PickRateEntry {
-  species:       string;
-  battles_used:  number;
-  total_slots:   number;
-  usage_pct:     number;
-  avg_kills:     number;
-  avg_mvp_score: number;
-  win_rate_pct:  number;
-}
-
 export interface BotSummaryEntry {
   username:      string;
   total_battles: number;
@@ -121,13 +111,20 @@ export interface BattleEntry {
   winner:      string | null;
 }
 
+/** Resultado de un jugador en una batalla: W = victoria, L = derrota, T = empate (la UI muestra V / D / E). */
+export type MatchResult = "W" | "L" | "T";
+
 export interface LeaderboardEntry {
   username:         string;
   total_battles:    number;
   wins:             number;
   losses:           number;
+  ties:             number;
   win_rate_pct:     number;
   total_survivors:  number;
+  /** Últimas 5 batallas, de la más vieja a la más nueva. */
+  form:             MatchResult[];
+  streak:           { type: MatchResult | null; length: number };
 }
 
 export interface SeasonEntry {
@@ -381,7 +378,7 @@ export interface AuthLoginsResponse {
 
 /** Cuántas filas movió el rename de un username en tournament.roster/bans/ban_whitelist/ban_participation. */
 export interface UsernameRenameCascade {
-  roster: number; bans: number; whitelist: number; participation: number;
+  roster: number; bans: number; whitelist: number; participation: number; pokedex: number;
 }
 
 export interface BlogPostSummary {
@@ -414,7 +411,7 @@ export interface PlayerProfile {
   first_seen: string | null;
   last_seen:  string | null;
   record: {
-    battles: number; wins: number; losses: number; win_rate_pct: number | null;
+    battles: number; wins: number; losses: number; ties: number; win_rate_pct: number | null;
     forfeits: number; survivors: number;
   };
   mvp:    { total: number; kills: number };
@@ -433,6 +430,8 @@ export interface PlayerProfile {
 export interface PokedexRow {
   species: string; used: number; pick_pct: number | null; brought: number; bring_pct: number | null;
   win_rate_pct: number | null; avg_mvp: number; avg_kills: number;
+  /** % de veces que terminó la batalla vivo cuando salió al campo. */
+  survival_pct: number | null;
 }
 
 export interface PokedexList { total_slots: number; species: PokedexRow[] }
@@ -442,7 +441,7 @@ export interface CountedName { name: string; count: number }
 export interface PokedexEntry {
   species: string; types: string | null; sprite_url: string | null; national_dex: number | null;
   total_slots: number; used: number; pick_pct: number | null; brought: number; bring_pct: number | null;
-  win_rate_pct: number | null; avg_kills: number; avg_mvp: number;
+  win_rate_pct: number | null; avg_kills: number; avg_mvp: number; survival_pct: number | null;
   users: { username: string; uses: number; kills: number; mvp: number }[];
   sets: {
     players: number; moves: CountedName[]; items: CountedName[]; abilities: CountedName[];
@@ -528,7 +527,6 @@ export const getActiveSeason = () => request<ActiveSeasonInfo>("/api/teams/activ
 export const getPublicSeasons = () => request<PublicSeasonEntry[]>("/api/stats/seasons");
 export const getLeagueSummary = (seasonId?: number) => request<LeagueSummary>("/api/stats/summary", { params: { season_id: seasonId } });
 export const getMvpTop5 = (seasonId?: number) => request<MvpEntry[]>("/api/stats/mvp", { params: { season_id: seasonId } });
-export const getPickRate = (seasonId?: number) => request<PickRateEntry[]>("/api/stats/pickrate", { params: { season_id: seasonId } });
 export const getLeaderboard = (seasonId?: number) => request<LeaderboardEntry[]>("/api/stats/leaderboard", { params: { season_id: seasonId } });
 /** Batalla del feed de actividad. Empate: `winner` y `loser` son null. */
 export interface RecentBattle {
@@ -553,9 +551,32 @@ export const getBotBattleDetails = (battleId: string) => request<BattleDetailEnt
 
 export const getPlayerProfile = (username: string, seasonId?: number) =>
   request<PlayerProfile>(`/api/players/${encodeURIComponent(username)}`, { params: { season_id: seasonId } });
-export const getPokedex = (seasonId?: number) => request<PokedexList>("/api/pokedex", { params: { season_id: seasonId } });
-export const getPokedexEntry = (species: string, seasonId?: number) =>
-  request<PokedexEntry>(`/api/pokedex/${encodeURIComponent(species)}`, { params: { season_id: seasonId } });
+
+/** GET /api/stats/head-to-head: historial directo entre `a` y `b` (usernames en minúsculas). */
+export interface HeadToHead {
+  a: string; b: string; wins_a: number; wins_b: number; ties: number;
+  /** De la más reciente a la más vieja; `winner` null = empate. */
+  battles: { battle_id: string; date: string; winner: string | null; turns: number }[];
+  top_killer: { a: { species: string; kills: number } | null; b: { species: string; kills: number } | null };
+}
+export const getHeadToHead = (a: string, b: string, seasonId?: number) =>
+  request<HeadToHead>("/api/stats/head-to-head", { params: { a, b, season_id: seasonId } });
+
+/** Una especie que el jugador vio salir al campo en una batalla de liga (primer avistamiento). */
+export interface PokedexSighting {
+  species_id: string; species: string; first_seen_at: string; battle_id: string; opponent: string;
+}
+/** GET /api/players/{username}/pokedex: más reciente primero. */
+export interface PlayerPokedex { username: string; seen: PokedexSighting[] }
+export const getPlayerPokedex = (username: string) =>
+  request<PlayerPokedex>(`/api/players/${encodeURIComponent(username)}/pokedex`);
+
+/** GET /api/stats/collectors: avistamientos crudos de cada jugador con al menos uno (no depende de la temporada). */
+export interface CollectorEntry { username: string; seen: PokedexSighting[] }
+export const getCollectors = () => request<CollectorEntry[]>("/api/stats/collectors");
+export const getPokemonStats = (seasonId?: number) => request<PokedexList>("/api/stats/pokemon", { params: { season_id: seasonId } });
+export const getPokemonStatsEntry = (species: string, seasonId?: number) =>
+  request<PokedexEntry>(`/api/stats/pokemon/${encodeURIComponent(species)}`, { params: { season_id: seasonId } });
 
 // ── Equipo (requiere sesión) ──────────────────────────────────────────────────
 

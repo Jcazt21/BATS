@@ -8,6 +8,10 @@
 @import "@fontsource/jetbrains-mono/500.css";
 @import "./styles/tokens.css";
 
+/* Las etiquetas de tipo se arman en código (`type-${t}`): Tailwind no las ve escritas y no las
+   generaría. Se listan aquí (ver styles/type-colors.test.ts). */
+@source inline("type-{normal,fire,water,electric,grass,ice,fighting,poison,ground,flying,psychic,bug,rock,ghost,dragon,dark,steel,fairy}");
+
 @font-face {
   font-family: "Nofex";
   src: url("/fonts/nofex.woff2") format("woff2");
@@ -60,6 +64,14 @@
   }
   a, button, input, select, textarea, label, summary, [role="button"], [data-prefetch] {
     touch-action: manipulation;
+  }
+  /* Tailwind 4 deja los botones con cursor por defecto: la mano vuelve a todo lo que se pulsa
+     (no a lo deshabilitado). Ver styles/cursor.test.ts. */
+  button:not(:disabled), select:not(:disabled), summary,
+  [role="button"]:not([aria-disabled="true"]), [role="tab"]:not([aria-disabled="true"]),
+  [role="radio"]:not([aria-disabled="true"]), [role="menuitem"]:not([data-disabled]),
+  [role="menuitemcheckbox"]:not([data-disabled]), [role="option"]:not([aria-disabled="true"]) {
+    cursor: pointer;
   }
   /* Menús, diálogos y popovers entran con la curva de iOS: arranque decidido y frenada
      larga. Especificidad cero para que un `ease-*` explícito siga mandando. */

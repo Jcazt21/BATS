@@ -72,7 +72,7 @@ def get_player(username: str, season_id: Optional[int] = Query(None)):
         record = db.fetchone(
             f"""
             SELECT COALESCE(SUM(total_battles), 0) AS battles, COALESCE(SUM(wins), 0) AS wins,
-                   COALESCE(SUM(total_survivors), 0) AS survivors
+                   COALESCE(SUM(ties), 0) AS ties, COALESCE(SUM(total_survivors), 0) AS survivors
             FROM battle.mv_player_stats WHERE username = %s {mvf}
             """,
             (name,) + mvp,
@@ -128,6 +128,7 @@ def get_player(username: str, season_id: Optional[int] = Query(None)):
     forfeits = sum(1 for g in games if g["end_type"] == "forfeit" and not g["won"])
     battles = int(record["battles"])
     wins = int(record["wins"])
+    ties = int(record["ties"])
     return {
         "username": name,
         "avatar": account["avatar"] if account else None,
@@ -136,7 +137,8 @@ def get_player(username: str, season_id: Optional[int] = Query(None)):
         "record": {
             "battles": battles,
             "wins": wins,
-            "losses": battles - wins,
+            "losses": battles - wins - ties,
+            "ties": ties,
             "win_rate_pct": round(100 * wins / battles, 2) if battles else None,
             "forfeits": forfeits,
             "survivors": int(record["survivors"]),

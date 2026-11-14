@@ -25,6 +25,8 @@
   --secondary-foreground: oklch(0.27 0.03 45);
   --muted:                oklch(0.945 0.013 83);
   --muted-foreground:     oklch(0.46 0.02 60);
+  /* Silueta de Pokémon sin descubrir. Gris cálido, más oscuro que la card en claro, más claro en oscuro */
+  --silhouette:           oklch(0.58 0.02 60);
   --accent:               oklch(0.92 0.018 80);
   --accent-foreground:    oklch(0.22 0.03 45);
 
@@ -99,6 +101,7 @@
   --secondary-foreground: oklch(0.95 0.006 85);
   --muted:                oklch(0.23 0.006 70);
   --muted-foreground:     oklch(0.72 0.01 80);
+  --silhouette:           oklch(0.40 0.012 70);
   --accent:               oklch(0.28 0.008 70);
   --accent-foreground:    oklch(0.95 0.006 85);
 

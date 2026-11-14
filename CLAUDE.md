@@ -32,6 +32,7 @@ python -m bats_core api                    # FastAPI :8011 (dev)
 python -m bats_core db --apply-schema      # schema.sql + migraciones + vistas. Idempotente
 python -m bats_core backfill               # reenvía logs de PS a la API (BATS_API_URL + BATS_INGEST_TOKEN). Idempotente
 python -m bats_core db --etl               # carga logs directo a la DB
+python -m bats_core db --backfill-pokedex  # llena tournament.pokedex_seen con las batallas ya cargadas. Idempotente
 python -m bats_core dex --import           # web/public/dex/*.json -> tournament.dex_species
 python -m bats_core ban ...                # registrar/revocar/listar bans
 python -m bats_core bot                    # PGL-Bot (requiere requirements-dev.txt)
@@ -59,10 +60,11 @@ npx vitest run
 
 ## Base de datos
 
-- `schema.sql` + `migrations/v2…v10.sql` reconstruyen la base desde cero; `--apply-schema` es reaplicable.
+- `schema.sql` + `migrations/v2…v15.sql` reconstruyen la base desde cero; `--apply-schema` es reaplicable.
 - `seed.sql` y `roles.sql` son opcionales y **solo para Postgres local**; no los apliques en Supabase.
 - **Supabase** (proyecto `BATS`, us-east-1): strings en `.env` como `BATS_SUPABASE_DSN_POOLER` (`:6543`, Vercel) y `BATS_SUPABASE_DSN_SESSION` (`:5432`, migraciones/`pg_dump`). **`BATS_DB_DSN` apunta a la DB local a propósito**: `reset`, `clean` y los tests la usan por defecto. Para operar sobre Supabase pasa `--dsn` explícito. Sin RLS (Data API desactivada).
 - **La API lee siempre las vistas materializadas** (con o sin `?season_id=`); `season_id = 0` = "sin temporada". Se refrescan con `POST /api/ingest/refresh-views` y un cron diario. **La ingesta NO las refresca.**
+- **Orden de despliegue de v15 (al revés que v10):** primero `--apply-schema` y después el código nuevo (lee `mv_player_stats.ties`; el código viejo ignora la columna extra).
 - **Orden de despliegue de v10:** primero el código nuevo y enseguida `--apply-schema` (el código nuevo ya no inserta `mvp_score`, que ahora es columna generada).
 - **Transacciones:** `db.execute()` NO hace commit. Un bloque `with get_db()` es una transacción (commit al salir, rollback ante excepción); fuera de un `with` llama `db.commit()`.
 - No dependas del `search_path`.
@@ -70,6 +72,7 @@ npx vitest run
 ## Reglas del dominio
 
 - **Esquemas:** `battle.*` es efímero y puede truncarse; `tournament.*` (seasons, bans, votos, whitelist) **nunca** se trunca en cascada y no tiene FKs hacia `battle`. Al agregar tablas respeta esa frontera.
+- **Pokédex por cuenta:** `tournament.pokedex_seen` (v14) guarda el primer avistamiento de cada especie por jugador. La escribe `BATSEtl._record_pokedex_seen` dentro de `load_battle` (solo formato de liga, sin bot, solo `was_active`) y la sigue el rename de cuentas. Las batallas cargadas antes de v14 se pasan con `db --backfill-pokedex` (`BATSEtl.backfill_pokedex_seen`, mismo SQL que la ingesta). Vive en `tournament.*` porque `battle.*` se trunca. API pública: `GET /api/players/{username}/pokedex`; las stats por especie están en `/api/stats/pokemon*`.
 - **Una sola fórmula de MVP:** `(kills × 2) + survived + final_hit + min(turns_active, 8) × 0.25`, banca = 0. Vive en `bats_core/mvp.py` y en `battle.mvp_score()` (SQL, `v10.sql`); `tests/test_mvp.py` comprueba que coinciden. Cambiarla = nueva migración que recree la columna generada + actualizar `mvp.py`.
 - **ETL idempotente por `battle_id`** (PK de `fact_battles`). En `battle.etl_log` la clave única es `file_path` (ruta absoluta) o `push:<battle_id>`. El parser descarta logs de menos de 3 turnos y devuelve `None` ante JSON corrupto.
 - **Votos de ban anónimos por diseño:** `api/crypto.py` guarda `SHA-256(BATS_VOTER_SALT + username)`; `ban_votes` no referencia al votante (hay un test). No agregues columna de usuario ni loguees el username junto al voto. Un jugador = máximo 1 ban activo por temporada.

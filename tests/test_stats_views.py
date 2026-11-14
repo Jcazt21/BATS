@@ -50,6 +50,7 @@ class TestStatsDesdeVistas(unittest.TestCase):
             (0, "gen9testa", "2031-01-07", "Gary"), (0, "gen9testb", "2031-01-08", "Ash"),
             (1, "gen9testa", "2031-02-05", "Gary"), (1, "gen9testb", "2031-02-06", "Ash"),
             (1, "gen9testb", "2031-02-07", "Gary"), (1, "gen9testb", "2031-02-08", "Ash"),
+            (0, "gen9testa", "2031-01-09", ""),  # empate: sin ganador
         ]
         with BATSDatabase(DSN) as db:
             for i, (start, end) in enumerate([("2031-01-01", "2031-01-31"), ("2031-02-01", "2031-02-28")]):
@@ -141,12 +142,13 @@ class TestStatsDesdeVistas(unittest.TestCase):
         for sid in self._seasons():
             with self.subTest(season=sid):
                 battles, perf, users = self._raw(sid)
-                exp = defaultdict(lambda: {"battles": 0, "wins": 0, "surv": 0})
+                exp = defaultdict(lambda: {"battles": 0, "wins": 0, "ties": 0, "surv": 0})
                 for b in battles.values():
                     for pid in (b["p1_id"], b["p2_id"]):
                         e = exp[users[pid]]
                         e["battles"] += 1
                         e["wins"] += b["winner_id"] == pid
+                        e["ties"] += b["winner_id"] is None
                 for p in perf:
                     if p["survived"]:
                         exp[p["username"]]["surv"] += 1   # cuenta también la banca (comportamiento histórico)
@@ -157,7 +159,8 @@ class TestStatsDesdeVistas(unittest.TestCase):
                     e = exp[u]
                     self.assertEqual(int(r["total_battles"]), e["battles"], u)
                     self.assertEqual(int(r["wins"]), e["wins"], u)
-                    self.assertEqual(int(r["losses"]), e["battles"] - e["wins"], u)
+                    self.assertEqual(int(r["ties"]), e["ties"], u)
+                    self.assertEqual(int(r["losses"]), e["battles"] - e["wins"] - e["ties"], u)
                     self.assertEqual(int(r["total_survivors"]), e["surv"], u)
                     self.assertTrue(_near(r["win_rate_pct"], 100 * e["wins"] / e["battles"]), u)
 
@@ -231,6 +234,52 @@ class TestStatsDesdeVistas(unittest.TestCase):
         self.season_ids.append(vacia)
         self.assertEqual(self.client.get("/api/stats/battles-per-day", params={"season_id": vacia}).json(),
                          {"days": [], "last_7": 0, "prev_7": 0})
+
+    def test_leaderboard_separa_empates(self):
+        """El empate del 2031-01-09 suma en E para los dos, no en D; el win rate sigue siendo V / batallas."""
+        rows = {r["username"]: r for r in self.client.get("/api/stats/leaderboard").json()}
+        for u in ("Ash", "Gary"):
+            r = rows[u]
+            self.assertEqual(int(r["ties"]), 1, u)
+            self.assertEqual(int(r["losses"]), int(r["total_battles"]) - int(r["wins"]) - 1, u)
+            self.assertTrue(_near(r["win_rate_pct"], 100 * int(r["wins"]) / int(r["total_battles"])), u)
+
+    def test_leaderboard_forma_y_racha(self):
+        """Forma (últimas 5, de la más vieja a la más nueva) y racha, calculadas en vivo desde fact_battles."""
+        from bats_core.api.form import form, result_for, streak
+        with BATSDatabase(DSN) as db:
+            rows = db.fetchall(
+                """
+                SELECT COALESCE(fb.season_id, 0) AS season_id, fb.winner_id, fb.p1_id, fb.p2_id
+                FROM battle.fact_battles fb
+                JOIN battle.dim_players a ON a.player_id = fb.p1_id
+                JOIN battle.dim_players b ON b.player_id = fb.p2_id
+                WHERE NOT fb.is_bot_battle AND NOT a.is_bot AND NOT b.is_bot
+                ORDER BY fb.battle_date DESC, fb.logged_at DESC
+                """)
+            users = {r["player_id"]: r["username"] for r in db.fetchall("SELECT player_id, username FROM battle.dim_players")}
+        for sid in self._seasons():
+            with self.subTest(season=sid):
+                exp: dict[str, list] = defaultdict(list)
+                for b in rows:
+                    if sid is not None and b["season_id"] != sid:
+                        continue
+                    for pid in (b["p1_id"], b["p2_id"]):
+                        exp[users[pid]].append(result_for(b["winner_id"], pid))
+                got = self.client.get("/api/stats/leaderboard", params={"season_id": sid} if sid else {}).json()
+                for r in got:
+                    self.assertEqual(r["form"], form(exp[r["username"]]), r["username"])
+                    self.assertEqual(r["streak"], streak(exp[r["username"]]), r["username"])
+        # Temporada 0: la batalla más reciente de Ash es el empate del 2031-01-09.
+        ash = {r["username"]: r for r in self.client.get(
+            "/api/stats/leaderboard", params={"season_id": self.season_ids[0]}).json()}["Ash"]
+        self.assertEqual(ash["form"][-1], "T")
+        self.assertEqual(ash["streak"], {"type": "T", "length": 1})
+
+    def test_perfil_separa_empates(self):
+        rec = self.client.get("/api/players/ash").json()["record"]
+        self.assertEqual(rec["ties"], 1)
+        self.assertEqual(rec["losses"], rec["battles"] - rec["wins"] - 1)
 
     def test_perfil_trae_insignias(self):
         """Ash gana 5 de 8: ya tiene la primera victoria; ninguna racha de 5."""

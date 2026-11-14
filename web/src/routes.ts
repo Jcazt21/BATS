@@ -12,7 +12,7 @@ export const pages = {
   blogPost: lazyPage(() => import("@/pages/BlogPostPage").then((m) => ({ default: m.BlogPostPage }))),
   stats: lazyPage(() => import("@/pages/StatsPage").then((m) => ({ default: m.StatsPage }))),
   pokedex: lazyPage(() => import("@/pages/PokedexPage").then((m) => ({ default: m.PokedexPage }))),
-  pokedexEntry: lazyPage(() => import("@/pages/PokedexEntryPage").then((m) => ({ default: m.PokedexEntryPage }))),
+  pokemonStats: lazyPage(() => import("@/pages/PokemonStatsPage").then((m) => ({ default: m.PokemonStatsPage }))),
   player: lazyPage(() => import("@/pages/PlayerPage").then((m) => ({ default: m.PlayerPage }))),
   bans: lazyPage(() => import("@/pages/BansPage").then((m) => ({ default: m.BansPage }))),
   team: lazyPage(() => import("@/pages/TeamPage").then((m) => ({ default: m.TeamPage }))),
@@ -38,8 +38,10 @@ const ROUTES: [RegExp, AnyPage[]][] = [
   [/^\/blog\/?$/, [pages.blog]],
   [/^\/blog\/[^/]+/, [pages.blogPost]],
   [/^\/stats\/?$/, [pages.stats]],
+  [/^\/stats\/pokemon\/[^/]+/, [pages.pokemonStats]],
   [/^\/pokedex\/?$/, [pages.pokedex]],
-  [/^\/pokedex\/[^/]+/, [pages.pokedexEntry]],
+  [/^\/pokedex\/[^/]+/, [pages.pokedex]],
+  [/^\/j\/[^/]+\/pokedex(\/[^/]+)?\/?$/, [pages.pokedex]],
   [/^\/j\/[^/]+/, [pages.player]],
   [/^\/bans\/?$/, [pages.bans]],
   [/^\/equipo\/?$/, [pages.team]],
@@ -85,10 +87,10 @@ export function prefetchRouteData(pathname: string): void {
     void queryClient.prefetchQuery({ queryKey: keys.player(u, seasonId), queryFn: () => api.getPlayerProfile(u, seasonId) });
     return;
   }
-  const entry = /^\/pokedex\/([^/]+)\/?$/.exec(pathname);
+  const entry = /^\/stats\/pokemon\/([^/]+)\/?$/.exec(pathname);
   if (entry) {
     const sp = decodeURIComponent(entry[1]);
-    void queryClient.prefetchQuery({ queryKey: keys.pokedexEntry(sp, seasonId), queryFn: () => api.getPokedexEntry(sp, seasonId) });
+    void queryClient.prefetchQuery({ queryKey: keys.pokemonStatsEntry(sp, seasonId), queryFn: () => api.getPokemonStatsEntry(sp, seasonId) });
   }
 }
 
@@ -98,7 +100,7 @@ export function preloadWhenIdle(list: AnyPage[]): () => void {
   return whenIdle(() => list.forEach((p) => p.preload().catch(ignore)));
 }
 
-export const publicPages: AnyPage[] = [pages.blog, pages.blogPost, pages.stats, pages.pokedex, pages.bans, pages.team, pages.player, pages.pokedexEntry];
+export const publicPages: AnyPage[] = [pages.blog, pages.blogPost, pages.stats, pages.pokedex, pages.bans, pages.team, pages.player, pages.pokemonStats];
 export const adminPages: AnyPage[] = [
   pages.stats, pages.battles, pages.seasons, pages.players, pages.rosters, pages.adminBans,
   pages.fairPlay, pages.ingest, pages.statsBot, pages.leagueSettings, pages.adminBlog,

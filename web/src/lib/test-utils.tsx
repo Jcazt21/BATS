@@ -45,7 +45,7 @@ export async function abrirMenu(trigger: HTMLElement) {
 /** Simula una ventana ancha (≥768px, tabla) o angosta (tarjetas). Deshacer con `restoreMatchMedia`. */
 export function mockViewport(wide: boolean) {
   window.matchMedia = ((query: string) => ({
-    matches: wide && query.includes("min-width: 768px"),
+    matches: wide && /min-width: (768|1024)px/.test(query),
     media: query, onchange: null,
     addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {}, dispatchEvent: () => false,
   })) as typeof window.matchMedia;

@@ -3,12 +3,12 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { StatsPage } from "./StatsPage";
-import { abrirMenu } from "@/lib/test-utils";
-import { leerFuente } from "@/styles/source";
+import { abrirMenu, mockViewport } from "@/lib/test-utils";
 
 type Q = { data?: unknown; isPending?: boolean; isError?: boolean; isSuccess?: boolean; isPlaceholderData?: boolean; error?: unknown; refetch?: () => void };
 const st = vi.hoisted(() => ({
-  seasons: {} as Q, summary: {} as Q, leaderboard: {} as Q, mvp: {} as Q, pick: {} as Q, refreshing: false,
+  perDayArgs: [] as unknown[][], perDayPlaceholder: false,
+  seasons: {} as Q, summary: {} as Q, leaderboard: {} as Q, mvp: {} as Q, pokemonStats: {} as Q, species: {} as Q, refreshing: false,
 }));
 
 vi.mock("@/lib/queries", () => ({
@@ -16,33 +16,48 @@ vi.mock("@/lib/queries", () => ({
   useSummary: () => ({ ...st.summary, isPlaceholderData: st.refreshing }),
   useLeaderboard: () => st.leaderboard,
   useMvp: () => st.mvp,
-  usePickRate: () => st.pick,
+  usePokemonStats: () => st.pokemonStats,
+  useDexEssentials: () => st.species,
+  useBattlesPerDay: (...a: unknown[]) => {
+    st.perDayArgs.push(a);
+    return { data: { days: [], last_7: 0, prev_7: 0 }, isPlaceholderData: st.perDayPlaceholder };
+  },
+  useMe: () => ({ data: undefined }),
+  useHeadToHead: () => ({ data: undefined, isPending: true }),
+  useCollectors: () => ({ isPending: false, data: [{ username: "ash", seen: [] }] }),
 }));
-vi.mock("recharts", () => {
-  const Nada = () => null;
-  return { Bar: Nada, BarChart: Nada, CartesianGrid: Nada, Cell: Nada, ResponsiveContainer: Nada, Tooltip: Nada, XAxis: Nada, YAxis: Nada };
+
+const fila = (species: string, pick: number) => ({
+  species, used: 5, pick_pct: pick, brought: 6, bring_pct: pick + 10, win_rate_pct: 55, avg_mvp: 3.2, avg_kills: 1.5, survival_pct: 50,
 });
+const sp = (name: string, types: string[]) => ({ name, types });
 
 const renderPage = () => render(<MemoryRouter><StatsPage /></MemoryRouter>);
 
 beforeEach(() => {
+  mockViewport(false);
+  st.perDayArgs = [];
+  st.perDayPlaceholder = false;
   st.refreshing = false;
   st.seasons = { isSuccess: true, data: [
     { season_id: 3, season_name: "T3", is_active: true }, { season_id: 2, season_name: "T2", is_active: false },
   ] };
   st.summary = { isPending: false, data: { total_battles: 10, total_players: 4, avg_turns: 8, top_win_rate: 70 } };
   st.leaderboard = { isPending: false, data: [
-    { username: "ash", total_battles: 5, wins: 4, losses: 1, win_rate_pct: 80, total_survivors: 9 },
-    { username: "misty", total_battles: 5, wins: 2, losses: 3, win_rate_pct: 40, total_survivors: 5 },
+    { username: "ash", total_battles: 5, wins: 4, losses: 1, ties: 0, win_rate_pct: 80, total_survivors: 9, form: ["L", "W", "W"], streak: { type: "W", length: 2 } },
+    { username: "misty", total_battles: 5, wins: 2, losses: 2, ties: 1, win_rate_pct: 40, total_survivors: 5, form: ["W", "T"], streak: { type: "T", length: 1 } },
   ] };
   st.mvp = { isPending: false, data: [{ species: "Gengar", player: "ash", total_mvp_score: "12", total_kills: 5, avg_mvp_per_battle: "3" }] };
-  st.pick = { isPending: false, data: [{ species: "Gengar", battles_used: 6, usage_pct: "40", win_rate_pct: "60" }] };
+  st.pokemonStats = { isPending: false, data: { total_slots: 20, species: [fila("Dragonite", 40), fila("Gengar", 30), fila("Garchomp", 20)] } };
+  st.species = { isSuccess: true, data: { species: {
+    dragonite: sp("Dragonite", ["Dragon", "Flying"]), gengar: sp("Gengar", ["Ghost", "Poison"]), garchomp: sp("Garchomp", ["Dragon", "Ground"]),
+  }, items: {}, meta: {} } };
 });
 
 describe("StatsPage · temporada", () => {
   it("el selector es un menú accesible, no un <select> nativo", () => {
-    renderPage();
-    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+    const { container } = renderPage();
+    expect(container.querySelector("select")).toBeNull();
     expect(screen.getByRole("button", { name: /Temporada/ })).toHaveTextContent("T3");
   });
 
@@ -63,14 +78,23 @@ describe("StatsPage · temporada", () => {
   });
 });
 
-describe("StatsPage · tabs", () => {
-  it("navega con Tabla · MVP · Uso y solo monta el contenido de la activa", async () => {
+describe("StatsPage · bento", () => {
+  it("arriba va el bento de la temporada en lugar de los StatTile", () => {
     renderPage();
-    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Tabla", "MVP", "Uso"]);
+    const bento = screen.getByRole("group", { name: "Resumen de la temporada" });
+    expect(within(bento).getByRole("region", { name: "Pokémon más usado" })).toHaveTextContent("Dragonite");
+    expect(within(bento).getByRole("region", { name: "MVP de la temporada" })).toHaveTextContent("Gengar");
+  });
+});
+
+describe("StatsPage · tabs", () => {
+  it("navega con Jugadores · Pokémon · Coleccionistas y solo monta el contenido de la activa", async () => {
+    renderPage();
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Jugadores", "Pokémon", "Coleccionistas"]);
     expect(screen.getByRole("list", { name: "Clasificación de jugadores" })).toBeInTheDocument();
     expect(screen.queryByRole("list", { name: "Top de MVP" })).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("tab", { name: "MVP" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Pokémon" }));
     expect(screen.getByRole("list", { name: "Top de MVP" })).toBeInTheDocument();
     expect(screen.queryByRole("list", { name: "Clasificación de jugadores" })).not.toBeInTheDocument();
   });
@@ -81,10 +105,55 @@ describe("StatsPage · tabs", () => {
   });
 });
 
+describe("StatsPage · Jugadores", () => {
+  it("la clasificación muestra empates, forma y racha, y debajo el cara a cara", () => {
+    mockViewport(true);
+    renderPage();
+    const tabla = screen.getByRole("table", { name: "Clasificación de jugadores" });
+    expect(within(tabla).getAllByRole("columnheader").map((th) => th.textContent)).toEqual(
+      ["#", "Jugador", "Victorias", "Derrotas", "E", "Win rate", "Forma", "Racha", "Supervivientes"]);
+    const misty = within(tabla).getByRole("row", { name: /misty/ });
+    expect(within(misty).getByText("Empates:").parentElement).toHaveTextContent("1");
+    expect(within(misty).getByText("1E")).toBeInTheDocument();
+    expect(within(tabla).getByText("2V")).toBeInTheDocument();
+    expect(within(tabla).getByRole("img", { name: "Forma: D, V, V" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Cara a cara" })).toBeInTheDocument();
+  });
+});
+
+describe("StatsPage · temporada en los datos nuevos", () => {
+  it("batallas por día se piden con la temporada resuelta y cuentan para el atenuado", () => {
+    st.perDayPlaceholder = true;
+    const { container } = renderPage();
+    expect(st.perDayArgs.at(-1)).toEqual([30, 3]);
+    expect(container.querySelector("[aria-busy='true']")).toBeInTheDocument();
+  });
+
+  it("los enlaces del Top de MVP conservan la temporada elegida", async () => {
+    mockViewport(true);
+    renderPage();
+    await abrirMenu(screen.getByRole("button", { name: /Temporada/ }));
+    await userEvent.click(await screen.findByRole("menuitemradio", { name: "T2" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Pokémon" }));
+    const top = screen.getByRole("table", { name: "Top de MVP" });
+    expect(within(top).getByRole("link", { name: /Gengar/ })).toHaveAttribute("href", "/stats/pokemon/Gengar?temporada=2");
+  });
+});
+
+describe("StatsPage · Coleccionistas", () => {
+  it("la pestaña muestra el ranking y aclara que no depende de la temporada", async () => {
+    renderPage();
+    await userEvent.click(screen.getByRole("tab", { name: "Coleccionistas" }));
+    expect(screen.getByText("La Pokédex es por cuenta: no cambia con la temporada.")).toBeInTheDocument();
+    const ranking = screen.getByRole("list", { name: "Ranking de coleccionistas" });
+    expect(within(ranking).getByRole("link", { name: /ash/ })).toHaveAttribute("href", "/j/ash/pokedex");
+  });
+});
+
 describe("StatsPage · móvil", () => {
   it("la tabla ofrece 'Ordenar por' y las tarjetas muestran posición y Meter", () => {
     renderPage();
-    expect(screen.getByRole("radiogroup", { name: "Ordenar por" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Ordenar por" })).toBeInTheDocument();
     const tarjetas = screen.getByRole("list", { name: "Clasificación de jugadores" });
     const primera = within(tarjetas).getAllByRole("listitem")[0];
     expect(primera).toHaveTextContent(/Posición 1/);
@@ -92,16 +161,47 @@ describe("StatsPage · móvil", () => {
   });
 });
 
-describe("StatsPage · gráfico (guardas de fuente)", () => {
-  const src = () => leerFuente("pages/StatsPage.tsx");
+describe("StatsPage · Uso", () => {
+  it("muestra las columnas pick %, bring %, win rate, kills y MVP, filtra por tipo y cada fila enlaza a /stats/pokemon/{species}", async () => {
+    mockViewport(true);
+    renderPage();
+    await userEvent.click(screen.getByRole("tab", { name: "Pokémon" }));
 
-  it("distingue win rate ≥50% también por patrón, no solo por color", () => {
-    expect(src()).toMatch(/<pattern/);
-    expect(src()).toMatch(/url\(#\$\{BAJO_ID\}\)/);
+    const tabla = screen.getByRole("table", { name: "Pokémon de la liga" });
+    const cabeceras = within(tabla).getAllByRole("columnheader").map((th) => th.textContent);
+    expect(cabeceras).toEqual(["Pokémon", "Pick rate", "Bring rate", "Win rate", "Supervivencia", "KOs", "MVP medio"]);
+
+    const enlaces = within(tabla).getAllByRole("link").map((a) => a.getAttribute("href"));
+    expect(enlaces).toContain("/stats/pokemon/Dragonite");
+    expect(enlaces).toContain("/stats/pokemon/Gengar");
+    expect(enlaces).toContain("/stats/pokemon/Garchomp");
+
+    await userEvent.click(screen.getByRole("radio", { name: "Dragón" }));
+    const filas = within(tabla).getAllByRole("row").slice(1);
+    expect(filas).toHaveLength(2);
+    expect(within(tabla).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual([
+      "/stats/pokemon/Dragonite",
+      "/stats/pokemon/Garchomp",
+    ]);
+  });
+});
+
+describe("StatsPage · Pokémon · dispersión", () => {
+  it("muestra la dispersión uso vs. win rate, el top MVP y la tabla, sin selector Gráfico/Lista", async () => {
+    mockViewport(true);
+    renderPage();
+    await userEvent.click(screen.getByRole("tab", { name: "Pokémon" }));
+    expect(screen.getByRole("figure", { name: "Uso contra win rate de los pokémon" })).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Top de MVP" })).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Pokémon de la liga" })).toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "Lista" })).not.toBeInTheDocument();
   });
 
-  it("los ticks usan las constantes de tipografía, no números sueltos", () => {
-    expect(src()).toMatch(/TICK_CAPTION/);
-    expect(src()).not.toMatch(/fontSize:\s*1[0-9]\b/);
+  it("temporada sin pokémon: sin dispersión, la tabla muestra su estado vacío", async () => {
+    st.pokemonStats = { isPending: false, data: { total_slots: 0, species: [] } };
+    const { container } = renderPage();
+    await userEvent.click(screen.getByRole("tab", { name: "Pokémon" }));
+    expect(screen.queryByRole("figure")).not.toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/NaN|undefined/);
   });
 });

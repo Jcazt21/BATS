@@ -1,24 +1,31 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/app/PageHeader";
-import { StatTile } from "@/components/app/StatTile";
 import { DataList, type Column } from "@/components/app/DataList";
 import { Reveal } from "@/components/app/Reveal";
 import { SeasonSelect, type SeasonChoice } from "@/components/app/SeasonSelect";
-import { SegmentedControl } from "@/components/app/SegmentedControl";
 import { PlayerAvatar } from "@/components/app/PlayerAvatar";
 import { PokemonSprite } from "@/components/app/PokemonSprite";
 import { Meter } from "@/components/app/Meter";
 import { EmptyState, ErrorState } from "@/components/app/States";
 import HoldButton from "@/components/app/HoldButton";
+import { CollectorsRanking } from "@/components/stats/CollectorsRanking";
+import { FormDots } from "@/components/stats/FormDots";
+import { HeadToHead } from "@/components/stats/HeadToHead";
+import { PokemonUsageTable } from "@/components/stats/PokemonUsageTable";
+import { StatsBento } from "@/components/stats/StatsBento";
+import { UsageScatter } from "@/components/stats/UsageScatter";
+import { scatterPoints } from "@/components/stats/scatter-data";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TICK_CAPTION, TICK_FOOTNOTE } from "@/lib/chart";
-import { resetBattleData, type LeaderboardEntry, type MvpEntry, type PickRateEntry } from "@/lib/api";
+import { resetBattleData, type LeaderboardEntry, type MvpEntry } from "@/lib/api";
 import { errorMessage } from "@/lib/http";
-import { useLeaderboard, useMvp, usePickRate, useSeasons, useSummary } from "@/lib/queries";
+import { speciesById } from "@/lib/dex/snapshot";
+import { WIDE_ROW } from "@/lib/layout";
+import { streakLabel } from "@/lib/match-result";
+import { fichaHref } from "@/lib/stats-links";
+import { useBattlesPerDay, useDexEssentials, useLeaderboard, useMe, useMvp, usePokemonStats, useSeasons, useSummary } from "@/lib/queries";
 import { useToast } from "@/lib/toast";
 import { num, pct } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -35,10 +42,13 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
   const summary = useSummary(season);
   const leaderboard = useLeaderboard(season);
   const mvp = useMvp(season);
-  const pick = usePickRate(season);
-  const [view, setView] = useState<"chart" | "list">("chart");
+  const pokemonStats = usePokemonStats(season);
+  const perDay = useBattlesPerDay(30, season);
+  const dex = useDexEssentials();
+  const me = useMe();
+  const dexNum = (species: string) => (dex.data ? speciesById(dex.data, species)?.num : undefined);
   // Datos de la temporada anterior mientras llegan los de la elegida.
-  const refreshing = [summary, leaderboard, mvp, pick].some((q) => q.isPlaceholderData);
+  const refreshing = [summary, leaderboard, mvp, pokemonStats, perDay].some((q) => q.isPlaceholderData);
   // Al llegar los datos de la temporada elegida el contenido se remonta y entra con un fundido; mientras
   // tanto se sigue viendo (atenuado) lo anterior. Ajuste de estado durante el render: sin efectos ni parpadeo.
   const [settledSid, setSettledSid] = useState(sid);
@@ -51,32 +61,57 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
       cell: (r) => <Link to={`/j/${encodeURIComponent(r.username)}`} className="inline-flex items-center gap-2 font-medium hover:underline"><span className="tabular text-muted-foreground md:hidden"><span className="sr-only">Posición </span>{r._rank}</span><PlayerAvatar name={r.username} size={28} />{r.username}</Link> },
     { key: "wins", header: "Victorias", align: "right", sortValue: (r) => r.wins, cell: (r) => r.wins },
     { key: "losses", header: "Derrotas", align: "right", sortValue: (r) => r.losses, cell: (r) => r.losses },
+    { key: "ties", header: "E", align: "right", sortValue: (r) => r.ties, cell: (r) => <><span className="sr-only">Empates: </span>{r.ties}</> },
     { key: "wr", header: "Win rate", align: "right", sortValue: (r) => r.win_rate_pct,
       cell: (r) => <span className="inline-flex items-center justify-end gap-2"><Meter label={`Win rate de ${r.username}`} value={r.win_rate_pct} className="w-16" tone={r.win_rate_pct >= 50 ? "success" : "primary"} />{pct(r.win_rate_pct)}</span> },
+    { key: "form", header: "Forma", hideOnMobile: true, cell: (r) => <FormDots form={r.form ?? []} /> },
+    { key: "streak", header: "Racha", align: "right", sortValue: (r) => (r.streak?.type === "W" ? 1 : r.streak?.type === "L" ? -1 : 0) * (r.streak?.length ?? 0),
+      cell: (r) => <span className="font-card-mono tabular">{streakLabel(r.streak)}</span> },
     { key: "surv", header: "Supervivientes", align: "right", hideOnMobile: true, sortValue: (r) => r.total_survivors, cell: (r) => r.total_survivors },
   ];
+  /** Teléfono: una línea por jugador (posición, avatar, nombre, V-D-E, win rate y racha) en vez de 6 pares etiqueta/valor. */
+  const leaderboardRow = (r: Ranked) => (
+    <div className="flex min-h-11 items-center gap-3">
+      <span className="w-5 shrink-0 text-right font-card-mono text-subhead tabular text-muted-foreground"><span className="sr-only">Posición </span>{r._rank}</span>
+      <PlayerAvatar name={r.username} size={32} />
+      <span className="min-w-0 flex-1">
+        <Link to={`/j/${encodeURIComponent(r.username)}`} className="block truncate font-semibold hover:underline">{r.username}</Link>
+        <span className="block font-card-mono text-caption tabular text-muted-foreground">
+          <span className="sr-only">Victorias, derrotas y empates: </span>{r.wins}-{r.losses}-{r.ties}
+        </span>
+      </span>
+      <span className="flex w-16 shrink-0 flex-col items-end gap-1">
+        <span className="font-card-mono text-subhead tabular">{pct(r.win_rate_pct)}</span>
+        <Meter label={`Win rate de ${r.username}`} value={r.win_rate_pct} className="w-full" tone={r.win_rate_pct >= 50 ? "success" : "primary"} />
+      </span>
+      <span className="w-9 shrink-0 text-right font-card-mono text-footnote tabular"><span className="sr-only">Racha </span>{streakLabel(r.streak)}</span>
+    </div>
+  );
+  const mvpRow = (r: MvpEntry) => (
+    <div className="flex min-h-11 items-center gap-3">
+      <PokemonSprite species={r.species} size={36} />
+      <span className="min-w-0 flex-1">
+        <Link to={fichaHref(r.species, seasonChoice)} className="block truncate font-semibold hover:underline">{r.species}</Link>
+        <span className="block truncate text-caption text-muted-foreground">de {r.player} · {r.total_kills} KOs</span>
+      </span>
+      <span className="font-card-mono text-subhead tabular"><span className="sr-only">MVP </span>{num(Number(r.total_mvp_score), 1)}</span>
+    </div>
+  );
+
   // La posición sale del orden de origen (victorias), no del orden que elija el usuario
   const ranked: Ranked[] = (leaderboard.data ?? []).map((r, i) => ({ ...r, _rank: i + 1 }));
 
   const mvpCols: Column<MvpEntry>[] = [
     { key: "mon", header: "Pokémon", primary: true, sortValue: (r) => r.species, cell: (r) => (
-      <Link to={`/pokedex/${encodeURIComponent(r.species)}`} className="inline-flex items-center gap-2 font-medium hover:underline"><PokemonSprite species={r.species} size={36} />{r.species}</Link>) },
+      <Link to={fichaHref(r.species, seasonChoice)} className="inline-flex items-center gap-2 font-medium hover:underline"><PokemonSprite species={r.species} size={36} />{r.species}</Link>) },
     { key: "player", header: "Jugador", sortValue: (r) => r.player, cell: (r) => r.player },
     { key: "mvp", header: "MVP", align: "right", sortValue: (r) => Number(r.total_mvp_score), cell: (r) => num(Number(r.total_mvp_score), 1) },
     { key: "kills", header: "KOs", align: "right", sortValue: (r) => r.total_kills, cell: (r) => r.total_kills },
     { key: "avg", header: "MVP / batalla", align: "right", hideOnMobile: true, cell: (r) => num(Number(r.avg_mvp_per_battle), 1) },
   ];
 
-  const pickCols: Column<PickRateEntry>[] = [
-    { key: "mon", header: "Pokémon", primary: true, sortValue: (r) => r.species, cell: (r) => (
-      <Link to={`/pokedex/${encodeURIComponent(r.species)}`} className="inline-flex items-center gap-2 font-medium hover:underline"><PokemonSprite species={r.species} size={32} />{r.species}</Link>) },
-    { key: "used", header: "Batallas", align: "right", sortValue: (r) => Number(r.battles_used), cell: (r) => r.battles_used },
-    { key: "usage", header: "Uso", align: "right", sortValue: (r) => Number(r.usage_pct), cell: (r) => pct(Number(r.usage_pct), 1) },
-    { key: "wr", header: "Win rate", align: "right", sortValue: (r) => Number(r.win_rate_pct), cell: (r) => pct(Number(r.win_rate_pct), 1) },
-  ];
-
   return (
-    <div className={showAdminControls ? "flex flex-col gap-8" : "flex flex-col gap-10"} aria-busy={refreshing || undefined}>
+    <div className={cn(showAdminControls ? "flex flex-col gap-8" : `flex flex-col gap-10 ${WIDE_ROW}`)} aria-busy={refreshing || undefined}>
       <PageHeader
         eyebrow={seasonChoice === "all" ? "Todas las temporadas" : active && sid === active.season_id ? "Temporada activa" : "Estadísticas"}
         title="Estadísticas"
@@ -92,84 +127,53 @@ export function StatsPage({ showAdminControls = false }: { showAdminControls?: b
       />
 
       <Reveal key={String(settledSid)} data-stats-content className="flex flex-col gap-8">
-        <section aria-label="Resumen" className={cn("grid grid-cols-2 gap-3 transition-opacity duration-200 md:grid-cols-4", refreshing && "opacity-60")}>
-          <StatTile label="Batallas" value={num(summary.data?.total_battles)} loading={summary.isPending} />
-          <StatTile label="Jugadores" value={num(summary.data?.total_players)} loading={summary.isPending} />
-          <StatTile label="Turnos por batalla" value={num(summary.data?.avg_turns, 1)} loading={summary.isPending} />
-          <StatTile label="Mejor win rate" value={pct(summary.data?.top_win_rate, 1)} loading={summary.isPending} hint="mín. 3 batallas" />
-        </section>
+        <div className={cn("transition-opacity duration-200", refreshing && "opacity-60")}>
+          <StatsBento
+            summary={summary.data} summaryLoading={summary.isPending} leaderboard={leaderboard.data} perDay={perDay.data}
+            topPokemon={pokemonStats.data?.species[0]} mvp={mvp.data?.[0]} temporada={seasonChoice} dexNum={dexNum}
+          />
+        </div>
 
-        <Tabs defaultValue="tabla" className={cn("gap-4 transition-opacity duration-200", refreshing && "opacity-60")}>
+        <Tabs defaultValue="jugadores" className={cn("gap-4 transition-opacity duration-200", refreshing && "opacity-60")}>
           <TabsList className="h-11 self-start">
-            <TabsTrigger value="tabla" className="px-4">Tabla</TabsTrigger>
-            <TabsTrigger value="mvp" className="px-4">MVP</TabsTrigger>
-            <TabsTrigger value="uso" className="px-4">Uso</TabsTrigger>
+            <TabsTrigger value="jugadores" className="px-4">Jugadores</TabsTrigger>
+            <TabsTrigger value="pokemon" className="px-4">Pokémon</TabsTrigger>
+            <TabsTrigger value="coleccionistas" className="px-4">Coleccionistas</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="tabla" className="flex flex-col gap-3">
+          <TabsContent value="jugadores" className="flex flex-col gap-6">
             {leaderboard.isError ? <ErrorState error={leaderboard.error} onRetry={() => leaderboard.refetch()} /> : (
-              <DataList caption="Clasificación de jugadores" rows={ranked} columns={leaderboardCols} rowKey={(r) => r.username} mobileSort
+              <DataList caption="Clasificación de jugadores" rows={ranked} columns={leaderboardCols} rowKey={(r) => r.username} mobileSort mobileRow={leaderboardRow}
                 loading={leaderboard.isPending} defaultSort={{ key: "wins", dir: "desc" }}
                 empty={<EmptyState title="Aún no hay batallas" description="Cuando se juegue la primera aparecerá aquí." />} />
             )}
+            {leaderboard.data && <HeadToHead players={leaderboard.data} me={me.data?.username} season={season} dexNum={dexNum} />}
           </TabsContent>
 
-          <TabsContent value="mvp" className="flex flex-col gap-3">
-            {mvp.isError ? <ErrorState error={mvp.error} onRetry={() => mvp.refetch()} /> : (
-              <DataList caption="Top de MVP" rows={mvp.data ?? []} columns={mvpCols} rowKey={(r) => `${r.species}-${r.player}`} mobileSort loading={mvp.isPending}
-                empty={<EmptyState title="Sin datos de MVP" />} />
+          <TabsContent value="pokemon" className="flex flex-col gap-6">
+            {/* La dispersión solo con al menos un punto válido; si no, la tabla muestra el estado que corresponde. */}
+            {pokemonStats.data && scatterPoints(pokemonStats.data.species).length > 0 && (
+              <UsageScatter rows={pokemonStats.data.species} temporada={seasonChoice} />
             )}
+            <section aria-labelledby="top-mvp" className="flex flex-col gap-3">
+              <h2 id="top-mvp" className="px-1 text-title3">Top de MVP</h2>
+              {mvp.isError ? <ErrorState error={mvp.error} onRetry={() => mvp.refetch()} /> : (
+                <DataList caption="Top de MVP" rows={mvp.data ?? []} columns={mvpCols} rowKey={(r) => `${r.species}-${r.player}`} mobileSort mobileRow={mvpRow} loading={mvp.isPending}
+                  empty={<EmptyState title="Sin datos de MVP" />} />
+              )}
+            </section>
+            <section aria-labelledby="uso-pokemon" className="flex flex-col gap-3">
+              <h2 id="uso-pokemon" className="px-1 text-title3">Uso por especie</h2>
+              <PokemonUsageTable query={pokemonStats} temporada={seasonChoice} />
+            </section>
           </TabsContent>
 
-          <TabsContent value="uso" className="flex flex-col gap-3">
-            <div className="flex justify-end">
-              <SegmentedControl label="Vista" value={view} onChange={setView} options={[{ value: "chart", label: "Gráfico" }, { value: "list", label: "Lista" }]} />
-            </div>
-            {pick.isError ? <ErrorState error={pick.error} onRetry={() => pick.refetch()} /> :
-              view === "list" || pick.isPending || !pick.data?.length ? (
-                <DataList caption="Pick rate por pokémon" rows={pick.data ?? []} columns={pickCols} rowKey={(r) => r.species} mobileSort
-                  loading={pick.isPending} defaultSort={{ key: "used", dir: "desc" }} empty={<EmptyState title="Sin datos de uso" />} />
-              ) : <PickChart rows={pick.data} />}
+          <TabsContent value="coleccionistas" className="flex flex-col gap-3">
+            <CollectorsRanking />
           </TabsContent>
         </Tabs>
       </Reveal>
     </div>
-  );
-}
-
-const BAJO_ID = "pick-wr-bajo";
-
-function PickChart({ rows }: { rows: PickRateEntry[] }) {
-  const data = rows.slice(0, 10).map((r) => ({ species: r.species, uso: Number(r.usage_pct), wr: Number(r.win_rate_pct) }));
-  return (
-    <figure className="rounded-2xl bg-card p-4 shadow-sm ring-1 ring-border" aria-label="Gráfico de uso de los 10 pokémon más usados">
-      <div className="h-[22rem]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16 }}>
-            {/* Win rate < 50 %: rayas además del color, para no depender solo del tono. */}
-            <defs>
-              <pattern id={BAJO_ID} patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)">
-                <rect width="6" height="6" fill="var(--chart-1)" />
-                <line x1="0" y1="0" x2="0" y2="6" stroke="var(--card)" strokeWidth="2" />
-              </pattern>
-            </defs>
-            <CartesianGrid horizontal={false} stroke="var(--separator)" />
-            <XAxis type="number" unit="%" tick={{ fill: "var(--muted-foreground)", fontSize: TICK_CAPTION }} axisLine={false} tickLine={false} />
-            <YAxis type="category" dataKey="species" width={110} tick={{ fill: "var(--foreground)", fontSize: TICK_FOOTNOTE }} axisLine={false} tickLine={false} />
-            <Tooltip cursor={{ fill: "var(--muted)" }}
-              contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 12, color: "var(--popover-foreground)" }}
-              formatter={(v, name) => [`${num(Number(v), 1)}%`, name === "uso" ? "Uso" : "Win rate"]} />
-            <Bar dataKey="uso" radius={[0, 8, 8, 0]} isAnimationActive={false}>
-              {data.map((d) => <Cell key={d.species} fill={d.wr >= 50 ? "var(--chart-6)" : `url(#${BAJO_ID})`} />)}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-      <figcaption className="mt-2 flex items-center gap-4 text-caption text-muted-foreground">
-        <span className="flex items-center gap-1.5"><i className="size-2.5 rounded-full bg-chart-6" /> Win rate ≥ 50 %</span>
-        <span className="flex items-center gap-1.5"><i className="size-2.5 rounded-full" style={{ background: "repeating-linear-gradient(45deg, var(--chart-1) 0 2px, var(--card) 2px 4px)" }} /> Win rate &lt; 50 % (rayado)</span>
-      </figcaption>
-    </figure>
   );
 }
 

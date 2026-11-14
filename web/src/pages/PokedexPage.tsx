@@ -1,116 +1,154 @@
-import { useDeferredValue, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { ChevronDown, Search } from "lucide-react";
+import { useDeferredValue, useMemo, useRef, useState } from "react";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/app/PageHeader";
-import { DataList, type Column } from "@/components/app/DataList";
-import { PokemonSprite } from "@/components/app/PokemonSprite";
-import { Meter } from "@/components/app/Meter";
-import { SeasonSelect, type SeasonChoice } from "@/components/app/SeasonSelect";
 import { EmptyState, ErrorState } from "@/components/app/States";
-import { TypeFilter } from "@/components/app/TypeFilter";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Input } from "@/components/ui/input";
-import type { PokedexRow } from "@/lib/api";
+import { DexCell } from "@/components/pokedex/DexCell";
+import { DexEntryModal } from "@/components/pokedex/DexEntryModal";
+import { DexPagination } from "@/components/pokedex/DexPagination";
+import { DexToolbar } from "@/components/pokedex/DexToolbar";
+import { PlayerPicker } from "@/components/pokedex/PlayerPicker";
+import { ProgressCard } from "@/components/pokedex/ProgressCard";
+import { ProgressRing } from "@/components/pokedex/ProgressRing";
+import { ProgressStrip } from "@/components/pokedex/ProgressStrip";
+import { SignInCard } from "@/components/SignInCard";
+import { buildCollection, collectionProgress, filterCollection, groupByTypes, type DexCell as Cell, type DexFilters } from "@/lib/dex/collection";
 import { speciesById } from "@/lib/dex/snapshot";
-import { isPokemonType, type PokemonType } from "@/lib/pokemon-types";
-import { useDexEssentials, usePokedex, useSeasons } from "@/lib/queries";
-import { num, pct } from "@/lib/format";
+import { clampPage, PAGE_SIZES, pageCount, paginate } from "@/lib/pagination";
+import type { PokemonType } from "@/lib/pokemon-types";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { useDexEssentials, useMe, usePlayerPokedex } from "@/lib/queries";
+import { useSession } from "@/lib/session";
 
-// Fuera del componente: identidad estable, así el ordenamiento de DataList no se recalcula en cada tecla.
-const COLS: Column<PokedexRow>[] = [
-    { key: "mon", header: "Pokémon", primary: true, sortValue: (r) => r.species,
-      cell: (r) => <span className="inline-flex items-center gap-2 font-medium"><PokemonSprite species={r.species} size={40} />{r.species}</span> },
-    { key: "pick", header: "Pick rate", align: "right", sortValue: (r) => r.pick_pct,
-      cell: (r) => <span className="inline-flex items-center justify-end gap-2"><Meter label={`Pick rate de ${r.species}`} value={r.pick_pct} className="w-16" />{pct(r.pick_pct, 1)}</span> },
-    { key: "bring", header: "Bring rate", align: "right", sortValue: (r) => r.bring_pct, cell: (r) => pct(r.bring_pct, 1) },
-    { key: "wr", header: "Win rate", align: "right", sortValue: (r) => r.win_rate_pct, cell: (r) => pct(r.win_rate_pct, 1) },
-    { key: "mvp", header: "MVP medio", align: "right", hideOnMobile: true, sortValue: (r) => r.avg_mvp, cell: (r) => num(r.avg_mvp, 1) },
-  ];
-
+/**
+ * Pokédex por cuenta: /pokedex (la mía), /j/:username/pokedex (la de otro, pública).
+ * Con :species abre la ficha de esa casilla en un modal sobre la grilla.
+ */
 export function PokedexPage() {
-  const seasons = useSeasons();
-  const [params, setParams] = useSearchParams();
-  const active = seasons.data?.find((s) => s.is_active);
-  const ready = seasons.isSuccess || seasons.isError;
-
-  // Filtros en la URL: se pueden compartir y sobreviven a recargar.
-  const tipoParam = params.get("tipo");
-  const tipo: PokemonType | null = tipoParam && isPokemonType(tipoParam) ? tipoParam : null;
-  const temporadaParam = params.get("temporada");
-  const choice: SeasonChoice = temporadaParam === "all" ? "all" : temporadaParam && Number.isInteger(Number(temporadaParam)) ? Number(temporadaParam) : "active";
-  const sid = choice === "active" ? active?.season_id : choice === "all" ? undefined : choice;
-
-  const dex = usePokedex(ready ? sid : null);
-  const species = useDexEssentials();
-  const [q, setQ] = useState("");
-  // La caja responde al instante; el filtrado de la lista va un paso detrás.
-  const qDiferida = useDeferredValue(q);
+  const { username: userParam, species: speciesParam } = useParams();
   const navigate = useNavigate();
+  const { session, loading: sessionLoading } = useSession();
+  const me = useMe();
+  const username = userParam ?? me.data?.username;
+  const guest = !userParam && !sessionLoading && !session;
+  const base = userParam ? `/j/${encodeURIComponent(userParam)}/pokedex` : "/pokedex";
 
-  function setParam(clave: string, valor: string | null) {
-    setParams((cur) => {
-      const next = new URLSearchParams(cur);
-      if (valor) next.set(clave, valor); else next.delete(clave);
-      return next;
-    }, { replace: true });
-  }
-
-  // La ficha debe ver la misma temporada que la lista de la que se viene.
-  const ficha = (r: PokedexRow) => `/pokedex/${encodeURIComponent(r.species)}${temporadaParam ? `?temporada=${encodeURIComponent(temporadaParam)}` : ""}`;
-
-  const rows = useMemo(
-    () => (dex.data?.species ?? []).filter((r) => {
-      if (!r.species.toLowerCase().includes(qDiferida.trim().toLowerCase())) return false;
-      if (!tipo) return true;
-      const tipos = species.data ? speciesById(species.data, r.species)?.types : undefined;
-      return !!tipos?.some((t) => t.toLowerCase() === tipo);
-    }),
-    [dex.data, qDiferida, tipo, species.data],
+  // En pantallas angostas el aside (anillo + desglose) se reemplaza por una tira compacta.
+  const desktop = useMediaQuery("(min-width: 1024px)");
+  const dex = useDexEssentials();
+  const pokedex = usePlayerPokedex(username);
+  const cells = useMemo(
+    () => (dex.data ? buildCollection(dex.data, pokedex.data?.seen ?? []) : []),
+    [dex.data, pokedex.data],
   );
-  const filtrando = !!qDiferida || !!tipo;
+  const progress = useMemo(() => collectionProgress(cells), [cells]);
+
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<DexFilters["status"]>("all");
+  const [types, setTypes] = useState<PokemonType[]>([]);
+  const [gen, setGen] = useState<number | null>(null);
+  const deferredQuery = useDeferredValue(query);
+  const visible = useMemo(
+    () => filterCollection(cells, { query: deferredQuery, status, types, gen }),
+    [cells, deferredQuery, status, types, gen],
+  );
+
+  // Cambiar filtro, jugador o tamaño de página vuelve a la página 1.
+  const [pageSize, setPageSize] = useState<number>(PAGE_SIZES[0]);
+  const pageKey = JSON.stringify([username, deferredQuery, status, types, gen, pageSize]);
+  const [pageState, setPageState] = useState({ key: pageKey, page: 1 });
+  const totalPages = pageCount(visible.length, pageSize);
+  const page = clampPage(pageState.key === pageKey ? pageState.page : 1, totalPages);
+  const pageCells = useMemo(() => paginate(visible, page, pageSize), [visible, page, pageSize]);
+  const gridTop = useRef<HTMLDivElement>(null);
+  const goToPage = (next: number) => {
+    setPageState({ key: pageKey, page: clampPage(next, totalPages) });
+    gridTop.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // Ficha abierta por URL: solo si esa casilla está descubierta (no revelar por la barra de direcciones).
+  const openSpecies = speciesParam && dex.data ? speciesById(dex.data, speciesParam) : null;
+  const openCell = openSpecies ? cells.find((c) => c.num === openSpecies.num) : undefined;
+  // Con sesión, hasta saber quién soy no hay Pokédex que mirar: no decidir (ni redirigir) antes.
+  const waitingForMe = !userParam && (sessionLoading || (!!session && !me.data && !me.isError));
+  const dataReady = dex.isSuccess && !waitingForMe && (!username || pokedex.isSuccess || pokedex.isError);
+  if (speciesParam && dataReady && (!openCell || openCell.status === "unknown")) {
+    return <Navigate to={base} replace />;
+  }
+  const open = (cell: Cell) => navigate(`${base}/${encodeURIComponent(cell.species.id)}`);
+  const close = () => navigate(base);
+
+  const title = userParam ? `Pokédex de ${userParam}` : "Pokédex";
+  const error = dex.error ?? (pokedex.isError ? pokedex.error : null);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6">
       <PageHeader
-        eyebrow={choice === "all" ? "Todas las temporadas" : (seasons.data?.find((s) => s.season_id === sid)?.season_name ?? active?.season_name)}
-        title="Pokédex de la liga"
-        subtitle="Cuánto se usa cada pokémon, cuánto se lleva y cómo rinde en las batallas de la comunidad."
-        actions={seasons.data && seasons.data.length > 0 ? (
-          <SeasonSelect seasons={seasons.data} value={choice} onChange={(v) => setParam("temporada", v === "active" ? null : String(v))} />
-        ) : undefined}
+        title={title}
+        subtitle="Cada pokémon que ves salir al campo en una batalla de liga queda registrado."
       />
 
-      <div className="flex flex-col gap-4">
-        <div className="relative max-w-md">
-          <Search aria-hidden className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar pokémon" aria-label="Buscar pokémon" className="rounded-full pl-10" />
+      {guest && (
+        <div className="flex justify-center">
+          <SignInCard title="Inicia sesión para ver tu Pokédex" description="Usa el correo con el que te registró el admin." />
         </div>
-        {species.isSuccess && <TypeFilter value={tipo} onChange={(t) => setParam("tipo", t)} />}
-      </div>
-
-      {dex.isError ? <ErrorState error={dex.error} onRetry={() => dex.refetch()} /> : (
-        <DataList
-          caption="Pokémon de la liga" rows={rows} columns={COLS} rowKey={(r) => r.species}
-          loading={dex.isPending} defaultSort={{ key: "pick", dir: "desc" }}
-          rowHref={ficha}
-          rowPrefetch={ficha}
-          onRowClick={(r) => navigate(ficha(r))}
-          empty={<EmptyState title={filtrando ? "Sin resultados" : "Aún no hay datos"} description={filtrando ? "Ningún pokémon coincide con esos filtros." : "Aparecerán cuando se jueguen batallas."} />}
-        />
       )}
 
-      <Collapsible>
-        <CollapsibleTrigger className="group/def flex min-h-11 items-center gap-1 rounded-lg text-subhead text-primary outline-none focus-visible:ring-2 focus-visible:ring-ring">
-          ¿Qué significan pick y bring rate?
-          <ChevronDown className="size-4 transition-transform duration-200 ease-ios group-aria-expanded/def:rotate-180" />
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <p className="text-caption text-muted-foreground">
-            <strong className="font-medium">Pick rate</strong>: porcentaje de equipos en los que el pokémon salió al campo.{" "}
-            <strong className="font-medium">Bring rate</strong>: porcentaje de equipos que lo llevaron, aunque no llegara a salir.
-          </p>
-        </CollapsibleContent>
-      </Collapsible>
+      {error ? (
+        <ErrorState error={error} onRetry={() => { void dex.refetch(); void pokedex.refetch(); }} />
+      ) : (
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+          {desktop ? (
+            <aside className="order-2 flex flex-col gap-4">
+              <PlayerPicker viewing={userParam} me={me.data?.username} />
+              <div className="flex justify-center rounded-2xl border bg-card p-4">
+                <ProgressRing discovered={progress.discovered} total={progress.total} />
+              </div>
+              <ProgressCard progress={progress} />
+            </aside>
+          ) : (
+            <ProgressStrip progress={progress} picker={<PlayerPicker viewing={userParam} me={me.data?.username} compact />} />
+          )}
+
+          <div ref={gridTop} className="flex min-w-0 scroll-mt-4 flex-col gap-4">
+            <DexToolbar
+              query={query} onQuery={setQuery}
+              status={status} onStatus={setStatus}
+              types={types} onTypes={setTypes}
+              gen={gen} onGen={setGen}
+              compact={!desktop}
+            />
+
+            {dex.isPending ? (
+              <p className="text-subhead text-muted-foreground">Cargando la Pokédex…</p>
+            ) : visible.length === 0 ? (
+              <EmptyState title="Nada por aquí" description="Prueba con otro filtro, o busca por número los que aún no descubriste." />
+            ) : (
+              <div className="flex flex-col gap-8">
+                {groupByTypes(pageCells, types).map((section) => (
+                  <section key={section.key} aria-label={section.title ?? undefined} className="flex flex-col gap-3">
+                    {section.title && (
+                      <h2 className="flex items-baseline gap-2 border-b border-border pb-2 text-title3">
+                        {section.title}
+                        <span className="font-card-mono text-subhead text-muted-foreground tabular">{section.cells.length}</span>
+                      </h2>
+                    )}
+                    <ul className="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-3" aria-label={section.title ?? "Casillas de la Pokédex"}>
+                      {section.cells.map((c) => <li key={c.num}><DexCell cell={c} onOpen={open} /></li>)}
+                    </ul>
+                  </section>
+                ))}
+                <DexPagination
+                  page={page} totalPages={totalPages} onPage={goToPage}
+                  pageSize={pageSize} onPageSize={setPageSize}
+                  total={visible.length}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {openCell && openCell.status !== "unknown" && <DexEntryModal cell={openCell} onClose={close} />}
     </div>
   );
 }

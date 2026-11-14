@@ -1,4 +1,5 @@
 import { HttpError, errorResponse } from './errors.js';
+import { arenaAllows, arenaMode, type ArenaMode, type Identidad } from './flags.js';
 
 /** Todas las rutas del motor cuelgan de aquí (rewrite `/api/motor/(.*)` en `vercel.json`). */
 export const PREFIJO = '/api/motor';
@@ -14,6 +15,8 @@ export interface Ruta {
   method: 'GET' | 'POST';
   /** Relativa al prefijo, p. ej. `/battles/:id/choose`. */
   path: string;
+  /** Solo `health`: responde aunque Arena esté apagada. */
+  publica?: boolean;
   handler: (ctx: Contexto) => Response | Promise<Response>;
 }
 
@@ -33,7 +36,17 @@ function emparejar(patron: string, ruta: string): Record<string, string> | null 
   return params;
 }
 
-export function createRouter(rutas: Ruta[]): (request: Request) => Promise<Response> {
+export interface OpcionesRouter {
+  mode?: () => ArenaMode;
+  /** Quién llama (la verificación del JWT llega en la fase 2). Sin ella, `admins` queda cerrado. */
+  identify?: (request: Request) => Promise<Identidad | null>;
+}
+
+export function createRouter(
+  rutas: Ruta[],
+  opciones: OpcionesRouter = {},
+): (request: Request) => Promise<Response> {
+  const mode = opciones.mode ?? (() => arenaMode());
   return async request => {
     const url = new URL(request.url);
     try {
@@ -42,7 +55,13 @@ export function createRouter(rutas: Ruta[]): (request: Request) => Promise<Respo
         for (const ruta of rutas) {
           if (ruta.method !== request.method) continue;
           const params = emparejar(ruta.path, relativa);
-          if (params) return await ruta.handler({ request, url, params });
+          if (!params) continue;
+          if (!ruta.publica) {
+            const actual = mode();
+            const identidad = actual === 'admins' ? ((await opciones.identify?.(request)) ?? null) : null;
+            if (!arenaAllows(actual, identidad)) break;
+          }
+          return await ruta.handler({ request, url, params });
         }
       }
       return errorResponse(404, 'not_found', 'Ruta no encontrada');

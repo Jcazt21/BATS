@@ -30,6 +30,8 @@ describe('GET /api/motor/health', () => {
   });
 });
 
+const abierto = { mode: () => 'all' as const };
+
 describe('router', () => {
   it.each([
     ['ruta desconocida', '/api/motor/no-existe', 'GET'],
@@ -44,7 +46,7 @@ describe('router', () => {
   it('extrae los parámetros de la ruta', async () => {
     const router = createRouter([
       { method: 'GET', path: '/battles/:id', handler: ({ params }) => Response.json(params) },
-    ]);
+    ], abierto);
     const res = await router(new Request('https://bats.test/api/motor/battles/42?since=3'));
     expect(await res.json()).toEqual({ id: '42' });
   });
@@ -52,7 +54,7 @@ describe('router', () => {
   it('un HttpError se devuelve con su estado y la forma de FastAPI', async () => {
     const router = createRouter([
       { method: 'GET', path: '/x', handler: () => { throw new HttpError(409, 'stale', 'El turno ya avanzó'); } },
-    ]);
+    ], abierto);
     const res = await router(new Request('https://bats.test/api/motor/x'));
     expect(res.status).toBe(409);
     expect(await res.json()).toEqual({ detail: 'El turno ya avanzó', code: 'stale' });
@@ -62,7 +64,7 @@ describe('router', () => {
     const consola = vi.spyOn(console, 'error').mockImplementation(() => {});
     const router = createRouter([
       { method: 'GET', path: '/x', handler: () => { throw new Error('semilla=secreta'); } },
-    ]);
+    ], abierto);
     const res = await router(new Request('https://bats.test/api/motor/x'));
     expect(res.status).toBe(500);
     const cuerpo = (await res.json()) as { code: string };

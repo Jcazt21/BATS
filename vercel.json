@@ -4,17 +4,23 @@
   "git": {
     "deploymentEnabled": false
   },
-  "installCommand": "cd web && npm ci",
+  "installCommand": "npm ci && cd web && npm ci",
+  "regions": ["iad1"],
+  "fluid": true,
   "buildCommand": "cd web && npm run build",
   "outputDirectory": "web/dist",
   "functions": {
     "api/index.py": {
       "maxDuration": 30,
       "includeFiles": "bats_core/**",
-      "excludeFiles": "{web/**,tests/**,**/__pycache__/**,bats_core/bot/**,bats_core/.pokeapi_cache/**,bats_core/{cli,metrics,report,pokeapi,bans,backfill,mvp}.py,bats_core/validate_team.js,bats_core/db/seed.sql,bats_core/db/roles.sql}"
+      "excludeFiles": "{motor/**,node_modules/**,package*.json,tsconfig.json,web/**,tests/**,**/__pycache__/**,bats_core/bot/**,bats_core/.pokeapi_cache/**,bats_core/{cli,metrics,report,pokeapi,bans,backfill,mvp}.py,bats_core/validate_team.js,bats_core/db/seed.sql,bats_core/db/roles.sql}"
+    },
+    "api/motor.ts": {
+      "maxDuration": 15
     }
   },
   "rewrites": [
+    { "source": "/api/motor/(.*)", "destination": "/api/motor" },
     { "source": "/api/(.*)", "destination": "/api/index" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],

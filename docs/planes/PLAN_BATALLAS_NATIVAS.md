@@ -31,7 +31,7 @@ Vault) · React 19 + Vite · pytest · vitest.
 
 | Fase | Rama | Estado | Puerta |
 |---|---|---|---|
-| 0 · Cimientos y esqueleto andante | `arena/fase-0-cimientos` | ☐ pendiente | ☐ |
+| 0 · Cimientos y esqueleto andante | `arena/fase-0-cimientos` | 🟡 en curso: F0.1–F0.7 hechas en código; falta F0.8 y la puerta [HUMANO] | ☐ |
 | 1 · Núcleo del motor (puro) | `arena/fase-1-nucleo` | ☐ pendiente | ☐ |
 | 2 · Persistencia y API del motor | `arena/fase-2-api-motor` | ☐ pendiente | ☐ |
 | 3 · Liga: retos, equipo de 6 y reglas | `arena/fase-3-liga` | ☐ pendiente | ☐ |
@@ -918,6 +918,11 @@ Cada punto es una tarea con sus tests actualizados:
 - 2026-11-12 · Plan · Mediciones previas (sección 1) hechas en local sobre 13 batallas reales.
   El checkout `pokemon-showdown-client` que menciona el `CLAUDE.md` de la carpeta padre ya no
   existe en disco.
+- 2026-11-14 · Fase 0 · F0.1–F0.7 completas. Desviación: `createRouter(rutas, opciones)` recibe
+  `mode` e `identify` y cada `Ruta` lleva `publica?` (solo `health`); los tests de F0.4 que usan
+  rutas protegidas pasan `mode: () => 'all'`. `identify` (JWT) llega en la fase 2; sin él,
+  `admins` queda cerrado. CI: se añadieron `test_arena_flags.py` y `test_vercel_config.py` al
+  pytest del job backend. Pendiente: `npx vercel build` y deploy en preview (puerta [HUMANO]).
 
 ---
 

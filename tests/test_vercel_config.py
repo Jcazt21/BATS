@@ -3,11 +3,23 @@
 Sin red ni base de datos: solo lee `vercel.json`, `.vercelignore` y el workflow de CI.
 """
 import json
+import re
 import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
+
+
+def _expand(patron: str) -> set[str]:
+    """Expande llaves anidadas como lo hace el glob de Vercel: `{a,b}/x` -> {`a/x`, `b/x`}."""
+    m = re.search(r"\{([^{}]*)\}", patron)
+    if not m:
+        return {patron}
+    out: set[str] = set()
+    for alt in m.group(1).split(","):
+        out |= _expand(patron[: m.start()] + alt + patron[m.end():])
+    return out
 
 
 class TestVercelConfig(unittest.TestCase):
@@ -29,9 +41,16 @@ class TestVercelConfig(unittest.TestCase):
         self.assertEqual(CONFIG["functions"]["api/motor.ts"]["maxDuration"], 15)
 
     def test_el_bundle_de_python_no_arrastra_node(self):
-        excluidos = CONFIG["functions"]["api/index.py"]["excludeFiles"]
-        for patron in ("motor/**", "node_modules/**", "package*.json", "tsconfig.json"):
+        excluidos = _expand(CONFIG["functions"]["api/index.py"]["excludeFiles"])
+        for patron in ("motor/**", "node_modules/**", "package*.json", "tsconfig.json",
+                       "web/**", "tests/**", "bats_core/bot/**", "bats_core/cli.py"):
             self.assertIn(patron, excluidos)
+
+    def test_excludefiles_cabe_en_el_limite_de_vercel(self):
+        # Vercel rechaza el vercel.json entero si algún `excludeFiles` pasa de 256 caracteres.
+        for ruta, cfg in CONFIG["functions"].items():
+            for campo in ("excludeFiles", "includeFiles"):
+                self.assertLessEqual(len(cfg.get(campo, "")), 256, f"{ruta}.{campo}")
 
     def test_region_junto_a_supabase(self):
         self.assertEqual(CONFIG["regions"], ["iad1"])

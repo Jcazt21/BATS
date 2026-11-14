@@ -13,7 +13,7 @@
     "api/index.py": {
       "maxDuration": 30,
       "includeFiles": "bats_core/**",
-      "excludeFiles": "{motor/**,node_modules/**,package*.json,tsconfig.json,web/**,tests/**,**/__pycache__/**,bats_core/bot/**,bats_core/.pokeapi_cache/**,bats_core/{cli,metrics,report,pokeapi,bans,backfill,mvp}.py,bats_core/validate_team.js,bats_core/db/seed.sql,bats_core/db/roles.sql}"
+      "excludeFiles": "{{motor,node_modules,web,tests}/**,**/__pycache__/**,package*.json,tsconfig.json,bats_core/{bot/**,.pokeapi_cache/**,validate_team.js,db/{seed,roles}.sql,{cli,metrics,report,pokeapi,bans,backfill,mvp}.py}}"
     },
     "api/motor.ts": {
       "maxDuration": 15

@@ -23,7 +23,7 @@ web/dist/
 web/dist-ssr/
 
 # Dependencias del motor de Arena (package.json y package-lock.json de la raíz SÍ se commitean)
-/node_modules/
+node_modules/
 
 # Editor / OS
 .vscode/*

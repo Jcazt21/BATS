@@ -31,7 +31,7 @@ Vault) · React 19 + Vite · pytest · vitest.
 
 | Fase | Rama | Estado | Puerta |
 |---|---|---|---|
-| 0 · Cimientos y esqueleto andante | `arena/fase-0-cimientos` | 🟡 en curso: F0.1–F0.7 hechas en código; falta F0.8 y la puerta [HUMANO] | ☐ |
+| 0 · Cimientos y esqueleto andante | `arena/fase-0-cimientos` | 🟡 código completo y fusionado a `main` (2026-11-16); **pendiente [HUMANO]:** F0.8 (Supabase `bats-staging`, `BATS_ARENA_MODE=off` y `BATS_MOTOR_TOKEN` en Vercel), comparar bundle de `api/index` y comprobar `/api/motor/health` en producción | ☐ |
 | 1 · Núcleo del motor (puro) | `arena/fase-1-nucleo` | ☐ pendiente | ☐ |
 | 2 · Persistencia y API del motor | `arena/fase-2-api-motor` | ☐ pendiente | ☐ |
 | 3 · Liga: retos, equipo de 6 y reglas | `arena/fase-3-liga` | ☐ pendiente | ☐ |
@@ -931,6 +931,10 @@ Cada punto es una tarea con sus tests actualizados:
   Hallazgo: Vercel rechaza `excludeFiles` de más de 256 caracteres; se compactó con llaves
   anidadas y `test_vercel_config.py` lo vigila. `vercel build` local falla con "Request failed"
   (builder de Python, probable red); el deploy remoto compila bien.
+- 2026-11-16 · Fase 0 · Fusionada a `main` con merge commit. **Quedan pendientes, a cargo del dueño:** F0.8
+  (entornos y variables de Vercel), comparar el bundle de `api/index` con producción y verificar
+  `/api/motor/health` en producción tras el despliegue (anotar frío, caliente y tamaños). Hasta entonces la
+  puerta de la fase sigue sin marcar.
 
 ---
 

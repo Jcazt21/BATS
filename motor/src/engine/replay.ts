@@ -1,3 +1,4 @@
+import { esReloj } from '../core/hash.js';
 import { Battle } from './sim.js';
 
 type Lado = 'p1' | 'p2';
@@ -41,4 +42,52 @@ export function replay(inputLog: string[], onSend: OnSend): Battle {
     battle.sendUpdates(); // el simulador no lo hace solo
   }
   return battle;
+}
+
+/** Una elección rechazada: texto del simulador (`[Invalid choice] …`) sin el prefijo `|error|`. */
+export interface ErrorEleccion {
+  side: Lado;
+  texto: string;
+}
+
+/**
+ * Acumula lo que emite el simulador: las líneas del log (sin `|t:|`), la última petición de cada
+ * lado y los rechazos. `reiniciarCambios` permite saber qué ocurrió durante una sola acción.
+ */
+export class Colector {
+  lines: string[] = [];
+  requests: { p1: unknown | null; p2: unknown | null } = { p1: null, p2: null };
+  errores: ErrorEleccion[] = [];
+  /** Lados cuya petición se reemitió desde la última llamada a `reiniciarCambios`. */
+  reemitidas = new Set<Lado>();
+
+  /** Sirve tanto de `OnSend` (replay) como de `send` del simulador, que a veces da un arreglo. */
+  readonly onSend = (tipo: string, crudo: string | string[]): void => {
+    const datos = Array.isArray(crudo) ? crudo.join('\n') : crudo;
+    if (tipo === 'update') {
+      this.lines.push(...datos.split('\n').filter(linea => !esReloj(linea)));
+    } else if (tipo === 'sideupdate') {
+      const corte = datos.indexOf('\n');
+      const side = datos.slice(0, corte) as Lado;
+      const resto = datos.slice(corte + 1);
+      if (resto.startsWith('|request|')) {
+        this.requests[side] = JSON.parse(resto.slice('|request|'.length));
+        this.reemitidas.add(side);
+      } else if (resto.startsWith('|error|')) {
+        this.errores.push({ side, texto: resto.slice('|error|'.length) });
+      }
+    }
+  };
+
+  reiniciarCambios(): void {
+    this.reemitidas.clear();
+    this.errores = [];
+  }
+}
+
+/** Rejuega `inputLog` y deja en el colector todo lo emitido. */
+export function replayConColector(inputLog: string[]): { battle: Battle; colector: Colector } {
+  const colector = new Colector();
+  const battle = replay(inputLog, colector.onSend);
+  return { battle, colector };
 }

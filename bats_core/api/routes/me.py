@@ -9,6 +9,7 @@ acceso a administración). El servidor sigue decidiendo los permisos en cada rut
 La cuenta sale siempre de la sesión: el body nunca dice de quién es el cambio.
 """
 from fastapi import APIRouter, Depends, HTTPException
+from psycopg2.errors import UndefinedColumn
 
 from ..auth import require_player
 from ..db import get_db
@@ -20,11 +21,16 @@ router = APIRouter(prefix="/api/me", tags=["me"])
 
 @router.get("")
 def get_me(player: dict = Depends(require_player)):
-    with get_db() as db:
-        row = db.fetchone(
-            "SELECT avatar FROM tournament.player_accounts WHERE LOWER(email) = %s",
-            (player["email"].lower(),),
-        )
+    # Si la migración v13 aún no se aplicó, la columna no existe: sin sprite en vez de 500,
+    # para no tumbar el carnet ni "Mi equipo" por un desfase entre código y base.
+    try:
+        with get_db() as db:
+            row = db.fetchone(
+                "SELECT avatar FROM tournament.player_accounts WHERE LOWER(email) = %s",
+                (player["email"].lower(),),
+            )
+    except UndefinedColumn:
+        row = None
     return {
         "username": player["username"],
         "email": player["email"],

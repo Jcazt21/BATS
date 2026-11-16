@@ -7,3 +7,5 @@ web/node_modules/
 web/dist/
 tests/
 .env.*
+motor/test/
+web/e2e/

@@ -22,10 +22,8 @@ web/node_modules/
 web/dist/
 web/dist-ssr/
 
-# Residuo de npm en la raíz (el frontend vive en web/)
-/package-lock.json
-/package.json
-/node_modules/
+# Dependencias del motor de Arena (package.json y package-lock.json de la raíz SÍ se commitean)
+node_modules/
 
 # Editor / OS
 .vscode/*

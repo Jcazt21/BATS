@@ -13,6 +13,8 @@ export default defineConfig({
     // Desarrollo: /api → API local (python -m bats_core api). En producción (Vercel)
     // SPA y API comparten origen, así que el frontend usa rutas relativas en ambos casos.
     proxy: {
+      // El motor de Arena (Node) va ANTES que el comodín de la API de Python.
+      '/api/motor': { target: process.env.BATS_MOTOR_URL ?? 'http://127.0.0.1:8012', changeOrigin: true },
       '/api': { target: process.env.BATS_API_URL ?? 'http://127.0.0.1:8011', changeOrigin: true },
     },
   },

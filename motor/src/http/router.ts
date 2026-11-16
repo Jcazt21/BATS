@@ -1,4 +1,5 @@
 import { HttpError, errorResponse } from './errors.js';
+import { exigirTokenServicio } from './auth.js';
 import { arenaAllows, arenaMode, type ArenaMode, type Identidad } from './flags.js';
 
 /** Todas las rutas del motor cuelgan de aquí (rewrite `/api/motor/(.*)` en `vercel.json`). */
@@ -9,6 +10,8 @@ export interface Contexto {
   url: URL;
   /** Segmentos `:nombre` de la ruta. */
   params: Record<string, string>;
+  /** Quién llama; presente en las rutas con `acceso: 'jugador'`. */
+  identidad?: Identidad & { username?: string };
 }
 
 export interface Ruta {
@@ -17,6 +20,12 @@ export interface Ruta {
   path: string;
   /** Solo `health`: responde aunque Arena esté apagada. */
   publica?: boolean;
+  /**
+   * Cómo se autentica quien llama. `jugador`: JWT de Supabase (la identidad llega en el contexto).
+   * `{ servicio }`: token de máquina en esa variable de entorno (con Arena apagada, 404; en
+   * `admins` pasa: lo llama FastAPI, que no es administrador).
+   */
+  acceso?: 'jugador' | { servicio: string };
   handler: (ctx: Contexto) => Response | Promise<Response>;
 }
 
@@ -38,8 +47,10 @@ function emparejar(patron: string, ruta: string): Record<string, string> | null 
 
 export interface OpcionesRouter {
   mode?: () => ArenaMode;
-  /** Quién llama (la verificación del JWT llega en la fase 2). Sin ella, `admins` queda cerrado. */
-  identify?: (request: Request) => Promise<Identidad | null>;
+  /** Quién llama (verifica el JWT; lanza `HttpError` 401/403). Sin ella, `admins` queda cerrado. */
+  identify?: (request: Request) => Promise<(Identidad & { username?: string }) | null>;
+  /** Variables de entorno para los tokens de servicio. */
+  env?: Record<string, string | undefined>;
 }
 
 export function createRouter(
@@ -56,12 +67,25 @@ export function createRouter(
           if (ruta.method !== request.method) continue;
           const params = emparejar(ruta.path, relativa);
           if (!params) continue;
+          let identidad: (Identidad & { username?: string }) | null = null;
           if (!ruta.publica) {
             const actual = mode();
-            const identidad = actual === 'admins' ? ((await opciones.identify?.(request)) ?? null) : null;
-            if (!arenaAllows(actual, identidad)) break;
+            const servicio = typeof ruta.acceso === 'object' ? ruta.acceso.servicio : null;
+            if (servicio) {
+              if (actual === 'off') break;
+              exigirTokenServicio(request, servicio, opciones.env);
+            } else {
+              if (actual === 'off') break;
+              if (actual === 'admins' || ruta.acceso === 'jugador') {
+                identidad = (await opciones.identify?.(request)) ?? null;
+              }
+              if (!arenaAllows(actual, identidad ?? (ruta.acceso === 'jugador' ? { isAdmin: false } : null))) break;
+              if (ruta.acceso === 'jugador' && !identidad) {
+                return errorResponse(401, 'unauthorized', 'Falta el token de autenticación.');
+              }
+            }
           }
-          return await ruta.handler({ request, url, params });
+          return await ruta.handler({ request, url, params, identidad: identidad ?? undefined });
         }
       }
       return errorResponse(404, 'not_found', 'Ruta no encontrada');

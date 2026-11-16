@@ -1,4 +1,4 @@
-# Arena · pendientes de las fases 0 y 1 (a cargo del dueño)
+# Arena · pendientes de las fases 0, 1 y 2 (a cargo del dueño)
 
 Actualizado: 2026-11-17. El avance oficial vive en `PLAN_BATALLAS_NATIVAS.md` (sección "Estado de la ejecución").
 
@@ -22,6 +22,19 @@ El código (F1.1 a F1.13) está completo y verificado: 193 tests, las 13 doradas
 - [ ] **Ver una batalla de principio a fin:** `npm run motor:partida -- --seed 7` y confirmar que se lee bien. Es el punto **[HUMANO]** de la puerta.
 - [ ] **Revisar y fusionar el PR #10** (https://github.com/Jcazt21/BATS/pull/10) con **merge commit** (`--no-ff`), no squash.
 - [ ] **Marcar la puerta de la fase 1** en la tabla de estado del plan (hoy está en 🟡).
+
+## Fase 2 · Persistencia y API del motor (rama `arena/fase-2-api-motor`, sin fusionar)
+
+El código (F2.1 a F2.12) está completo y verificado en local: 277 tests del motor (49 con base de datos), 34 de pytest, concurrencia 50/50 y una batalla de 35 turnos solo por HTTP sin filtraciones. Falta la puerta **[HUMANO]**:
+
+- [ ] **Revisar y fusionar la rama a `main`.** El job `integracion` de CI no se ha ejecutado nunca en GitHub; confirma que pasa. Hazle un `/code-review` antes: la revisión final fue una autorrevisión, sin revisor de contexto fresco.
+- [ ] **Aplicar `v16` a Supabase** (y a staging si existe): `python -m bats_core db --apply-schema --dsn "$BATS_SUPABASE_DSN_SESSION"`. Orden: primero el esquema, luego el código.
+- [ ] **Variables de Vercel:** `BATS_ARENA_MODE=admins` y `BATS_MOTOR_TOKEN` (ya anotada en la fase 0).
+- [ ] **Comprobar `GET /api/motor/battles/999999`** con un token de admin real: debe dar 404; sin token, 401.
+- [ ] **Ejecutar en Supabase** `select arena.notify('arena:lobby','changed','{}')`: no debe dar error.
+- [ ] **Marcar la puerta de la fase 2** en la tabla de estado del plan.
+
+Desviaciones aceptadas (detalle en la Bitácora del plan): migración `v16` en lugar de `v14` (la barrida de la fase 6 pasa a `v17`); I9 acotada a las FKs que añade arena; `arena_testdb.sh` usa Docker (`bats-arena-pg`, puerto 55432) si no hay `psql`, y el contenedor sigue corriendo; semilla `sodium,<hex>`; capa extra `service/battles.ts`; las rutas de servicio (`validate-team`) siguen activas con `BATS_ARENA_MODE=admins`.
 
 ## Decisiones abiertas que salieron de la fase 1
 

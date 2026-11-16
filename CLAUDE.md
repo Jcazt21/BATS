@@ -60,7 +60,7 @@ npx vitest run
 
 ## Base de datos
 
-- `schema.sql` + `migrations/v2…v15.sql` reconstruyen la base desde cero; `--apply-schema` es reaplicable.
+- `schema.sql` + `migrations/v2…v16.sql` reconstruyen la base desde cero; `--apply-schema` es reaplicable.
 - `seed.sql` y `roles.sql` son opcionales y **solo para Postgres local**; no los apliques en Supabase.
 - **Supabase** (proyecto `BATS`, us-east-1): strings en `.env` como `BATS_SUPABASE_DSN_POOLER` (`:6543`, Vercel) y `BATS_SUPABASE_DSN_SESSION` (`:5432`, migraciones/`pg_dump`). **`BATS_DB_DSN` apunta a la DB local a propósito**: `reset`, `clean` y los tests la usan por defecto. Para operar sobre Supabase pasa `--dsn` explícito. Sin RLS (Data API desactivada).
 - **La API lee siempre las vistas materializadas** (con o sin `?season_id=`); `season_id = 0` = "sin temporada". Se refrescan con `POST /api/ingest/refresh-views` y un cron diario. **La ingesta NO las refresca.**

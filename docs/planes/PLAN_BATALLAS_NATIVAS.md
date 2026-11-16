@@ -33,7 +33,7 @@ Vault) · React 19 + Vite · pytest · vitest.
 |---|---|---|---|
 | 0 · Cimientos y esqueleto andante | `arena/fase-0-cimientos` | 🟡 código completo y fusionado a `main` (2026-11-16); **pendiente [HUMANO]:** F0.8 (Supabase `bats-staging`, `BATS_ARENA_MODE=off` y `BATS_MOTOR_TOKEN` en Vercel), comparar bundle de `api/index` y comprobar `/api/motor/health` en producción | ☐ |
 | 1 · Núcleo del motor (puro) | `arena/fase-1-nucleo` | 🟡 F1.1–F1.13 completas (2026-11-17); **pendiente [HUMANO]:** ver `npm run motor:partida` y correr la propiedad con `MOTOR_PROPIEDAD=200` | ☐ |
-| 2 · Persistencia y API del motor | `arena/fase-2-api-motor` | ☐ pendiente | ☐ |
+| 2 · Persistencia y API del motor | `arena/fase-2-api-motor` | 🟡 F2.1–F2.12 completas (2026-11-16); **pendiente [HUMANO]:** la puerta (aplicar `v16` a Supabase, `BATS_ARENA_MODE=admins`, comprobaciones con token real) | ☐ |
 | 3 · Liga: retos, equipo de 6 y reglas | `arena/fase-3-liga` | ☐ pendiente | ☐ |
 | 4 · Ingesta: de la arena a las estadísticas | `arena/fase-4-ingesta` | ☐ pendiente | ☐ |
 | 5 · Visor mínimo jugable | `arena/fase-5-visor-minimo` | ☐ pendiente | ☐ |
@@ -305,8 +305,8 @@ motor/
 bats_core/
   arena/                      NUEVO  flags.py, formats.py, teams.py, challenges.py, ingest.py
   api/routes/arena.py         NUEVO  /api/arena/*  y  /api/ingest/arena/*
-  db/migrations/v14.sql       esquema arena           (fase 2)
-  db/migrations/v15.sql       cron y barrido          (fase 6)
+  db/migrations/v16.sql       esquema arena           (fase 2; v14 y v15 ya existían)
+  db/migrations/v17.sql       cron y barrido          (fase 6)
 tests/
   test_arena_*.py   arena_db.py   fixtures/arena/{golden,contract}/
 tools/
@@ -322,7 +322,7 @@ web/e2e/                      Playwright (fase 5)
 
 ## 9. Contratos
 
-### 9.1 Esquema `arena` (migración `v14.sql`, fase 2)
+### 9.1 Esquema `arena` (migración `v16.sql`, fase 2)
 
 ```sql
 CREATE SCHEMA IF NOT EXISTS arena;
@@ -637,7 +637,7 @@ terminar, dos clientes HTTP pueden jugar una batalla completa contra una base de
 | # | Tarea | Rojo (test primero) | Verde |
 |---|---|---|---|
 | F2.1 | Base desechable y guardia (I13) | `motor/test/db/guard.test.ts`: `assertTestDsn` lanza si el DSN es igual a `BATS_DB_DSN`, contiene `supabase` o no contiene `test`. | `tools/arena_testdb.sh up\|down`: `createdb bats_arena_test_<pid>`, aplica el esquema con `python -m bats_core db --apply-schema --dsn …`, imprime el DSN. `tests/arena_db.py` con la misma guardia para pytest. |
-| F2.2 | Migración `v14.sql` | `tests/test_arena_schema.py`: aplicar dos veces no falla; existen las 3 tablas y los índices; RLS activo; I9 (consulta a `pg_constraint`: ninguna FK entre `arena` y `battle`); `arena.notify(…)` no lanza en una base sin `realtime`; los `CHECK` rechazan estados inválidos; el índice único impide dos retos pendientes entre la misma pareja en cualquier orden. | `bats_core/db/migrations/v14.sql` (sección 9.1). |
+| F2.2 | Migración `v16.sql` | `tests/test_arena_schema.py`: aplicar dos veces no falla; existen las 3 tablas y los índices; RLS activo; I9 (consulta a `pg_constraint`: ninguna FK entre `arena` y `battle`); `arena.notify(…)` no lanza en una base sin `realtime`; los `CHECK` rechazan estados inválidos; el índice único impide dos retos pendientes entre la misma pareja en cualquier orden. | `bats_core/db/migrations/v16.sql` (sección 9.1). |
 | F2.3 | Pool | `motor/test/db/pool.test.ts`: el pool es un singleton de módulo; `max` ≤ 3. | `motor/src/db/pool.ts`: `pg.Pool` (`max: 3`, `idleTimeoutMillis` corto), registrado con `attachDatabasePool` de `@vercel/functions`. Sin sentencias preparadas con nombre (pooler en modo transacción). |
 | F2.4 | Repositorio con bloqueo | `motor/test/db/repo.test.ts`: `withBattleLock` hace commit al volver y rollback si la función lanza (la tanda no queda a medias); devuelve `null` si la batalla no existe; `saveTransition` inserta la tanda, actualiza la fila y llama a `arena.notify` en la **misma** transacción. | `motor/src/db/repo.ts`. `SET LOCAL lock_timeout = '3s'` y `statement_timeout = '8s'`. Mapear filas ↔ `BattleRecord` en un solo sitio. |
 | F2.5 | Concurrencia (I4) | `motor/test/db/concurrency.test.ts`: p1 y p2 eligen a la vez por dos conexiones (`Promise.all`), 50 repeticiones: siempre una sola tanda nueva, `seq` sube exactamente 1, ninguna elección se pierde. Con el bloqueo tomado a mano por otra conexión, la petición responde `503 busy` (reintentable) en vez de colgarse. | — |
@@ -662,7 +662,7 @@ tools/arena_testdb.sh down
 **Puerta**
 
 - [ ] Todo lo anterior en verde, incluida la prueba de concurrencia (50/50).
-- [ ] **[HUMANO]** Merge → aplicar `v14` a Supabase (y a staging) → `BATS_ARENA_MODE=admins`.
+- [ ] **[HUMANO]** Merge → aplicar `v16` a Supabase (y a staging) → `BATS_ARENA_MODE=admins`.
 - [ ] **[HUMANO]** En producción, con un token real de admin: `GET /api/motor/battles/999999` → 404 (prueba JWT + base + flag en el entorno real). Sin token → 401.
 - [ ] **[HUMANO]** En Supabase: `select arena.notify('arena:lobby','changed','{}')` no da error.
 
@@ -785,7 +785,7 @@ pasar a `all`.
 | # | Tarea | Rojo (test primero) | Verde |
 |---|---|---|---|
 | F6.1 | `POST /api/motor/sweep` | Sin `CRON_SECRET` → 401; resuelve todas las batallas `active` vencidas (más 10 s de gracia) y aborta las `team_select`/`ready` con más de 10 min; cada una bajo su propio bloqueo; una que falle no detiene las demás; limita el lote (p. ej. 25). | — |
-| F6.2 | Migración `v15.sql` | `tests/test_arena_schema.py`: en una base sin `pg_cron`/`pg_net` la migración se aplica sin error y no programa nada; `arena.sweep()` existe y, sin trabajo pendiente, **no** hace ninguna llamada HTTP; vence retos (`status='expired'`) por SQL. | `arena.sweep()`: (1) vence retos; (2) si hay batallas vencidas → `net.http_post` a `/api/motor/sweep`; (3) si hay ingestas `pending` de más de 60 s → `net.http_post` a `/api/cron/arena-ingest`. URL base y secreto leídos de **Supabase Vault** (`vault.decrypted_secrets`), nunca del repo. Programar con `cron.schedule('arena-sweep', '30 seconds', 'select arena.sweep()')` dentro de un `DO` condicional. |
+| F6.2 | Migración `v17.sql` | `tests/test_arena_schema.py`: en una base sin `pg_cron`/`pg_net` la migración se aplica sin error y no programa nada; `arena.sweep()` existe y, sin trabajo pendiente, **no** hace ninguna llamada HTTP; vence retos (`status='expired'`) por SQL. | `arena.sweep()`: (1) vence retos; (2) si hay batallas vencidas → `net.http_post` a `/api/motor/sweep`; (3) si hay ingestas `pending` de más de 60 s → `net.http_post` a `/api/cron/arena-ingest`. URL base y secreto leídos de **Supabase Vault** (`vault.decrypted_secrets`), nunca del repo. Programar con `cron.schedule('arena-sweep', '30 seconds', 'select arena.sweep()')` dentro de un `DO` condicional. |
 | F6.3 | Reloj en el cliente | `clock.test.ts`: cuenta atrás corregida con `serverNow`; al llegar a cero y faltar el rival, llama a `timeout` una vez (con retroceso si responde 409); aviso visual a 30 s y 10 s. | `lib/arena/clock.ts`, componente `TurnClock`. |
 | F6.4 | Reintentos de ingesta | `tests/test_arena_ingest.py`: tras 5 intentos fallidos la batalla queda `error` y deja de reintentarse; el admin puede forzar la reingesta. | — |
 | F6.5 | Administración | `/admin/arena`: batallas vivas, pendientes de ingesta y con error; abortar una batalla (`end_reason='admin'`), reingerir. Solo `is_admin`. | Rutas `/api/arena/admin/*` con `require_admin`. |
@@ -957,6 +957,32 @@ Cada punto es una tarea con sus tests actualizados:
      CLI arman las partidas con los equipos de las doradas.
   8. Los tests de la dorada de rendición (dorada-12) juegan hasta el `>forcelose`, que no es una elección. Ninguna dorada tiene
      `undo`; deshacer/rendirse/timeout se prueban con registros propios.
+
+- 2026-11-16 · Fase 2 · F2.1–F2.12 completas en `arena/fase-2-api-motor`: `motor/src/{db,service,http}`, `v16.sql`,
+  `tools/arena_testdb.sh`, `motor/scripts/{dev-server,servidor,partida-http}.ts`, job `integracion` en CI. Desviaciones:
+  1. **La migración es `v16.sql`, no `v14`:** `v14` (pokédex) y `v15` (ties) ya existían. El barrido de la fase 6 pasa a `v17`.
+  2. **I9 acotado:** `tournament.team_violations` ya tenía FKs hacia `battle.*`, así que el test prohíbe solo las que añadiría
+     arena (`arena→battle`, `battle→arena`, `tournament→arena`); exigir "tournament no referencia a battle" habría fallado
+     por algo anterior a arena.
+  3. **`arena_testdb.sh` usa Docker si no hay `createdb`** (contenedor `bats-arena-pg`, `postgres:17-alpine`, 127.0.0.1:55432,
+     sin contraseña). En la máquina del dueño no hay `psql`. `.gitattributes` fuerza LF en `*.sh`.
+  4. **Semilla:** se genera como `sodium,<hex32>` con `crypto.randomBytes` (el formato de las doradas), no con
+     `PRNG.generateSeed()` (esta versión devuelve el formato antiguo `a,b,c,d`). Vive en `service/battles.ts`, fuera del núcleo.
+  5. **Capa `service/battles.ts`** (no prevista): orquesta núcleo + repositorio (`obtenerVista`, `accionar`); el HTTP solo
+     parsea y mapea errores. La concurrencia (I4) se prueba contra ella con dos pools distintos.
+  6. **Router:** cada `Ruta` declara `acceso: 'jugador' | { servicio: VAR }`. Las rutas de servicio (`validate-team`) pasan
+     en `admins` (las llama FastAPI, que no es admin) y dan 404 en `off`. Con `admins`, sin token → 401 y jugador no admin → 404.
+  7. **JWT:** `jose` con `createRemoteJWKSet`; un fallo al pedir el JWKS da 503, cualquier otro fallo de verificación 401.
+     `user_id` NULL se acepta sin enlazar (lo enlaza FastAPI).
+  8. **Ingesta:** el aviso (`waitUntil(fetch /api/ingest/arena/<id>)`) solo sale si la batalla no es de prueba y existe
+     `BATS_INGEST_TOKEN`; la base URL sale de `BATS_API_URL` o del origen de la petición. El endpoint llega en la fase 4.
+  9. **Las doradas 01, 02, 04, 05 y 06 (p1) incumplen Item Clause y 03, 04, 05 (p2) "un solo restringido"** con la cadena del
+     apéndice A (ya anotado en la fase 1, punto 6): los tests de `validate-team` usan la que sí cumple (dorada-01 p2).
+  10. Los tests con base de datos se saltan sin `BATS_TEST_DSN`; con `MOTOR_DB_OBLIGATORIA=1` (CI) su ausencia es un error.
+      `npm run motor:test:db` corre `motor/test/db` y `motor/test/http/battles.db.test.ts`. Medido: 277 tests del motor
+      (49 con base de datos), la concurrencia 50/50, y una partida HTTP de 35 turnos en ~8 s.
+  11. Verificación hecha en local con `eval "$(tools/arena_testdb.sh up)"`. **No se ha ejecutado el job `integracion` en
+      GitHub** ni nada contra Supabase.
 
 ---
 

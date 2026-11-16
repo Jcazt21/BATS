@@ -89,17 +89,17 @@ describe.skipIf(!hayDb)('repo (base desechable)', () => {
         const { record, newLines } = start(f.record!, { seed: dorada.seed, now: AHORA });
         await saveTransition(tx, f, record, newLines);
       });
-      const { rows } = await admin.query('SELECT topic, payload FROM public.avisos_motor_test');
+      // Otros archivos de test guardan batallas en paralelo: solo cuentan los avisos de las nuestras.
+      const { rows } = await admin.query('SELECT topic, payload FROM public.avisos_motor_test WHERE topic = $1', [`battle:${id}`]);
       expect(rows).toEqual([{ topic: `battle:${id}`, payload: { seq: 1 } }]);
 
-      await admin.query('TRUNCATE public.avisos_motor_test');
       const id2 = await crearBatallaReady(pool, dorada);
       await withBattleLock(pool, id2, async (f, tx) => {
         const { record, newLines } = start(f.record!, { seed: dorada.seed, now: AHORA });
         await saveTransition(tx, f, record, newLines);
         throw new Error('rollback');
       }).catch(() => {});
-      expect((await admin.query('SELECT 1 FROM public.avisos_motor_test')).rowCount).toBe(0);
+      expect((await admin.query('SELECT 1 FROM public.avisos_motor_test WHERE topic = $1', [`battle:${id2}`])).rowCount).toBe(0);
     } finally {
       await admin.query('DROP SCHEMA realtime CASCADE');
       await admin.query('DROP TABLE IF EXISTS public.avisos_motor_test');

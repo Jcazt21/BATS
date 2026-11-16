@@ -84,11 +84,65 @@ jobs:
       - name: vitest
         run: npm run motor:test
 
+  # Pruebas contra Postgres real: esquema `arena`, repositorio con bloqueo, concurrencia (I4) y la
+  # partida completa por HTTP. La base se llama `..._test` y NO es BATS_DB_DSN (guardia I13).
+  integracion:
+    name: Integración — Postgres, pytest de arena y motor
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: bats_arena_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      BATS_TEST_DSN: postgresql://postgres:postgres@localhost:5432/bats_arena_test
+      MOTOR_DB_OBLIGATORIA: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Instalar dependencias
+        run: |
+          pip install -r requirements-dev.txt
+          npm ci
+
+      - name: Aplicar el esquema a la base desechable
+        run: python -m bats_core db --apply-schema --dsn "$BATS_TEST_DSN"
+
+      - name: pytest de arena
+        run: pytest -v tests/test_arena_*.py
+
+      - name: vitest con base de datos
+        run: npm run motor:test:db
+
   # Solo main despliega: las ramas y los PRs únicamente corren los checks.
   deploy:
     name: Deploy a Vercel (producción)
     runs-on: ubuntu-latest
-    needs: [backend, frontend-checks, motor]
+    needs: [backend, frontend-checks, motor, integracion]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read

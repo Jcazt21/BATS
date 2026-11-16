@@ -62,7 +62,16 @@ function usuarioDe(ctx: Contexto): string {
 export function crearApp(deps: Deps): { fetch: (request: Request) => Promise<Response> } {
   const env = deps.env ?? process.env;
   const hacerFetch = deps.fetch ?? fetch;
-  const esperar = deps.waitUntil ?? ((p: Promise<unknown>) => waitUntilVercel(p));
+  // Fuera de Vercel (servidor local) no hay contexto al que colgar la promesa: sigue corriendo sola.
+  const esperar =
+    deps.waitUntil ??
+    ((p: Promise<unknown>) => {
+      try {
+        waitUntilVercel(p);
+      } catch {
+        void p;
+      }
+    });
 
   /** Avisa a la ingesta de que hay una batalla terminada; un fallo aquí nunca rompe el turno. */
   function avisarIngesta(request: Request, id: number): void {

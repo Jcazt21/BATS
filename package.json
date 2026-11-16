@@ -8,7 +8,9 @@
   "scripts": {
     "motor:test": "vitest run",
     "motor:typecheck": "tsc --noEmit -p tsconfig.json",
-    "motor:partida": "tsx motor/scripts/partida.ts"
+    "motor:partida": "tsx motor/scripts/partida.ts",
+    "motor:dev": "tsx motor/scripts/dev-server.ts",
+    "motor:test:db": "vitest run motor/test/db motor/test/http/battles.db.test.ts"
   },
   "dependencies": {
     "@pkmn/sim": "0.11.0",

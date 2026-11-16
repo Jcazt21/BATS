@@ -27,8 +27,8 @@ export type AccionCliente =
 export interface Resultado {
   seq: number;
   resolved: boolean;
-  /** La acción terminó la batalla: quien llama dispara la ingesta (F2.9). */
-  finished: boolean;
+  /** La acción terminó una batalla de liga real: quien llama dispara la ingesta (F2.9). */
+  ingest: boolean;
 }
 
 export interface VistaHttp {
@@ -153,7 +153,7 @@ export async function accionar(
     if (t.record !== fila.record) await saveTransition(tx, fila, t.record, t.newLines);
     return {
       ok: true,
-      resultado: { seq: t.record.seq, resolved: t.newLines !== null, finished: t.record.status === 'finished' },
+      resultado: { seq: t.record.seq, resolved: t.newLines !== null, ingest: t.record.status === 'finished' && !fila.isTest },
     };
   });
   if (!salida) throw new HttpError(404, 'not_found', 'Batalla no encontrada');

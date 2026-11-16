@@ -7,7 +7,8 @@
   },
   "scripts": {
     "motor:test": "vitest run",
-    "motor:typecheck": "tsc --noEmit -p tsconfig.json"
+    "motor:typecheck": "tsc --noEmit -p tsconfig.json",
+    "motor:partida": "tsx motor/scripts/partida.ts"
   },
   "dependencies": {
     "@pkmn/sim": "0.11.0",
@@ -16,6 +17,11 @@
     "pg": "^8.23.1"
   },
   "devDependencies": {
+    "@pkmn/client": "0.7.4",
+    "@pkmn/data": "0.11.0",
+    "@pkmn/dex": "0.11.0",
+    "@pkmn/protocol": "0.7.4",
+    "@pkmn/view": "0.7.4",
     "@types/node": "^24.0.0",
     "@types/pg": "^8.23.1",
     "tsx": "^4.23.15",

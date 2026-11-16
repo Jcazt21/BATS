@@ -32,7 +32,7 @@ Vault) · React 19 + Vite · pytest · vitest.
 | Fase | Rama | Estado | Puerta |
 |---|---|---|---|
 | 0 · Cimientos y esqueleto andante | `arena/fase-0-cimientos` | 🟡 código completo y fusionado a `main` (2026-11-16); **pendiente [HUMANO]:** F0.8 (Supabase `bats-staging`, `BATS_ARENA_MODE=off` y `BATS_MOTOR_TOKEN` en Vercel), comparar bundle de `api/index` y comprobar `/api/motor/health` en producción | ☐ |
-| 1 · Núcleo del motor (puro) | `arena/fase-1-nucleo` | ☐ pendiente | ☐ |
+| 1 · Núcleo del motor (puro) | `arena/fase-1-nucleo` | 🟡 F1.1–F1.13 completas (2026-11-17); **pendiente [HUMANO]:** ver `npm run motor:partida` y correr la propiedad con `MOTOR_PROPIEDAD=200` | ☐ |
 | 2 · Persistencia y API del motor | `arena/fase-2-api-motor` | ☐ pendiente | ☐ |
 | 3 · Liga: retos, equipo de 6 y reglas | `arena/fase-3-liga` | ☐ pendiente | ☐ |
 | 4 · Ingesta: de la arena a las estadísticas | `arena/fase-4-ingesta` | ☐ pendiente | ☐ |
@@ -936,6 +936,28 @@ Cada punto es una tarea con sus tests actualizados:
   `/api/motor/health` en producción tras el despliegue (anotar frío, caliente y tamaños). Hasta entonces la
   puerta de la fase sigue sin marcar.
 
+- 2026-11-17 · Fase 1 · F1.1–F1.13 completas en `arena/fase-1-nucleo`: `core/{types,timer,hash,start,apply,view}.ts`,
+  `engine/{replay,format}.ts` (el `replay` gana un `Colector`), CLI `npm run motor:partida`. Desviaciones y hallazgos:
+  1. `start` devuelve `{record, newLines}` (no un `Transition`) y hay un `nuevoRegistro()` para crear el registro `ready`.
+  2. **Apéndice B corregido:** `LogFormatter` recibe el lado (`'p1'`), no `0`; con `0` todo sale como "opposing". El texto
+     trae el HP como `||exacto||porcentaje||` (marcado para el HTML del cliente): hay que limpiarlo en el visor (fase 5).
+  3. **Costo de rejugar medido en vitest/Windows:** ~41 ms para una batalla de 29 turnos (el plan decía 10–40). La prueba de
+     propiedad (F1.10) cuesta ~1,7 s por batalla (cada paso rejuega entera): por defecto corre 10 batallas y la puerta usa
+     `MOTOR_PROPIEDAD=200 npm run motor:test` (varios minutos). La suite normal queda en ~20 s.
+  4. **`|-message|` y `logHash`:** el mensaje de rendición/inactividad que se añade a mano entra en `logLines`/`logHash`, pero un
+     rejuego no lo produce. Solo afecta a batallas ya terminadas: la fase 2 **no debe** verificar el hash (ni rejugar) las que
+     estén en `finished`/`aborted`. No hay logs de PS en disco para confirmar si el mensaje va antes o después de `|win|`;
+     se añade después. El de timeout (`X lost due to inactivity.`) lo añadí yo; el plan solo pedía el de rendirse.
+  5. Decisión mía: pedir una elección **distinta** a la pendiente sin `undo` da `invalid_choice` (la igual es idempotente).
+  6. **9 de los 26 equipos reales de las doradas incumplen** la Item Clause o "un solo restringido" con la cadena de reglas del
+     apéndice A (p. ej. dorada-03/04/05 p2: Zacian + Volcanion). O la liga los permitió por una vía que `formats.ts` no
+     refleja, o las reglas del plan son más estrictas que las reales: revisar antes de la fase 3 (decisión A1).
+  7. Dependencias de desarrollo nuevas, con versión exacta: `@pkmn/{view,client,data,dex,protocol}` (solo para la CLI;
+     el frontend las traerá en la fase 5). No hay `Teams.generate` en `@pkmn/sim` (falta `@pkmn/randoms`): la propiedad y la
+     CLI arman las partidas con los equipos de las doradas.
+  8. Los tests de la dorada de rendición (dorada-12) juegan hasta el `>forcelose`, que no es una elección. Ninguna dorada tiene
+     `undo`; deshacer/rendirse/timeout se prueban con registros propios.
+
 ---
 
 ## Apéndice A — Rejugada verificada
@@ -988,7 +1010,7 @@ import { Protocol } from '@pkmn/protocol';
 import { LogFormatter, ChoiceBuilder } from '@pkmn/view';
 
 const battle = new Battle(new Generations(Dex));
-const formatter = new LogFormatter(0 /* perspectiva: p1 */, battle);
+const formatter = new LogFormatter('p1' /* perspectiva: el lado, no un número */, battle);
 for (const { args, kwArgs } of Protocol.parse(lineas.join('\n'))) {
   const texto = formatter.formatText(args, kwArgs);   // SIEMPRE antes de battle.add
   battle.add(args, kwArgs);

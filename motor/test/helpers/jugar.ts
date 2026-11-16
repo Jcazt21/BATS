@@ -22,7 +22,7 @@ export function eleccionesDe(d: Dorada): { side: Lado; choice: string }[] {
  * Juega una dorada entera con `start` + `apply`, una elección cada vez, partiendo solo del
  * registro anterior. Devuelve el registro final, todas las tandas y cada paso.
  */
-export function jugarDorada(d: Dorada, over: Partial<BattleRecord> = {}) {
+function jugar(d: Dorada, over: Partial<BattleRecord>) {
   const inicio = start(registroDe(d, over), { seed: d.seed, now: AHORA });
   let record = inicio.record;
   const tandas: string[][] = [inicio.newLines];
@@ -35,4 +35,13 @@ export function jugarDorada(d: Dorada, over: Partial<BattleRecord> = {}) {
     if (resultado.newLines) tandas.push(resultado.newLines);
   }
   return { record, tandas, pasos };
+}
+
+const cache = new Map<string, ReturnType<typeof jugar>>();
+
+/** Igual que `jugar`, pero memoriza la partida normal (sin `over`): rejugarla cuesta ~1 s. */
+export function jugarDorada(d: Dorada, over: Partial<BattleRecord> = {}) {
+  if (Object.keys(over).length) return jugar(d, over);
+  if (!cache.has(d.id)) cache.set(d.id, jugar(d, {}));
+  return cache.get(d.id)!;
 }

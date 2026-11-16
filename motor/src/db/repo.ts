@@ -182,3 +182,15 @@ export async function cargarTandas(
   );
   return rows.map(r => ({ seq: r.seq, lines: r.lines }));
 }
+
+/** Cuenta de liga por email (solo lectura; el enlace con `user_id` lo hace FastAPI). */
+export async function cuentaPorEmail(
+  db: Consulta,
+  email: string,
+): Promise<{ userId: string | null; username: string; isAdmin: boolean } | null> {
+  const { rows } = await db.query(
+    'SELECT user_id::text AS user_id, username, is_admin FROM tournament.player_accounts WHERE LOWER(email) = $1',
+    [email.toLowerCase()],
+  );
+  return rows[0] ? { userId: rows[0].user_id, username: rows[0].username, isAdmin: rows[0].is_admin } : null;
+}

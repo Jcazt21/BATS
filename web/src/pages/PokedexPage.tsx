@@ -152,7 +152,7 @@ export function PokedexPage() {
         </div>
       )}
 
-      {openCell && openCell.status !== "unknown" && <DexEntryModal cell={openCell} onClose={close} />}
+      {openCell && openCell.status !== "unknown" && <DexEntryModal cell={openCell} onClose={close} username={username} isOwn={!userParam || userParam.toLowerCase() === me.data?.username?.toLowerCase()} />}
     </div>
   );
 }

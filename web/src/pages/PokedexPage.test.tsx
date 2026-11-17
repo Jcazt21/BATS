@@ -8,9 +8,10 @@ import { PokedexPage } from "./PokedexPage";
 
 type Q = { data?: unknown; isPending?: boolean; isError?: boolean; isSuccess?: boolean; error?: unknown; refetch?: () => void };
 const st = vi.hoisted(() => ({
-  dex: {} as Q, me: {} as Q, pokedex: {} as Q, stats: {} as Q,
+  dex: {} as Q, me: {} as Q, pokedex: {} as Q, stats: {} as Q, playerStats: {} as Q,
   session: { session: {} as unknown, loading: false },
   pokedexUser: undefined as string | undefined,
+  playerStatsUser: undefined as string | undefined,
   statsSpecies: undefined as string | undefined,
 }));
 
@@ -18,6 +19,7 @@ vi.mock("@/lib/queries", () => ({
   useDexEssentials: () => st.dex,
   useMe: () => st.me,
   usePlayerPokedex: (u?: string) => { st.pokedexUser = u; return st.pokedex; },
+  usePlayerPokedexStats: (u?: string) => { st.playerStatsUser = u; return st.playerStats; },
   usePokemonStatsEntry: (sp: string) => { st.statsSpecies = sp; return st.stats; },
   useDexDetails: () => ({ data: undefined }),
   useLeaderboard: () => ({ data: [{ username: "jazar" }, { username: "ronny" }, { username: "Kael" }] }),
@@ -71,6 +73,8 @@ beforeEach(() => {
   st.pokedex = { isSuccess: true, data: { username: "jazar", seen: [
     seen("Garchomp", "2026-11-11T00:00:00Z", "ronny"), seen("Charizard", "2026-11-05T00:00:00Z"),
   ] } };
+  st.playerStats = { isSuccess: true, isPending: false, data: { username: "jazar", species: [] } };
+  st.playerStatsUser = undefined;
   st.stats = { isSuccess: true, isPending: false, data: { pick_pct: 35, win_rate_pct: 61.9, avg_mvp: 1.4, sets: {
     players: 2, moves: [{ name: "Flamethrower", count: 2 }, { name: "Roost", count: 1 }], items: [{ name: "Heavy-Duty Boots", count: 2 }],
     abilities: [{ name: "Solar Power", count: 2 }], natures: [], tera_types: [],
@@ -342,5 +346,26 @@ describe("PokedexPage · ficha en modal", () => {
       </MemoryRouter>,
     );
     expect(screen.getByRole("dialog")).toBeTruthy();
+  });
+
+  it("en la pokédex de otro jugador pasa su username y muestra textos Su/Sus", () => {
+    st.pokedex = { isSuccess: true, data: { username: "kael", seen: [seen("Charizard", "2026-11-05T00:00:00Z")] } };
+    st.playerStats = {
+      isSuccess: true,
+      isPending: false,
+      data: {
+        username: "kael",
+        species: [{
+          species: "Charizard",
+          used: { battles: 2, kills: 3, mvp: 5.5, best: { battle_id: "b-9", kills: 2, mvp: 4, opponent: "jazar", date: "2026-11-05" } },
+          faced: null,
+        }],
+      },
+    };
+    renderAt("/j/kael/pokedex/charizard");
+    const dialog = screen.getByRole("dialog");
+    expect(st.playerStatsUser).toBe("kael");
+    expect(within(dialog).getByText("Sus KOs")).toBeTruthy();
+    expect(within(dialog).getByText("Su Charizard")).toBeTruthy();
   });
 });

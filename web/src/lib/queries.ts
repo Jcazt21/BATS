@@ -21,6 +21,7 @@ export const keys = {
   pokemonStatsEntry: (sp: string, s?: number) => ["pokemon-stats", "entry", sp.toLowerCase(), s ?? "all"] as const,
   player: (u: string, s?: number) => ["player", u.toLowerCase(), s ?? "all"] as const,
   playerPokedex: (u: string) => ["player", u.toLowerCase(), "pokedex"] as const,
+  playerPokedexStats: (u: string) => ["player", u.toLowerCase(), "pokedex", "stats"] as const,
   banRanking: ["ban", "ranking"] as const,
   banStatus: ["ban", "status"] as const,
   banCandidates: (min: number) => ["ban", "candidates", min] as const,
@@ -75,6 +76,9 @@ export const usePlayerProfile = (username: string, s?: number) =>
 /** Pokédex por cuenta (avistamientos). Sin `username` no pide nada. */
 export const usePlayerPokedex = (username?: string) =>
   useQuery({ queryKey: keys.playerPokedex(username ?? ""), queryFn: () => api.getPlayerPokedex(username!), enabled: !!username });
+/** Estadísticas del jugador por especie en batallas de liga. Sin `username` no pide nada. */
+export const usePlayerPokedexStats = (username?: string) =>
+  useQuery({ queryKey: keys.playerPokedexStats(username ?? ""), queryFn: () => api.getPlayerPokedexStats(username!), enabled: !!username });
 export const useCollectors = () => useQuery({ queryKey: ["stats", "collectors"], queryFn: api.getCollectors });
 export const useHeadToHead = (a?: string, b?: string, s?: SeasonArg) =>
   useQuery({

@@ -2443,5 +2443,137 @@
       "username": "tono",
       "seen": []
     }
+  },
+  "player_pokedex_stats": {
+    "jazar": {
+      "username": "jazar",
+      "species": [
+        {
+          "species": "Charizard-Mega-Y",
+          "used": {
+            "battles": 4,
+            "kills": 7,
+            "mvp": 11.75,
+            "best": {
+              "battle_id": "gen9pinchesgueysleague-1002",
+              "kills": 3,
+              "mvp": 7.25,
+              "opponent": "kael",
+              "date": "2026-11-08"
+            }
+          },
+          "faced": null
+        },
+        {
+          "species": "Garchomp",
+          "used": {
+            "battles": 5,
+            "kills": 8,
+            "mvp": 12.25,
+            "best": {
+              "battle_id": "gen9pinchesgueysleague-1006",
+              "kills": 3,
+              "mvp": 6.5,
+              "opponent": "tono",
+              "date": "2026-11-11"
+            }
+          },
+          "faced": {
+            "battles": 3,
+            "kills_against": 4,
+            "wins": 2
+          }
+        },
+        {
+          "species": "Heatran",
+          "used": null,
+          "faced": {
+            "battles": 4,
+            "kills_against": 3,
+            "wins": 3
+          }
+        },
+        {
+          "species": "Landorus-Therian",
+          "used": null,
+          "faced": {
+            "battles": 3,
+            "kills_against": 4,
+            "wins": 2
+          }
+        },
+        {
+          "species": "Scizor-Mega",
+          "used": {
+            "battles": 6,
+            "kills": 11,
+            "mvp": 15.5,
+            "best": {
+              "battle_id": "gen9pinchesgueysleague-1008",
+              "kills": 3,
+              "mvp": 3.2,
+              "opponent": "ronny",
+              "date": "2026-11-12"
+            }
+          },
+          "faced": {
+            "battles": 2,
+            "kills_against": 2,
+            "wins": 1
+          }
+        },
+        {
+          "species": "Weavile",
+          "used": null,
+          "faced": {
+            "battles": 2,
+            "kills_against": 2,
+            "wins": 1
+          }
+        }
+      ]
+    },
+    "ronny": {
+      "username": "ronny",
+      "species": [
+        {
+          "species": "Landorus-Therian",
+          "used": {
+            "battles": 3,
+            "kills": 5,
+            "mvp": 7.5,
+            "best": {
+              "battle_id": "gen9pinchesgueysleague-1008",
+              "kills": 1,
+              "mvp": 0.9,
+              "opponent": "jazar",
+              "date": "2026-11-12"
+            }
+          },
+          "faced": null
+        },
+        {
+          "species": "Scizor-Mega",
+          "used": null,
+          "faced": {
+            "battles": 2,
+            "kills_against": 4,
+            "wins": 0
+          }
+        }
+      ]
+    },
+    "kael": {
+      "username": "kael",
+      "species": []
+    },
+    "mili": {
+      "username": "mili",
+      "species": []
+    },
+    "tono": {
+      "username": "tono",
+      "species": []
+    }
   }
 }

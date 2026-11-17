@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCollection, collectionProgress, filterCollection, groupByTypes, type DexFilters } from "./collection";
+import { buildCollection, collectionProgress, filterCollection, groupByTypes, isNewDiscovery, type DexFilters } from "./collection";
 import type { DexEssentials, Species } from "./snapshot";
 import type { PokedexSighting } from "@/lib/api";
 
@@ -172,5 +172,33 @@ describe("groupByTypes", () => {
   it("omite las secciones vacías", () => {
     const sel = filterCollection(cells, { ...ALL, types: ["electric", "ghost"] });
     expect(nums(groupByTypes(sel, ["electric", "ghost"]))).toEqual([{ title: "Solo Eléctrico", nums: [25, 26] }]);
+  });
+});
+
+describe("isNewDiscovery", () => {
+  const now = new Date("2026-11-17T12:00:00Z");
+  const cells = buildCollection(DEX, [
+    seen("Garchomp", "2026-11-15T12:00:00Z"),
+    seen("Charmeleon", "2026-11-10T12:00:00Z"),
+    seen("Pikachu", "2026-11-10T11:59:59Z"),
+  ]);
+
+  it("marca como nuevo lo visto en los últimos 7 días (límite inclusive)", () => {
+    expect(isNewDiscovery(cell(cells, 445), now)).toBe(true);
+    expect(isNewDiscovery(cell(cells, 5), now)).toBe(true);
+  });
+
+  it("no marca como nuevo lo visto hace más de 7 días", () => {
+    expect(isNewDiscovery(cell(cells, 25), now)).toBe(false);
+  });
+
+  it("no marca casillas por evolución ni sin descubrir", () => {
+    expect(isNewDiscovery(cell(cells, 4), now)).toBe(false);
+    expect(isNewDiscovery(cell(cells, 6), now)).toBe(false);
+  });
+
+  it("tolera fechas inválidas sin lanzar", () => {
+    const broken = { ...cell(cells, 445), firstSeen: { at: "no-es-fecha", battleId: "b", opponent: "bea", species: "Garchomp" } };
+    expect(isNewDiscovery(broken, now)).toBe(false);
   });
 });

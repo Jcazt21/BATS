@@ -10,7 +10,7 @@
  *  - El buscador por nombre solo encuentra casillas descubiertas; por número, cualquiera.
  */
 import type { PokedexSighting } from "@/lib/api";
-import { typeLabel, type PokemonType } from "@/lib/pokemon-types";
+import { isPokemonType, typeLabel, type PokemonType } from "@/lib/pokemon-types";
 import { speciesById, toId, type DexEssentials, type Species } from "./snapshot";
 
 export type DexStatus = "seen" | "evolution" | "unknown";
@@ -158,6 +158,17 @@ export function dexNumber(num: number): string {
   return `#${String(num).padStart(3, "0")}`;
 }
 
+const SEVEN_DAYS_MS = 7 * 86_400_000;
+
+/** Cierto si la casilla se vio por primera vez en los últimos 7 días (`firstSeen.at`). */
+export function isNewDiscovery(cell: DexCell, now: Date = new Date()): boolean {
+  if (!cell.firstSeen?.at) return false;
+  const seenAt = Date.parse(cell.firstSeen.at);
+  if (Number.isNaN(seenAt)) return false;
+  const age = now.getTime() - seenAt;
+  return age >= -60_000 && age <= SEVEN_DAYS_MS;
+}
+
 /**
  * Con dos tipos elegidos, parte la grilla en: los que tienen los dos, solo el primero y solo el
  * segundo (cada sección en el orden recibido; las vacías se omiten). Con 0 o 1 tipo, una sección.
@@ -171,4 +182,10 @@ export function groupByTypes(cells: DexCell[], types: PokemonType[]): DexSection
     { key: b, title: `Solo ${typeLabel(b)}`, cells: cells.filter((c) => hasType(c, b) && !hasType(c, a)) },
   ];
   return sections.filter((s) => s.cells.length > 0);
+}
+
+/** Color del tipo principal de la casilla (o el acento del mes si no se reconoce). */
+export function cellTypeVar(cell: DexCell): string {
+  const rawType = toId(cell.species.types[0] ?? "");
+  return isPokemonType(rawType) ? `var(--type-${rawType})` : "var(--primary)";
 }

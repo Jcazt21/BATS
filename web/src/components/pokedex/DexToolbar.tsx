@@ -31,8 +31,8 @@ interface Props {
 }
 
 /**
- * Barra de la Pokédex: buscador arriba y, debajo, estado, tipos (hasta dos) y generación.
- * En modo compacto queda en una fila (buscador + «Filtros») y los filtros activos se muestran como chips.
+ * Barra de la Pokédex con el lenguaje de Estadísticas: buscador en píldora y controles limpios
+ * sobre el fondo. En móvil queda en una fila (buscador + «Filtros» con contador) y chips activos.
  */
 export function DexToolbar({ compact = false, ...props }: Props) {
   const { query, onQuery, status, onStatus, types, onTypes, gen, onGen } = props;
@@ -46,8 +46,8 @@ export function DexToolbar({ compact = false, ...props }: Props) {
   ];
 
   const search = (
-    <label className="group flex h-12 min-w-0 flex-1 items-center gap-3 rounded-2xl bg-background/60 px-4 ring-1 ring-border transition-shadow focus-within:ring-2 focus-within:ring-ring">
-      <Search aria-hidden className="size-5 shrink-0 text-muted-foreground transition-colors group-focus-within:text-foreground" />
+    <label className="group flex h-11 min-w-0 flex-1 items-center gap-2.5 rounded-full bg-card px-4 shadow-sm ring-1 ring-border transition-shadow focus-within:ring-2 focus-within:ring-ring">
+      <Search aria-hidden className="size-4 shrink-0 text-muted-foreground transition-colors group-focus-within:text-foreground" />
       <input
         type="search"
         value={query}
@@ -62,7 +62,7 @@ export function DexToolbar({ compact = false, ...props }: Props) {
           type="button"
           onClick={() => onQuery("")}
           aria-label="Borrar búsqueda"
-          className="inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          className="relative inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground outline-none before:absolute before:-inset-1.5 before:content-[''] hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >
           <X className="size-4" aria-hidden />
         </button>
@@ -70,33 +70,33 @@ export function DexToolbar({ compact = false, ...props }: Props) {
     </label>
   );
   const hint = (
-    <p id={hintId} className="mt-1.5 px-1 text-caption text-muted-foreground">
+    <p id={hintId} className="mt-1.5 px-2 text-caption text-muted-foreground">
       Por nombre solo aparecen los que ya descubriste; por número, cualquiera.
     </p>
   );
   const genSelect = (
-    <label className="relative inline-flex h-10 items-center">
+    <label className="relative inline-flex h-11 items-center">
       <span className="sr-only">Generación</span>
       <select
         aria-label="Generación"
         value={gen ?? ""}
         onChange={(e) => onGen(e.target.value ? Number(e.target.value) : null)}
         className={cn(
-          "h-10 w-full cursor-pointer appearance-none rounded-xl bg-background/60 pr-9 pl-3 text-subhead ring-1 ring-border outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring",
+          "h-11 w-full cursor-pointer appearance-none rounded-full bg-card pr-9 pl-4 text-subhead shadow-sm ring-1 ring-border outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-ring",
           !compact && "sm:w-auto",
         )}
       >
         <option value="">Todas las generaciones</option>
         {GENS.map((g) => <option key={g} value={g}>Generación {g}</option>)}
       </select>
-      <ChevronDown aria-hidden className="pointer-events-none absolute right-3 size-4 text-muted-foreground" />
+      <ChevronDown aria-hidden className="pointer-events-none absolute right-3.5 size-4 text-muted-foreground" />
     </label>
   );
 
   if (compact) {
     const count = active.length;
     return (
-      <div className="flex flex-col gap-2 rounded-3xl bg-card p-3 shadow-sm ring-1 ring-border">
+      <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
           {search}
           <button
@@ -104,14 +104,15 @@ export function DexToolbar({ compact = false, ...props }: Props) {
             onClick={() => setSheetOpen(true)}
             aria-label={count ? `Filtros, ${count} ${count === 1 ? "activo" : "activos"}` : "Filtros"}
             className={cn(
-              "relative inline-flex size-12 shrink-0 cursor-pointer items-center justify-center rounded-2xl ring-1 ring-border outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
-              count ? "bg-primary text-primary-foreground" : "bg-background/60 text-muted-foreground hover:text-foreground",
+              "press inline-flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-subhead font-medium shadow-sm ring-1 ring-border outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring",
+              count ? "bg-primary text-primary-foreground ring-transparent" : "bg-card text-foreground hover:bg-muted/60",
             )}
           >
-            <SlidersHorizontal className="size-5" aria-hidden />
+            <SlidersHorizontal className="size-4" aria-hidden />
+            <span>Filtros</span>
             {count > 0 && (
-              <span aria-hidden className="absolute -top-1 -right-1 grid size-5 place-items-center rounded-full bg-foreground text-caption font-semibold text-background tabular">
-                {count}
+              <span aria-hidden className="font-card-mono text-footnote tabular">
+                · {count}
               </span>
             )}
           </button>
@@ -126,7 +127,7 @@ export function DexToolbar({ compact = false, ...props }: Props) {
                   type="button"
                   onClick={f.clear}
                   aria-label={`Quitar filtro ${f.label}`}
-                  className="press inline-flex h-8 cursor-pointer items-center gap-1 rounded-full bg-secondary pr-2 pl-3 text-footnote font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="press relative inline-flex h-9 cursor-pointer items-center gap-1 rounded-full bg-secondary pr-2.5 pl-3 text-footnote font-medium outline-none before:absolute before:-inset-y-1 before:inset-x-0 before:content-[''] focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   {f.label}
                   <X className="size-3.5 opacity-70" aria-hidden />
@@ -169,7 +170,7 @@ export function DexToolbar({ compact = false, ...props }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-3xl bg-card p-3 shadow-sm ring-1 ring-border">
+    <div className="flex flex-col gap-3">
       <div>
         {search}
         {hint}
@@ -177,7 +178,7 @@ export function DexToolbar({ compact = false, ...props }: Props) {
 
       {/* Carril con aire vertical y sin barra visible: si la columna se angosta, se desliza de costado
           sin que la pastilla ni el anillo de foco generen scroll vertical. En móvil se usa el modo compacto. */}
-      <div className="-mx-3 overflow-x-auto px-3 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="-mx-1 overflow-x-auto px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <SegmentedControl label="Estado" value={status} onChange={onStatus} options={STATUS_OPTIONS} className="w-max whitespace-nowrap" />
       </div>
 

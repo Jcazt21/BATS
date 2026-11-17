@@ -91,6 +91,7 @@ const rutas: [RegExp, Handler][] = [
   // Perfiles y estadísticas por especie
   [/^\/api\/players\/([^/]+)$/, (d, [user]) => d.players[user.toLowerCase()]],
   [/^\/api\/players\/([^/]+)\/pokedex$/, (d, [user]) => d.player_pokedex[user.toLowerCase()]],
+  [/^\/api\/players\/([^/]+)\/pokedex\/stats$/, (d, [user]) => d.player_pokedex_stats[user.toLowerCase()]],
   [/^\/api\/stats\/pokemon$/, (d) => d.pokedex],
   [/^\/api\/stats\/pokemon\/([^/]+)$/, pokedexEntry],
 ];

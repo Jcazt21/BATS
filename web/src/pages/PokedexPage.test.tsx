@@ -8,9 +8,10 @@ import { PokedexPage } from "./PokedexPage";
 
 type Q = { data?: unknown; isPending?: boolean; isError?: boolean; isSuccess?: boolean; error?: unknown; refetch?: () => void };
 const st = vi.hoisted(() => ({
-  dex: {} as Q, me: {} as Q, pokedex: {} as Q, stats: {} as Q,
+  dex: {} as Q, me: {} as Q, pokedex: {} as Q, stats: {} as Q, playerStats: {} as Q,
   session: { session: {} as unknown, loading: false },
   pokedexUser: undefined as string | undefined,
+  playerStatsUser: undefined as string | undefined,
   statsSpecies: undefined as string | undefined,
 }));
 
@@ -18,6 +19,7 @@ vi.mock("@/lib/queries", () => ({
   useDexEssentials: () => st.dex,
   useMe: () => st.me,
   usePlayerPokedex: (u?: string) => { st.pokedexUser = u; return st.pokedex; },
+  usePlayerPokedexStats: (u?: string) => { st.playerStatsUser = u; return st.playerStats; },
   usePokemonStatsEntry: (sp: string) => { st.statsSpecies = sp; return st.stats; },
   useDexDetails: () => ({ data: undefined }),
   useLeaderboard: () => ({ data: [{ username: "jazar" }, { username: "ronny" }, { username: "Kael" }] }),
@@ -71,6 +73,8 @@ beforeEach(() => {
   st.pokedex = { isSuccess: true, data: { username: "jazar", seen: [
     seen("Garchomp", "2026-11-11T00:00:00Z", "ronny"), seen("Charizard", "2026-11-05T00:00:00Z"),
   ] } };
+  st.playerStats = { isSuccess: true, isPending: false, data: { username: "jazar", species: [] } };
+  st.playerStatsUser = undefined;
   st.stats = { isSuccess: true, isPending: false, data: { pick_pct: 35, win_rate_pct: 61.9, avg_mvp: 1.4, sets: {
     players: 2, moves: [{ name: "Flamethrower", count: 2 }, { name: "Roost", count: 1 }], items: [{ name: "Heavy-Duty Boots", count: 2 }],
     abilities: [{ name: "Solar Power", count: 2 }], natures: [], tera_types: [],
@@ -94,19 +98,46 @@ describe("PokedexPage · grilla", () => {
     expect(within(grid()).getAllByLabelText("Descubierto por evolución")).toHaveLength(2);
   });
 
-  it("el anillo muestra descubiertos / total", () => {
+  it("el anillo muestra descubiertos / total y porcentaje", () => {
     renderAt("/pokedex");
-    expect(screen.getByRole("img", { name: "4 de 4 descubiertos" })).toBeTruthy();
+    const ringTile = screen.getByRole("region", { name: "Progreso total" });
+    expect(ringTile.className).toContain("dex-glow-tile");
+    expect(within(ringTile).getByRole("img", { name: "4 de 4 descubiertos" })).toBeTruthy();
+    expect(within(ringTile).getByText("100%")).toBeTruthy();
+    expect(within(ringTile).getByText("4 / 4")).toBeTruthy();
   });
 
-  it("la card muestra desglose, último descubierto y progreso por generación", () => {
+  it("el aside en MagicBento muestra último descubierto y desglose por generación", () => {
     renderAt("/pokedex");
-    const card = screen.getByRole("region", { name: "Progreso de la Pokédex" });
+    const bento = screen.getByRole("group", { name: "Resumen de la Pokédex" });
+    expect(bento.className).toContain("magic-bento");
+
+    const lastTile = within(bento).getByRole("region", { name: "Último descubierto" });
+    expect(within(lastTile).getByText("Garchomp")).toBeTruthy();
+    expect(within(lastTile).getByText(/contra ronny/)).toBeTruthy();
+
+    const card = within(bento).getByRole("region", { name: "Progreso de la Pokédex" });
     expect(within(card).getByText("Vistos en batalla").nextSibling?.textContent).toBe("2");
     expect(within(card).getByText("Por evolución").nextSibling?.textContent).toBe("2");
-    expect(within(card).getByText(/contra ronny/)).toBeTruthy();
     expect(within(card).getByText("3/3")).toBeTruthy();
     expect(within(card).getByText("1/1")).toBeTruthy();
+  });
+
+  it("muestra eyebrow en el encabezado y etiqueta NUEVO solo en los últimos 7 días", () => {
+    const daysAgo = (d: number) => new Date(Date.now() - d * 86_400_000).toISOString();
+    st.pokedex = {
+      isSuccess: true,
+      data: {
+        username: "jazar",
+        seen: [seen("Garchomp", daysAgo(2), "ronny"), seen("Charizard", daysAgo(12))],
+      },
+    };
+    renderAt("/pokedex");
+    expect(screen.getByText("Tu colección")).toBeTruthy();
+    const garchomp = within(grid()).getByRole("button", { name: /Garchomp/ });
+    const charizard = within(grid()).getByRole("button", { name: /Charizard/ });
+    expect(within(garchomp).getByText("NUEVO")).toBeTruthy();
+    expect(within(charizard).queryByText("NUEVO")).toBeNull();
   });
 
   it("el buscador no revela no descubiertos por nombre, pero sí por número", async () => {
@@ -134,6 +165,7 @@ describe("PokedexPage · grilla", () => {
   it("perfil ajeno: pide la Pokédex de ese jugador y lo nombra en el título", () => {
     renderAt("/j/ronny/pokedex");
     expect(st.pokedexUser).toBe("ronny");
+    expect(screen.getByText("Colección pública")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Pokédex de ronny" })).toBeTruthy();
   });
 });
@@ -166,11 +198,12 @@ describe("PokedexPage · filtro por tipos", () => {
 describe("PokedexPage · móvil", () => {
   beforeEach(() => mockViewport(false));
 
-  it("arriba va una tira compacta: el desglose no ocupa la pantalla hasta pedirlo", async () => {
+  it("arriba va una tira compacta con último descubierto y grilla de 3 columnas: el desglose abre al pedirlo", async () => {
     renderAt("/pokedex");
     const strip = screen.getByRole("region", { name: "Resumen de la Pokédex" });
     expect(within(strip).getByRole("img", { name: "4 de 4 descubiertos" })).toBeTruthy();
-    expect(within(strip).getByText("Vistos 2 · Evolución 2")).toBeTruthy();
+    expect(within(strip).getByText(/Último: Garchomp/)).toBeTruthy();
+    expect(grid().style.gridTemplateColumns).toBe("repeat(3, minmax(0, 1fr))");
     expect(screen.queryByRole("region", { name: "Progreso de la Pokédex" })).toBeNull();
 
     await userEvent.click(within(strip).getByRole("button", { name: "Ver progreso" }));
@@ -313,5 +346,26 @@ describe("PokedexPage · ficha en modal", () => {
       </MemoryRouter>,
     );
     expect(screen.getByRole("dialog")).toBeTruthy();
+  });
+
+  it("en la pokédex de otro jugador pasa su username y muestra textos Su/Sus", () => {
+    st.pokedex = { isSuccess: true, data: { username: "kael", seen: [seen("Charizard", "2026-11-05T00:00:00Z")] } };
+    st.playerStats = {
+      isSuccess: true,
+      isPending: false,
+      data: {
+        username: "kael",
+        species: [{
+          species: "Charizard",
+          used: { battles: 2, kills: 3, mvp: 5.5, best: { battle_id: "b-9", kills: 2, mvp: 4, opponent: "jazar", date: "2026-11-05" } },
+          faced: null,
+        }],
+      },
+    };
+    renderAt("/j/kael/pokedex/charizard");
+    const dialog = screen.getByRole("dialog");
+    expect(st.playerStatsUser).toBe("kael");
+    expect(within(dialog).getByText("Sus KOs")).toBeTruthy();
+    expect(within(dialog).getByText("Su Charizard")).toBeTruthy();
   });
 });

@@ -8,7 +8,7 @@ import { useLeaderboard } from "@/lib/queries";
  * leaderboard (quienes ya jugaron) más el jugador con sesión, marcado como «Tú». Elegirse a uno mismo
  * o quitar la selección vuelve a /pokedex.
  */
-export function PlayerPicker({ viewing, me, compact = false }: { viewing?: string; me?: string; compact?: boolean }) {
+export function PlayerPicker({ viewing, me, compact = false, bare = false }: { viewing?: string; me?: string; compact?: boolean; bare?: boolean }) {
   const navigate = useNavigate();
   const players = useLeaderboard();
   const meId = me?.toLowerCase();
@@ -43,11 +43,15 @@ export function PlayerPicker({ viewing, me, compact = false }: { viewing?: strin
   // Compacto (móvil): sin superficie ni leyenda propias, va dentro del resumen (ProgressStrip).
   if (compact) return combobox;
 
+  const hint = <p aria-hidden className="mt-1.5 px-1 text-caption text-muted-foreground">Ver la Pokédex de otro jugador</p>;
+  // Sin caja propia cuando vive dentro de un mosaico MagicBento.
+  if (bare) return <div>{combobox}{hint}</div>;
+
   return (
     // Misma superficie y medidas que la barra de búsqueda (DexToolbar): quedan alineadas arriba.
     <div className="rounded-3xl bg-card p-3 shadow-sm ring-1 ring-border">
       {combobox}
-      <p aria-hidden className="mt-1.5 px-1 text-caption text-muted-foreground">Ver la Pokédex de otro jugador</p>
+      {hint}
     </div>
   );
 }

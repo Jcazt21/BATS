@@ -317,6 +317,27 @@
           }
         },
         {
+          "name": "Player Pokédex Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/players/{{username}}/pokedex/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "players",
+                "{{username}}",
+                "pokedex",
+                "stats"
+              ]
+            },
+            "description": "Estadísticas acumuladas del jugador por especie (usadas y enfrentadas en todas las temporadas de liga, sin bot y solo was_active). 404 si el jugador no existe."
+          }
+        },
+        {
           "name": "Cara a cara",
           "request": {
             "method": "GET",

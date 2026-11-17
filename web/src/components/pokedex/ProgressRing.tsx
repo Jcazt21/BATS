@@ -1,12 +1,13 @@
 /**
- * Anillo de progreso de la Pokédex: se llena según descubiertos / total, con la cifra en el centro.
- * Con `label={false}` (versión chica) muestra solo el porcentaje y un trazo más fino.
+ * Anillo de progreso de la Pokédex: se llena según descubiertos / total, con el porcentaje y la
+ * cifra en el centro. Con `label={false}` (versión chica) muestra solo el porcentaje y un trazo más fino.
  */
 export function ProgressRing({ discovered, total, size = 132, label = true }: { discovered: number; total: number; size?: number; label?: boolean }) {
   const stroke = label ? 10 : 6;
   const r = (size - stroke) / 2;
   const circumference = 2 * Math.PI * r;
   const ratio = total > 0 ? Math.min(discovered / total, 1) : 0;
+  const pctText = `${Math.round(ratio * 100)}%`;
   return (
     <div
       role="img"
@@ -24,11 +25,11 @@ export function ProgressRing({ discovered, total, size = 132, label = true }: { 
       </svg>
       {label ? (
         <span className="absolute flex flex-col items-center leading-tight">
-          <span className="text-title3 font-semibold tabular">{discovered}</span>
-          <span className="text-footnote text-muted-foreground tabular">/ {total}</span>
+          <span className="font-card-mono text-title2 font-medium leading-none tabular">{pctText}</span>
+          <span className="mt-1 text-caption text-muted-foreground tabular">{discovered} / {total}</span>
         </span>
       ) : (
-        <span aria-hidden className="absolute text-caption font-semibold tabular">{Math.round(ratio * 100)}%</span>
+        <span aria-hidden className="absolute font-card-mono text-caption font-semibold tabular">{pctText}</span>
       )}
     </div>
   );

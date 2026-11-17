@@ -1,17 +1,18 @@
-import { useDeferredValue, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/app/PageHeader";
+import { Reveal } from "@/components/app/Reveal";
 import { EmptyState, ErrorState } from "@/components/app/States";
+import MagicBento from "@/components/effects/MagicBento";
 import { DexCell } from "@/components/pokedex/DexCell";
 import { DexEntryModal } from "@/components/pokedex/DexEntryModal";
 import { DexPagination } from "@/components/pokedex/DexPagination";
 import { DexToolbar } from "@/components/pokedex/DexToolbar";
 import { PlayerPicker } from "@/components/pokedex/PlayerPicker";
-import { ProgressCard } from "@/components/pokedex/ProgressCard";
-import { ProgressRing } from "@/components/pokedex/ProgressRing";
+import { PokedexAsideBento } from "@/components/pokedex/PokedexAsideBento";
 import { ProgressStrip } from "@/components/pokedex/ProgressStrip";
 import { SignInCard } from "@/components/SignInCard";
-import { buildCollection, collectionProgress, filterCollection, groupByTypes, type DexCell as Cell, type DexFilters } from "@/lib/dex/collection";
+import { buildCollection, cellTypeVar, collectionProgress, filterCollection, groupByTypes, type DexCell as Cell, type DexFilters } from "@/lib/dex/collection";
 import { speciesById } from "@/lib/dex/snapshot";
 import { clampPage, PAGE_SIZES, pageCount, paginate } from "@/lib/pagination";
 import type { PokemonType } from "@/lib/pokemon-types";
@@ -32,8 +33,10 @@ export function PokedexPage() {
   const guest = !userParam && !sessionLoading && !session;
   const base = userParam ? `/j/${encodeURIComponent(userParam)}/pokedex` : "/pokedex";
 
-  // En pantallas angostas el aside (anillo + desglose) se reemplaza por una tira compacta.
+  // En pantallas angostas el aside en MagicBento se reemplaza por una tira compacta.
   const desktop = useMediaQuery("(min-width: 1024px)");
+  // La grilla pasa de 3 columnas fijas (teléfono) a tantas como quepan desde `sm`.
+  const roomy = useMediaQuery("(min-width: 640px)");
   const dex = useDexEssentials();
   const pokedex = usePlayerPokedex(username);
   const cells = useMemo(
@@ -83,6 +86,7 @@ export function PokedexPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        eyebrow={userParam ? "Colección pública" : "Tu colección"}
         title={title}
         subtitle="Cada pokémon que ves salir al campo en una batalla de liga queda registrado."
       />
@@ -98,12 +102,8 @@ export function PokedexPage() {
       ) : (
         <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
           {desktop ? (
-            <aside className="order-2 flex flex-col gap-4">
-              <PlayerPicker viewing={userParam} me={me.data?.username} />
-              <div className="flex justify-center rounded-2xl border bg-card p-4">
-                <ProgressRing discovered={progress.discovered} total={progress.total} />
-              </div>
-              <ProgressCard progress={progress} />
+            <aside className="order-2">
+              <PokedexAsideBento progress={progress} viewing={userParam} me={me.data?.username} />
             </aside>
           ) : (
             <ProgressStrip progress={progress} picker={<PlayerPicker viewing={userParam} me={me.data?.username} compact />} />
@@ -123,7 +123,7 @@ export function PokedexPage() {
             ) : visible.length === 0 ? (
               <EmptyState title="Nada por aquí" description="Prueba con otro filtro, o busca por número los que aún no descubriste." />
             ) : (
-              <div className="flex flex-col gap-8">
+              <Reveal key={username ?? (guest ? "guest" : "me")} className="flex flex-col gap-8">
                 {groupByTypes(pageCells, types).map((section) => (
                   <section key={section.key} aria-label={section.title ?? undefined} className="flex flex-col gap-3">
                     {section.title && (
@@ -132,9 +132,25 @@ export function PokedexPage() {
                         <span className="font-card-mono text-subhead text-muted-foreground tabular">{section.cells.length}</span>
                       </h2>
                     )}
-                    <ul className="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-3" aria-label={section.title ?? "Casillas de la Pokédex"}>
-                      {section.cells.map((c) => <li key={c.num}><DexCell cell={c} onOpen={open} /></li>)}
-                    </ul>
+                    {/* Mismo efecto que Inicio y Estadísticas: luz que sigue al cursor y borde con el color del tipo. */}
+                    <MagicBento
+                      role="list"
+                      aria-label={section.title ?? "Casillas de la Pokédex"}
+                      itemRole="listitem"
+                      columns={1}
+                      rowHeight={0}
+                      gap={roomy ? 12 : 8}
+                      radius={16}
+                      spotlightRadius={220}
+                      intro={false}
+                      style={{ gridTemplateColumns: roomy ? "repeat(auto-fill, minmax(7.5rem, 1fr))" : "repeat(3, minmax(0, 1fr))" }}
+                      items={section.cells.map((c) => ({
+                        id: c.num,
+                        className: c.status === "unknown" ? "dex-bento-cell dex-bento-unknown" : "dex-bento-cell",
+                        style: { "--mb-glow": c.status === "unknown" ? "var(--muted-foreground)" : cellTypeVar(c) } as CSSProperties,
+                        content: <DexCell cell={c} onOpen={open} compact={!desktop} inBento />,
+                      }))}
+                    />
                   </section>
                 ))}
                 <DexPagination
@@ -142,13 +158,13 @@ export function PokedexPage() {
                   pageSize={pageSize} onPageSize={setPageSize}
                   total={visible.length}
                 />
-              </div>
+              </Reveal>
             )}
           </div>
         </div>
       )}
 
-      {openCell && openCell.status !== "unknown" && <DexEntryModal cell={openCell} onClose={close} />}
+      {openCell && openCell.status !== "unknown" && <DexEntryModal cell={openCell} onClose={close} username={username} isOwn={!userParam || userParam.toLowerCase() === me.data?.username?.toLowerCase()} />}
     </div>
   );
 }

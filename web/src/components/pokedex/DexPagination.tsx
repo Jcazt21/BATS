@@ -12,7 +12,7 @@ interface Props {
 }
 
 const stepClass =
-  "inline-flex size-9 cursor-pointer items-center justify-center rounded-xl text-subhead outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent";
+  "inline-flex min-h-11 min-w-11 sm:min-h-9 sm:min-w-9 sm:size-9 cursor-pointer items-center justify-center rounded-xl text-subhead outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent";
 
 /** Paginador de la Pokédex: cuántos ver por página, rango actual y números con elipsis. */
 export function DexPagination({ page, totalPages, onPage, pageSize, onPageSize, total }: Props) {
@@ -37,7 +37,7 @@ export function DexPagination({ page, totalPages, onPage, pageSize, onPageSize, 
         <span className="tabular">{from}–{to} de {total}</span>
       </div>
 
-      <nav aria-label="Páginas de la Pokédex" className="flex items-center gap-1">
+      <nav aria-label="Páginas de la Pokédex" className="flex flex-wrap items-center justify-center gap-1">
         <button type="button" className={stepClass} onClick={() => onPage(page - 1)} disabled={page <= 1} aria-label="Página anterior">
           <ChevronLeft className="size-4" aria-hidden />
         </button>

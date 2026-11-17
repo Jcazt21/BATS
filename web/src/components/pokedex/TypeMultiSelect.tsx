@@ -16,7 +16,7 @@ export function TypeMultiSelect({ value, onChange }: { value: PokemonType[]; onC
     onChange(on ? (value.includes(t) || full ? value : [...value, t]) : value.filter((x) => x !== t));
 
   return (
-    <div role="group" aria-label="Tipos" className="flex min-h-10 flex-wrap items-center gap-1.5 rounded-xl bg-background/60 p-1 ring-1 ring-border">
+    <div role="group" aria-label="Tipos" className="flex min-h-11 flex-wrap items-center gap-1.5 rounded-full bg-card px-2 py-1 shadow-sm ring-1 ring-border">
       {value.map((t) => (
         <button
           key={t}
@@ -25,7 +25,7 @@ export function TypeMultiSelect({ value, onChange }: { value: PokemonType[]; onC
           aria-label={`Quitar ${typeLabel(t)}`}
           className={cn(
             `type-${t}`,
-            "press inline-flex h-8 items-center gap-1 rounded-full pr-2 pl-3 text-footnote font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "press relative inline-flex h-8 items-center gap-1 rounded-full pr-2 pl-3 text-footnote font-medium outline-none before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-[''] focus-visible:ring-2 focus-visible:ring-ring",
           )}
         >
           {typeLabel(t)}
@@ -37,7 +37,7 @@ export function TypeMultiSelect({ value, onChange }: { value: PokemonType[]; onC
         <DropdownMenuTrigger
           disabled={full}
           aria-label="Agregar tipo"
-          className="press inline-flex h-8 items-center gap-1 rounded-full px-3 text-footnote font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none"
+          className="press relative inline-flex h-8 items-center gap-1 rounded-full px-3 text-footnote font-medium text-muted-foreground outline-none transition-colors before:absolute before:-inset-y-1.5 before:inset-x-0 before:content-[''] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none"
         >
           {full ? (
             <span>Máximo 2</span>
@@ -69,7 +69,7 @@ export function TypeMultiSelect({ value, onChange }: { value: PokemonType[]; onC
           type="button"
           onClick={() => onChange([])}
           aria-label="Quitar todos los tipos"
-          className="ml-auto inline-flex size-8 items-center justify-center rounded-full text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          className="relative ml-auto inline-flex size-8 items-center justify-center rounded-full text-muted-foreground outline-none before:absolute before:-inset-1.5 before:content-[''] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
         >
           <X className="size-4" aria-hidden />
         </button>

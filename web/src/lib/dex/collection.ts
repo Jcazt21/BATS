@@ -158,6 +158,17 @@ export function dexNumber(num: number): string {
   return `#${String(num).padStart(3, "0")}`;
 }
 
+const SEVEN_DAYS_MS = 7 * 86_400_000;
+
+/** Cierto si la casilla se vio por primera vez en los últimos 7 días (`firstSeen.at`). */
+export function isNewDiscovery(cell: DexCell, now: Date = new Date()): boolean {
+  if (!cell.firstSeen?.at) return false;
+  const seenAt = Date.parse(cell.firstSeen.at);
+  if (Number.isNaN(seenAt)) return false;
+  const age = now.getTime() - seenAt;
+  return age >= -60_000 && age <= SEVEN_DAYS_MS;
+}
+
 /**
  * Con dos tipos elegidos, parte la grilla en: los que tienen los dos, solo el primero y solo el
  * segundo (cada sección en el orden recibido; las vacías se omiten). Con 0 o 1 tipo, una sección.

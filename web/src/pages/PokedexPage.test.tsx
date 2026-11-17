@@ -94,19 +94,46 @@ describe("PokedexPage · grilla", () => {
     expect(within(grid()).getAllByLabelText("Descubierto por evolución")).toHaveLength(2);
   });
 
-  it("el anillo muestra descubiertos / total", () => {
+  it("el anillo muestra descubiertos / total y porcentaje", () => {
     renderAt("/pokedex");
-    expect(screen.getByRole("img", { name: "4 de 4 descubiertos" })).toBeTruthy();
+    const ringTile = screen.getByRole("region", { name: "Progreso total" });
+    expect(ringTile.className).toContain("dex-glow-tile");
+    expect(within(ringTile).getByRole("img", { name: "4 de 4 descubiertos" })).toBeTruthy();
+    expect(within(ringTile).getByText("100%")).toBeTruthy();
+    expect(within(ringTile).getByText("4 / 4")).toBeTruthy();
   });
 
-  it("la card muestra desglose, último descubierto y progreso por generación", () => {
+  it("el aside en MagicBento muestra último descubierto y desglose por generación", () => {
     renderAt("/pokedex");
-    const card = screen.getByRole("region", { name: "Progreso de la Pokédex" });
+    const bento = screen.getByRole("group", { name: "Resumen de la Pokédex" });
+    expect(bento.className).toContain("magic-bento");
+
+    const lastTile = within(bento).getByRole("region", { name: "Último descubierto" });
+    expect(within(lastTile).getByText("Garchomp")).toBeTruthy();
+    expect(within(lastTile).getByText(/contra ronny/)).toBeTruthy();
+
+    const card = within(bento).getByRole("region", { name: "Progreso de la Pokédex" });
     expect(within(card).getByText("Vistos en batalla").nextSibling?.textContent).toBe("2");
     expect(within(card).getByText("Por evolución").nextSibling?.textContent).toBe("2");
-    expect(within(card).getByText(/contra ronny/)).toBeTruthy();
     expect(within(card).getByText("3/3")).toBeTruthy();
     expect(within(card).getByText("1/1")).toBeTruthy();
+  });
+
+  it("muestra eyebrow en el encabezado y etiqueta NUEVO solo en los últimos 7 días", () => {
+    const daysAgo = (d: number) => new Date(Date.now() - d * 86_400_000).toISOString();
+    st.pokedex = {
+      isSuccess: true,
+      data: {
+        username: "jazar",
+        seen: [seen("Garchomp", daysAgo(2), "ronny"), seen("Charizard", daysAgo(12))],
+      },
+    };
+    renderAt("/pokedex");
+    expect(screen.getByText("Tu colección")).toBeTruthy();
+    const garchomp = within(grid()).getByRole("button", { name: /Garchomp/ });
+    const charizard = within(grid()).getByRole("button", { name: /Charizard/ });
+    expect(within(garchomp).getByText("NUEVO")).toBeTruthy();
+    expect(within(charizard).queryByText("NUEVO")).toBeNull();
   });
 
   it("el buscador no revela no descubiertos por nombre, pero sí por número", async () => {
@@ -134,6 +161,7 @@ describe("PokedexPage · grilla", () => {
   it("perfil ajeno: pide la Pokédex de ese jugador y lo nombra en el título", () => {
     renderAt("/j/ronny/pokedex");
     expect(st.pokedexUser).toBe("ronny");
+    expect(screen.getByText("Colección pública")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Pokédex de ronny" })).toBeTruthy();
   });
 });
@@ -166,11 +194,12 @@ describe("PokedexPage · filtro por tipos", () => {
 describe("PokedexPage · móvil", () => {
   beforeEach(() => mockViewport(false));
 
-  it("arriba va una tira compacta: el desglose no ocupa la pantalla hasta pedirlo", async () => {
+  it("arriba va una tira compacta con último descubierto y grilla de 3 columnas: el desglose abre al pedirlo", async () => {
     renderAt("/pokedex");
     const strip = screen.getByRole("region", { name: "Resumen de la Pokédex" });
     expect(within(strip).getByRole("img", { name: "4 de 4 descubiertos" })).toBeTruthy();
-    expect(within(strip).getByText("Vistos 2 · Evolución 2")).toBeTruthy();
+    expect(within(strip).getByText(/Último: Garchomp/)).toBeTruthy();
+    expect(grid().className).toContain("grid-cols-3");
     expect(screen.queryByRole("region", { name: "Progreso de la Pokédex" })).toBeNull();
 
     await userEvent.click(within(strip).getByRole("button", { name: "Ver progreso" }));

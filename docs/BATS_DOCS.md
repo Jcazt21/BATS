@@ -649,6 +649,21 @@ API resuelve identidad y rol en `tournament.player_accounts`.
 - `200` con `seen: []` si el jugador tiene cuenta pero aún no vio nada; `404` si no tiene cuenta ni avistamientos.
 - El backend solo guarda hechos (`tournament.pokedex_seen`). La agrupación por número nacional, las preevoluciones descubiertas, los filtros y el progreso los calcula el frontend con el dex estático (`web/src/lib/dex/collection.ts`).
 
+`GET /api/players/{username}/pokedex/stats` devuelve las estadísticas acumuladas del jugador por especie (por forma) en todas las temporadas de liga (`LEAGUE_FORMAT`, sin bot y solo filas `was_active`), normalizando `username` con `strip().lower()`. Responde `200` con `species: []` si el jugador existe (`player_accounts` o `dim_players`) pero no tiene filas válidas, o `404` si no existe.
+
+```json
+{ "username": "ana",
+  "species": [
+    { "species": "Charizard-Mega-Y",
+      "used":  { "battles": 9, "kills": 14, "mvp": 22.5,
+                 "best": { "battle_id": "gen9pinchesgueysleague-1008", "kills": 3, "mvp": 8.25, "opponent": "bea", "date": "2026-04-20" } },
+      "faced": { "battles": 4, "kills_against": 6, "wins": 3 } }
+  ] }
+```
+
+- `used` agrega las filas propias del jugador (`best` = mayor `mvp_score`, desempate por más `kills` y luego batalla más reciente). `faced` agrega las filas rivales en batallas del jugador (`wins` = cuántas de esas batallas ganó el jugador). Si una especie solo tiene un lado, el otro es `null`.
+- La identidad en `battle.dim_players` se consulta por `LOWER(username)` actual (no sigue renombres de cuenta). Si se trunca `battle.*`, `species` queda vacío pero `pokedex_seen` se conserva.
+
 Reglas de la Pokédex por cuenta:
 
 - Cuenta solo lo que **salió al campo** (`was_active`), propio o del rival. La banca no cuenta.

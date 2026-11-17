@@ -571,6 +571,38 @@ export interface PlayerPokedex { username: string; seen: PokedexSighting[] }
 export const getPlayerPokedex = (username: string) =>
   request<PlayerPokedex>(`/api/players/${encodeURIComponent(username)}/pokedex`);
 
+export interface PlayerPokedexBestBattle {
+  battle_id: string;
+  kills: number;
+  mvp: number;
+  opponent: string;
+  date: string;
+}
+
+export interface PlayerPokedexUsedStats {
+  battles: number;
+  kills: number;
+  mvp: number;
+  best: PlayerPokedexBestBattle;
+}
+
+export interface PlayerPokedexFacedStats {
+  battles: number;
+  kills_against: number;
+  wins: number;
+}
+
+export interface PlayerPokedexSpeciesStats {
+  species: string;
+  used: PlayerPokedexUsedStats | null;
+  faced: PlayerPokedexFacedStats | null;
+}
+
+/** GET /api/players/{username}/pokedex/stats: estadísticas acumuladas por especie en batallas de liga. */
+export interface PlayerPokedexStats { username: string; species: PlayerPokedexSpeciesStats[] }
+export const getPlayerPokedexStats = (username: string) =>
+  request<PlayerPokedexStats>(`/api/players/${encodeURIComponent(username)}/pokedex/stats`);
+
 /** GET /api/stats/collectors: avistamientos crudos de cada jugador con al menos uno (no depende de la temporada). */
 export interface CollectorEntry { username: string; seen: PokedexSighting[] }
 export const getCollectors = () => request<CollectorEntry[]>("/api/stats/collectors");

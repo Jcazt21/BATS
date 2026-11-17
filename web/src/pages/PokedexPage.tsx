@@ -1,8 +1,9 @@
-import { useDeferredValue, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { PageHeader } from "@/components/app/PageHeader";
 import { Reveal } from "@/components/app/Reveal";
 import { EmptyState, ErrorState } from "@/components/app/States";
+import MagicBento from "@/components/effects/MagicBento";
 import { DexCell } from "@/components/pokedex/DexCell";
 import { DexEntryModal } from "@/components/pokedex/DexEntryModal";
 import { DexPagination } from "@/components/pokedex/DexPagination";
@@ -11,7 +12,7 @@ import { PlayerPicker } from "@/components/pokedex/PlayerPicker";
 import { PokedexAsideBento } from "@/components/pokedex/PokedexAsideBento";
 import { ProgressStrip } from "@/components/pokedex/ProgressStrip";
 import { SignInCard } from "@/components/SignInCard";
-import { buildCollection, collectionProgress, filterCollection, groupByTypes, type DexCell as Cell, type DexFilters } from "@/lib/dex/collection";
+import { buildCollection, cellTypeVar, collectionProgress, filterCollection, groupByTypes, type DexCell as Cell, type DexFilters } from "@/lib/dex/collection";
 import { speciesById } from "@/lib/dex/snapshot";
 import { clampPage, PAGE_SIZES, pageCount, paginate } from "@/lib/pagination";
 import type { PokemonType } from "@/lib/pokemon-types";
@@ -34,6 +35,8 @@ export function PokedexPage() {
 
   // En pantallas angostas el aside en MagicBento se reemplaza por una tira compacta.
   const desktop = useMediaQuery("(min-width: 1024px)");
+  // La grilla pasa de 3 columnas fijas (teléfono) a tantas como quepan desde `sm`.
+  const roomy = useMediaQuery("(min-width: 640px)");
   const dex = useDexEssentials();
   const pokedex = usePlayerPokedex(username);
   const cells = useMemo(
@@ -129,16 +132,25 @@ export function PokedexPage() {
                         <span className="font-card-mono text-subhead text-muted-foreground tabular">{section.cells.length}</span>
                       </h2>
                     )}
-                    <ul
-                      className="grid grid-cols-3 gap-2 sm:grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] sm:gap-3"
+                    {/* Mismo efecto que Inicio y Estadísticas: luz que sigue al cursor y borde con el color del tipo. */}
+                    <MagicBento
+                      role="list"
                       aria-label={section.title ?? "Casillas de la Pokédex"}
-                    >
-                      {section.cells.map((c) => (
-                        <li key={c.num} className="min-w-0">
-                          <DexCell cell={c} onOpen={open} compact={!desktop} />
-                        </li>
-                      ))}
-                    </ul>
+                      itemRole="listitem"
+                      columns={1}
+                      rowHeight={0}
+                      gap={roomy ? 12 : 8}
+                      radius={16}
+                      spotlightRadius={220}
+                      intro={false}
+                      style={{ gridTemplateColumns: roomy ? "repeat(auto-fill, minmax(7.5rem, 1fr))" : "repeat(3, minmax(0, 1fr))" }}
+                      items={section.cells.map((c) => ({
+                        id: c.num,
+                        className: c.status === "unknown" ? "dex-bento-cell dex-bento-unknown" : "dex-bento-cell",
+                        style: { "--mb-glow": c.status === "unknown" ? "var(--muted-foreground)" : cellTypeVar(c) } as CSSProperties,
+                        content: <DexCell cell={c} onOpen={open} compact={!desktop} inBento />,
+                      }))}
+                    />
                   </section>
                 ))}
                 <DexPagination

@@ -35,6 +35,25 @@
   }
 }
 
+/* Dentro de MagicBento la tarjeta ya da borde, luz y presión: la casilla no se eleva ni dibuja su propio borde. */
+.dex-cell-in-bento:hover,
+.dex-cell-in-bento:focus-visible,
+.dex-cell-in-bento:active {
+  transform: none;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+/* La casilla ocupa toda la tarjeta: sin el relleno por defecto del contenido del bento. */
+.dex-bento-cell .magic-bento__content {
+  padding: 0;
+}
+
+/* Tarjeta de una casilla sin descubrir: superficie más apagada que la de las descubiertas. */
+.magic-bento__card.dex-bento-unknown {
+  background: color-mix(in oklch, var(--muted) 45%, var(--card));
+}
+
 /* Brillo ambiental del mosaico principal de progreso usando el acento del mes. */
 .dex-glow-tile {
   box-shadow:

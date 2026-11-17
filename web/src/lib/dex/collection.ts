@@ -10,7 +10,7 @@
  *  - El buscador por nombre solo encuentra casillas descubiertas; por número, cualquiera.
  */
 import type { PokedexSighting } from "@/lib/api";
-import { typeLabel, type PokemonType } from "@/lib/pokemon-types";
+import { isPokemonType, typeLabel, type PokemonType } from "@/lib/pokemon-types";
 import { speciesById, toId, type DexEssentials, type Species } from "./snapshot";
 
 export type DexStatus = "seen" | "evolution" | "unknown";
@@ -182,4 +182,10 @@ export function groupByTypes(cells: DexCell[], types: PokemonType[]): DexSection
     { key: b, title: `Solo ${typeLabel(b)}`, cells: cells.filter((c) => hasType(c, b) && !hasType(c, a)) },
   ];
   return sections.filter((s) => s.cells.length > 0);
+}
+
+/** Color del tipo principal de la casilla (o el acento del mes si no se reconoce). */
+export function cellTypeVar(cell: DexCell): string {
+  const rawType = toId(cell.species.types[0] ?? "");
+  return isPokemonType(rawType) ? `var(--type-${rawType})` : "var(--primary)";
 }

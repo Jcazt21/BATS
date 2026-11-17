@@ -14,6 +14,8 @@ export interface MagicBentoItem {
   colSpan?: number;
   rowSpan?: number;
   className?: string;
+  /** Estilo propio de la tarjeta, p. ej. `--mb-glow` para que su luz tenga otro color que el resto. */
+  style?: CSSProperties;
 }
 
 export interface MagicBentoProps extends Omit<HTMLAttributes<HTMLDivElement>, "children" | "style"> {
@@ -33,6 +35,8 @@ export interface MagicBentoProps extends Omit<HTMLAttributes<HTMLDivElement>, "c
   clickEffect?: boolean;
   intro?: boolean;
   disableAnimations?: boolean;
+  /** Rol de cada celda (p. ej. `listitem` cuando la raíz lleva `role="list"`). */
+  itemRole?: string;
   style?: CSSProperties;
 }
 
@@ -46,7 +50,7 @@ const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(mi
 export default function MagicBento({
   items, columns = 4, minColumns = 1, rowHeight = 160, gap = 12, radius = 28, glowColor = "var(--primary)",
   enableBorderGlow = true, enableSpotlight = true, spotlightRadius = 320, clickEffect = true,
-  intro = true, disableAnimations = false, className = "", style, ...rest
+  intro = true, disableAnimations = false, itemRole, className = "", style, ...rest
 }: MagicBentoProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const cellRefs = useRef<(HTMLElement | null)[]>([]);
@@ -315,13 +319,14 @@ export default function MagicBento({
           key={item.id ?? i}
           ref={(el) => { cellRefs.current[i] = el; }}
           className="magic-bento__cell"
+          role={itemRole}
           style={{
             // Los spans se escalan a las columnas activas (12 → 2 → 1) en vez de truncarse.
             gridColumn: `span ${clamp(Math.round(((item.colSpan ?? 1) * span) / columns), 1, span)}`,
             gridRow: `span ${Math.max(1, Math.round(item.rowSpan ?? 1))}`,
           }}
         >
-          <section ref={(el) => { cardRefs.current[i] = el; }} aria-label={item.label} className={`magic-bento__card ${item.className ?? ""}`.trim()}>
+          <section ref={(el) => { cardRefs.current[i] = el; }} aria-label={item.label} className={`magic-bento__card ${item.className ?? ""}`.trim()} style={item.style}>
             {enableSpotlight && <span className="magic-bento__light" aria-hidden="true" />}
             <div className="magic-bento__content">{item.content}</div>
             <span className="magic-bento__rim" aria-hidden="true" />

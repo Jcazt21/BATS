@@ -203,7 +203,7 @@ describe("PokedexPage · móvil", () => {
     const strip = screen.getByRole("region", { name: "Resumen de la Pokédex" });
     expect(within(strip).getByRole("img", { name: "4 de 4 descubiertos" })).toBeTruthy();
     expect(within(strip).getByText(/Último: Garchomp/)).toBeTruthy();
-    expect(grid().className).toContain("grid-cols-3");
+    expect(grid().style.gridTemplateColumns).toBe("repeat(3, minmax(0, 1fr))");
     expect(screen.queryByRole("region", { name: "Progreso de la Pokédex" })).toBeNull();
 
     await userEvent.click(within(strip).getByRole("button", { name: "Ver progreso" }));

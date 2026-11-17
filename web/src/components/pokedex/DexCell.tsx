@@ -1,9 +1,7 @@
 import type { CSSProperties } from "react";
 import { Eye, GitBranch } from "lucide-react";
 import { PokemonSilhouette } from "@/components/app/PokemonSilhouette";
-import { dexNumber, isNewDiscovery, type DexCell as Cell } from "@/lib/dex/collection";
-import { toId } from "@/lib/dex/snapshot";
-import { isPokemonType } from "@/lib/pokemon-types";
+import { cellTypeVar, dexNumber, isNewDiscovery, type DexCell as Cell } from "@/lib/dex/collection";
 import { cn } from "@/lib/utils";
 import "./DexCell.css";
 
@@ -12,11 +10,14 @@ import "./DexCell.css";
  * principal, sprite, nombre, indicador de origen (visto / evolución) y etiqueta "NUEVO" si se
  * descubrió en los últimos 7 días. Sin descubrir = silueta más apagada y oscura.
  */
-export function DexCell({ cell, onOpen, compact = false }: { cell: Cell; onOpen: (cell: Cell) => void; compact?: boolean }) {
+/**
+ * `inBento`: la casilla vive dentro de una tarjeta de `MagicBento`, que ya pone superficie, borde,
+ * luz y brillo; la casilla solo aporta el halo del tipo y el contenido.
+ */
+export function DexCell({ cell, onOpen, compact = false, inBento = false }: { cell: Cell; onOpen: (cell: Cell) => void; compact?: boolean; inBento?: boolean }) {
   const discovered = cell.status !== "unknown";
   const isNew = discovered && isNewDiscovery(cell);
-  const rawType = toId(cell.species.types[0] ?? "");
-  const typeVar = isPokemonType(rawType) ? `var(--type-${rawType})` : "var(--primary)";
+  const typeVar = cellTypeVar(cell);
 
   const body = (
     <>
@@ -51,14 +52,15 @@ export function DexCell({ cell, onOpen, compact = false }: { cell: Cell; onOpen:
   );
 
   const base = cn(
-    "relative flex size-full min-h-11 min-w-0 flex-col items-center gap-1 overflow-hidden rounded-2xl border [content-visibility:auto] [contain-intrinsic-size:auto_9.5rem]",
+    "relative flex size-full min-h-11 min-w-0 flex-col items-center gap-1 overflow-hidden [content-visibility:auto] [contain-intrinsic-size:auto_9.5rem]",
+    !inBento && "rounded-2xl border",
     compact ? "p-2" : "p-3",
   );
 
   if (!discovered) {
     return (
       <div
-        className={cn(base, "border-border/60 bg-muted/45 dark:bg-background/70")}
+        className={cn(base, !inBento && "border-border/60 bg-muted/45 dark:bg-background/70")}
         aria-label={`${dexNumber(cell.num)} sin descubrir`}
       >
         {body}
@@ -74,7 +76,8 @@ export function DexCell({ cell, onOpen, compact = false }: { cell: Cell; onOpen:
       style={{ "--cell-type": typeVar } as CSSProperties}
       className={cn(
         base,
-        "dex-cell-discovered bg-card shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "dex-cell-discovered outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        inBento ? "dex-cell-in-bento focus-visible:ring-inset" : "bg-card shadow-sm",
       )}
     >
       {body}

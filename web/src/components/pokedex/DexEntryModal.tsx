@@ -1,9 +1,10 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { ResponsiveSheet } from "@/components/app/ResponsiveSheet";
 import { TypeBadges } from "@/components/app/TypeBadge";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { isPokemonType } from "@/lib/pokemon-types";
 import { dexNumber, type DexCell } from "@/lib/dex/collection";
 import { aggregateCellPlayerStats } from "@/lib/dex/player-stats";
 import { speciesById, toId } from "@/lib/dex/snapshot";
@@ -43,6 +44,10 @@ function EntryBody({
   );
   const playerStatsLoading = cell.status === "seen" && !!username && !!playerStatsQuery.isPending;
   const moveType = useCallback((move: string) => details.data?.moves[toId(move)]?.type, [details.data]);
+  // Los acentos de la ficha (brillo de los mosaicos, textos y bordes en `primary`) toman el color del tipo principal.
+  const mainType = toId(sp.types[0] ?? "");
+  // Sin tipo reconocido no se redefine (`--primary: var(--primary)` sería un ciclo y anularía el acento).
+  const accent = isPokemonType(mainType) ? ({ "--primary": `var(--type-${mainType})` } as CSSProperties) : undefined;
 
   const card = (
     <FlippableDexCard
@@ -52,7 +57,7 @@ function EntryBody({
       entry={leagueStats.data}
       playerStats={playerStats}
       isOwn={isOwn}
-      width={wide ? 184 : 170}
+      width={wide ? 220 : 170}
       moveType={moveType}
     />
   );
@@ -85,12 +90,12 @@ function EntryBody({
 
   if (!wide) {
     return (
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3" style={accent}>
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-card-mono text-footnote text-muted-foreground tabular">{dexNumber(cell.num)}</span>
           <TypeBadges types={sp.types.join(" / ")} />
         </div>
-        <div className="flex justify-center">{card}</div>
+        <div className="flex justify-center py-2">{card}</div>
         {bento}
         {link}
       </div>
@@ -98,8 +103,8 @@ function EntryBody({
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-[auto_minmax(0,1fr)] md:items-start">
-      <div className="flex justify-center">{card}</div>
+    <div className="grid gap-5 md:grid-cols-[auto_minmax(0,1fr)] md:items-start" style={accent}>
+      <div className="flex justify-center py-3">{card}</div>
       <div className="flex min-w-0 flex-col gap-2.5">
         <div className="pr-7">
           <div className="flex flex-wrap items-baseline gap-2">
@@ -128,7 +133,7 @@ export function DexEntryModal({ cell, onClose, username, isOwn = true }: DexEntr
         if (!open) onClose();
       }}
       title={cell.species.name}
-      className="sm:max-w-[600px] [&_[data-slot=dialog-header]]:sr-only"
+      className="sm:max-w-[760px] [&_[data-slot=dialog-header]]:sr-only"
     >
       <EntryBody cell={cell} username={username} isOwn={isOwn} wide={wide} />
     </ResponsiveSheet>

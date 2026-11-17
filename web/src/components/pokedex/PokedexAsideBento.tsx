@@ -68,6 +68,8 @@ export function PokedexAsideBento({ progress, viewing, me }: Props) {
       minColumns={1}
       rowHeight={0}
       gap={12}
+      // Mismo brillo neutro que las casillas sin descubrir de la grilla.
+      glowColor="var(--muted-foreground)"
       role="group"
       aria-label="Resumen de la Pokédex"
     />

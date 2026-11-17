@@ -135,6 +135,8 @@ bats/
 │       ├── ban.py          # /api/ban/* (check-user, submit, ranking, status)
 │       ├── etl_cleaner.py  # /api/etl/* (limpieza de datos)
 │       ├── leaguesettings.py # /api/league/* (config de liga)
+│       ├── player_pokedex.py # /api/players/{username}/pokedex(/stats) y /api/stats/collectors (Pokédex por cuenta)
+│       ├── pokemon_stats.py  # /api/stats/pokemon* (uso y ficha estadística por especie)
 │       ├── seasons.py      # /api/admin/seasons/* (CRUD temporadas + bans oficiales)
 │       ├── stats.py        # /api/stats/* (mvp, pickrate, leaderboard, bot battles)
 │       └── teams.py        # /api/teams/* (registro y gestión de equipos)
@@ -480,10 +482,11 @@ with BATSDatabase() as db:
 5. INSERT battle.fact_battles
 6. INSERT battle.fact_pokemon_performance (pokémon activos)
 7. INSERT fact_pokemon_performance (pokémon de banca, was_active=FALSE)
-8. Detectar violaciones de ban (_detect_ban_violations)
-9. Detectar violaciones de equipo (_detect_team_violations)
-10. Registrar en battle.etl_log con status="ok"
-11. COMMIT
+8. Registrar avistamientos en tournament.pokedex_seen (_record_pokedex_seen: solo formato de liga, sin bot, solo was_active)
+9. Detectar violaciones de ban (_detect_ban_violations)
+10. Detectar violaciones de equipo (_detect_team_violations)
+11. Registrar en battle.etl_log con status="ok"
+12. COMMIT
 ```
 
 **Fórmula MVP en el ETL:**
